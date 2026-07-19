@@ -1,0 +1,6 @@
+# Single-app repo (not a multi-package monorepo).
+# This file only configures pnpm build-script allowlist.
+allowBuilds:
+  sharp: true
+  unrs-resolver: true
+  esbuild: true
