@@ -17,6 +17,11 @@ import {
   MAX_VEHICLE_IMAGE_BYTES,
   MAX_VEHICLE_IMAGES,
 } from "@/modules/inventory/domain/vehicle-media-rules";
+import {
+  mediaOrderIds,
+  moveCoverToFront,
+  moveMediaItem,
+} from "@/modules/inventory/domain/vehicle-media-order";
 import { Button } from "@/shared/ui/button";
 
 type Props = {
@@ -59,6 +64,8 @@ export function VehicleImageGallery({
 }: Props) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const imagesRef = useRef(images);
+  imagesRef.current = images;
   const [dragOver, setDragOver] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -228,29 +235,28 @@ export function VehicleImageGallery({
     }
   }
 
-  function moveItem(from: number, to: number) {
-    if (to < 0 || to >= images.length || from === to) return;
-    const next = [...images];
-    const [item] = next.splice(from, 1);
-    if (!item) return;
-    next.splice(to, 0, item);
-    onImagesChange(next);
-  }
-
-  function persistOrder() {
-    if (busy) return;
+  function persistOrder(ordered: VehicleMediaItem[], successMessage: string) {
     startTransition(async () => {
       const result = await reorderVehicleImagesAction({
         vehicleId,
-        orderedMediaAssetIds: images.map((item) => item.media_asset_id),
+        orderedMediaAssetIds: mediaOrderIds(ordered),
       });
       if (!result.ok) {
         setError(result.error);
         return;
       }
-      setMessage(result.message);
+      setMessage(successMessage);
       refresh();
     });
+  }
+
+  function moveItem(from: number, to: number) {
+    if (busy) return;
+    const next = moveMediaItem(imagesRef.current, from, to);
+    if (next === imagesRef.current) return;
+    setError(null);
+    onImagesChange(next);
+    persistOrder(next, "Orden guardado.");
   }
 
   function setCover(mediaAssetId: string) {
@@ -261,13 +267,9 @@ export function VehicleImageGallery({
         setError(result.error);
         return;
       }
-      onImagesChange(
-        images.map((item) => ({
-          ...item,
-          is_cover: item.media_asset_id === mediaAssetId,
-        })),
-      );
-      setMessage(result.message);
+      const next = moveCoverToFront(imagesRef.current, mediaAssetId);
+      onImagesChange(next);
+      setMessage("Portada actualizada y movida al inicio.");
       refresh();
     });
   }
@@ -288,7 +290,7 @@ export function VehicleImageGallery({
         return;
       }
       onImagesChange(
-        images.filter((item) => item.media_asset_id !== mediaAssetId),
+        imagesRef.current.filter((item) => item.media_asset_id !== mediaAssetId),
       );
       setMessage(result.message);
       refresh();
@@ -415,11 +417,15 @@ export function VehicleImageGallery({
         <p className="text-sm text-ink-muted">Aún no hay fotografías.</p>
       ) : (
         <>
+          <p className="text-xs text-ink-muted">
+            Usa ↑ ↓ o arrastra para reordenar. El orden se guarda al instante. La
+            portada queda siempre como primera foto en la ficha.
+          </p>
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {images.map((image, index) => (
               <li
                 key={image.media_asset_id}
-                draggable
+                draggable={!busy}
                 onDragStart={() => setDragIndex(index)}
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={() => {
@@ -483,14 +489,6 @@ export function VehicleImageGallery({
               </li>
             ))}
           </ul>
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={busy}
-            onClick={persistOrder}
-          >
-            Guardar orden
-          </Button>
         </>
       )}
     </div>

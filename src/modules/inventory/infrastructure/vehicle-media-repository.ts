@@ -492,12 +492,40 @@ export function createVehicleMediaRepository(
           `No se pudo marcar la portada: ${error?.message ?? "imagen no encontrada"}`,
         );
       }
+
+      // Portada = primera en galería pública/preview (position 0).
+      const items = await this.listVehicleMedia(input.vehicleId);
+      const orderedIds = [
+        input.mediaAssetId,
+        ...items
+          .map((item) => item.media_asset_id)
+          .filter((id) => id !== input.mediaAssetId),
+      ];
+      await this.reorderMedia({
+        vehicleId: input.vehicleId,
+        orderedMediaAssetIds: orderedIds,
+      });
     },
 
     async reorderMedia(input: {
       vehicleId: string;
       orderedMediaAssetIds: string[];
     }): Promise<void> {
+      // Two-phase write avoids collisions if a unique (vehicle_id, position)
+      // constraint is added later, and keeps partial updates safer.
+      const offset = input.orderedMediaAssetIds.length + 1000;
+      for (let index = 0; index < input.orderedMediaAssetIds.length; index += 1) {
+        const mediaAssetId = input.orderedMediaAssetIds[index];
+        if (!mediaAssetId) continue;
+        const { error } = await client
+          .from("vehicle_media")
+          .update({ position: offset + index })
+          .eq("vehicle_id", input.vehicleId)
+          .eq("media_asset_id", mediaAssetId);
+        if (error) {
+          throw new Error(`No se pudo guardar el orden: ${error.message}`);
+        }
+      }
       for (let index = 0; index < input.orderedMediaAssetIds.length; index += 1) {
         const mediaAssetId = input.orderedMediaAssetIds[index];
         if (!mediaAssetId) continue;

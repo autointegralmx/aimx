@@ -7,9 +7,11 @@ import type { Database } from "@/shared/lib/database.types";
 import type { VehicleMediaItem } from "@/modules/inventory/infrastructure/vehicle-media-repository";
 import {
   publishVehicleAction,
+  reorderVehicleImagesAction,
   unpublishVehicleAction,
   updateVehicleAction,
 } from "@/modules/inventory/application/vehicle-actions";
+import { mediaOrderIds } from "@/modules/inventory/domain/vehicle-media-order";
 import {
   DAMAGE_TAG_GROUPS,
   type AirbagsStatus,
@@ -381,6 +383,16 @@ export function VehicleForm({ vehicle, images }: Props) {
     };
   }
 
+  async function persistMediaOrder(): Promise<{ ok: true } | { ok: false; error: string }> {
+    if (mediaItems.length === 0) return { ok: true };
+    const result = await reorderVehicleImagesAction({
+      vehicleId: vehicle.id,
+      orderedMediaAssetIds: mediaOrderIds(mediaItems),
+    });
+    if (!result.ok) return { ok: false, error: result.error };
+    return { ok: true };
+  }
+
   function goPreview() {
     if (pending) return;
     if (!dirty) {
@@ -391,6 +403,11 @@ export function VehicleForm({ vehicle, images }: Props) {
     setMessage(null);
     setFieldErrors({});
     startTransition(async () => {
+      const orderResult = await persistMediaOrder();
+      if (!orderResult.ok) {
+        setError(orderResult.error);
+        return;
+      }
       const result = await updateVehicleAction(buildPayload());
       if (!result.ok) {
         setError(
@@ -415,6 +432,11 @@ export function VehicleForm({ vehicle, images }: Props) {
     setMessage(null);
     setFieldErrors({});
     startTransition(async () => {
+      const orderResult = await persistMediaOrder();
+      if (!orderResult.ok) {
+        setError(orderResult.error);
+        return;
+      }
       const result = await updateVehicleAction(buildPayload());
       if (!result.ok) {
         setError(result.error);
@@ -438,6 +460,11 @@ export function VehicleForm({ vehicle, images }: Props) {
     setError(null);
     setMessage(null);
     startTransition(async () => {
+      const orderResult = await persistMediaOrder();
+      if (!orderResult.ok) {
+        setError(orderResult.error);
+        return;
+      }
       const saved = await updateVehicleAction(buildPayload());
       if (!saved.ok) {
         setError(saved.error);
