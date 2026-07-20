@@ -906,7 +906,7 @@ export function VehicleForm({ vehicle, images }: Props) {
             >
               <option value="draft">Borrador</option>
               <option value="available">Disponible</option>
-              <option value="reserved">Reservado</option>
+              <option value="reserved">Apartado</option>
               <option value="sold">Vendido</option>
               <option value="archived">No disponible</option>
             </select>

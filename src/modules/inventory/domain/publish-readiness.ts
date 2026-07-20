@@ -36,10 +36,10 @@ export function getPublishBlockers(
   if (!input.slug?.trim()) {
     blockers.push({ code: "slug", message: "Define un slug válido." });
   }
-  if (input.status !== "available" && input.status !== "reserved") {
+  if (input.status !== "available" && input.status !== "reserved" && input.status !== "sold") {
     blockers.push({
       code: "status",
-      message: "El estado debe ser Disponible o Reservado.",
+      message: "El estado debe ser Disponible, Apartado o Vendido.",
     });
   }
   if (input.image_count < 1) {

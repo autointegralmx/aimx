@@ -144,8 +144,27 @@ describe("admin vehicle actions by status", () => {
 
   it("sold and archived actions", () => {
     expect(
+      getValidAdminVehicleActions({ status: "sold", is_published: true }),
+    ).toEqual([
+      "edit",
+      "view_public",
+      "make_available",
+      "reserve",
+      "unpublish",
+      "duplicate",
+      "archive",
+      "delete_permanently",
+    ]);
+    expect(
       getValidAdminVehicleActions({ status: "sold", is_published: false }),
-    ).toEqual(["edit", "duplicate", "archive", "delete_permanently"]);
+    ).toEqual([
+      "edit",
+      "make_available",
+      "reserve",
+      "duplicate",
+      "archive",
+      "delete_permanently",
+    ]);
     expect(
       getValidAdminVehicleActions({ status: "archived", is_published: false }),
     ).toEqual(["edit", "duplicate", "delete_permanently"]);
@@ -194,12 +213,11 @@ describe("lifecycle patches", () => {
     expect(patch.is_published).toBe(false);
   });
 
-  it("mark sold clears public flags", () => {
+  it("mark sold keeps public visibility and clears auction", () => {
     const patch = buildMarkSoldPatch(base);
     expect(patch).toMatchObject({
       status: "sold",
-      is_published: false,
-      is_featured: false,
+      is_published: true,
       is_weekly_opportunity: false,
     });
   });

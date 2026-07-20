@@ -107,10 +107,14 @@ export function buildMakeAvailablePatch(
 }
 
 export function buildMarkSoldPatch(current: FlagSource): VehicleLifecyclePatch {
+  // Keep unit on the public catalog with a Vendido badge.
+  const keepPublic =
+    current.is_published ||
+    current.status === "available" ||
+    current.status === "reserved";
   return applyNormalized(current, {
     status: "sold",
-    is_published: false,
-    is_featured: false,
+    is_published: keepPublic,
     is_weekly_opportunity: false,
   });
 }

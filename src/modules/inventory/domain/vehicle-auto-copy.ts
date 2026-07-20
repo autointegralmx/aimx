@@ -91,7 +91,7 @@ export function buildAutoShortDescription(input: AutoCopySource): string {
     input.status === "available"
       ? "Disponible."
       : input.status === "reserved"
-        ? "Reservado."
+        ? "Apartado."
         : null;
   const parts = [
     identity ? `${identity}.` : null,

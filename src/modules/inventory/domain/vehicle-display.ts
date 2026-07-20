@@ -241,7 +241,7 @@ export function buildInfoFacts(input: {
     facts.push(`Tenencias: ${tenencias}`);
   }
   if (input.status === "available") facts.push("Disponible");
-  if (input.status === "reserved") facts.push("Reservado");
+  if (input.status === "reserved") facts.push("Apartado");
   return uniquePreserveOrder(facts);
 }
 
@@ -329,7 +329,7 @@ export function buildStructuredPublicDescription(input: {
     lines.push(`Motor a ${fuel.toLowerCase()}.`);
   }
   if (input.status === "available") lines.push("Disponible.");
-  if (input.status === "reserved") lines.push("Reservado.");
+  if (input.status === "reserved") lines.push("Apartado.");
   const tags = (input.damage_tags ?? []).filter(Boolean);
   if (tags.length > 0) {
     lines.push("Daños registrados:");

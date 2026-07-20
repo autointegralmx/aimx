@@ -5,7 +5,7 @@ type Size = "card" | "detail";
 
 /**
  * Large availability badge overlaid on vehicle photography.
- * Makes Disponible / Vendido / Reservado impossible to miss.
+ * Makes Disponible / Apartado / Vendido impossible to miss.
  */
 export function VehicleAvailabilityBadge({
   status,

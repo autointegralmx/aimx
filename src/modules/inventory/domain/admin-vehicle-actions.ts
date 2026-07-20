@@ -21,7 +21,7 @@ const ACTION_LABELS: Record<AdminVehicleAction, string> = {
   edit: "Editar",
   view_public: "Ver públicamente",
   duplicate: "Duplicar",
-  reserve: "Marcar como reservado",
+  reserve: "Marcar como apartado",
   make_available: "Volver a disponible",
   mark_sold: "Marcar como vendido",
   unpublish: "Despublicar",
@@ -65,8 +65,14 @@ export function getValidAdminVehicleActions(
       actions.push("duplicate", "archive", "delete_permanently");
       return actions;
     }
-    case "sold":
-      return ["edit", "duplicate", "archive", "delete_permanently"];
+    case "sold": {
+      const actions: AdminVehicleAction[] = ["edit"];
+      if (vehicle.is_published) actions.push("view_public");
+      actions.push("make_available", "reserve");
+      if (vehicle.is_published) actions.push("unpublish");
+      actions.push("duplicate", "archive", "delete_permanently");
+      return actions;
+    }
     case "archived":
       return ["edit", "duplicate", "delete_permanently"];
   }
@@ -90,7 +96,7 @@ export function adminActionConfirmationCopy(
     case "mark_sold":
       return {
         title: "Marcar como vendido",
-        body: "Este vehículo dejará de mostrarse públicamente y se retirará de En subasta. ¿Deseas continuar?",
+        body: "Seguirá visible en el catálogo público con el letrero VENDIDO. Se retirará de En subasta. ¿Deseas continuar?",
         confirmLabel: "Marcar vendido",
       };
     case "archive":

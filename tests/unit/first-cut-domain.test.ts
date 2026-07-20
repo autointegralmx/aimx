@@ -108,8 +108,9 @@ describe("vehicle status machine", () => {
     expect(canTransitionVehicleStatus("available", "reserved")).toBe(true);
   });
 
-  it("blocks sold → available", () => {
-    expect(canTransitionVehicleStatus("sold", "available")).toBe(false);
+  it("allows sold → available and sold → reserved", () => {
+    expect(canTransitionVehicleStatus("sold", "available")).toBe(true);
+    expect(canTransitionVehicleStatus("sold", "reserved")).toBe(true);
   });
 });
 
@@ -128,7 +129,7 @@ describe("publication flags (A1)", () => {
     });
   });
 
-  it("clears opportunity when sold", () => {
+  it("keeps sold published and clears auction only", () => {
     expect(
       normalizeVehiclePublicationFlags({
         status: "sold",
@@ -137,7 +138,8 @@ describe("publication flags (A1)", () => {
         is_weekly_opportunity: true,
       }),
     ).toMatchObject({
-      is_published: false,
+      is_published: true,
+      is_featured: true,
       is_weekly_opportunity: false,
     });
   });

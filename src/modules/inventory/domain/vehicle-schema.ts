@@ -193,11 +193,15 @@ function refineVehicleWrite(
   ctx: z.RefinementCtx,
 ) {
   if (value.is_published) {
-    if (value.status !== "available" && value.status !== "reserved") {
+    if (
+      value.status !== "available" &&
+      value.status !== "reserved" &&
+      value.status !== "sold"
+    ) {
       ctx.addIssue({
         code: "custom",
         path: ["status"],
-        message: "Solo available o reserved pueden publicarse.",
+        message: "Solo available, reserved o sold pueden publicarse.",
       });
     }
     // public_title / short_description are auto-filled before publish when empty.

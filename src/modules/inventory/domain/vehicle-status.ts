@@ -5,7 +5,7 @@ const transitions: Record<VehicleStatus, readonly VehicleStatus[]> = {
   draft: ["available", "archived"],
   available: ["reserved", "sold", "archived", "draft"],
   reserved: ["available", "sold", "archived"],
-  sold: ["archived"],
+  sold: ["available", "reserved", "archived"],
   archived: ["draft"],
 };
 
@@ -55,8 +55,8 @@ export function normalizeVehiclePublicationFlags(
     next.is_weekly_opportunity = false;
   }
 
+  // Sold stays publicly visible (with Vendido badge). Only leave auction.
   if (next.status === "sold") {
-    next.is_published = false;
     next.is_weekly_opportunity = false;
   }
 
@@ -67,7 +67,11 @@ export function normalizeVehiclePublicationFlags(
   }
 
   if (next.is_published) {
-    if (next.status !== "available" && next.status !== "reserved") {
+    if (
+      next.status !== "available" &&
+      next.status !== "reserved" &&
+      next.status !== "sold"
+    ) {
       next.is_published = false;
     }
   }
@@ -106,8 +110,8 @@ export function assertCanPublish(input: {
   if (!input.category) {
     throw new Error("Publish requires category");
   }
-  if (input.status !== "available" && input.status !== "reserved") {
-    throw new Error("Publish requires status available or reserved");
+  if (input.status !== "available" && input.status !== "reserved" && input.status !== "sold") {
+    throw new Error("Publish requires status available, reserved, or sold");
   }
   if (!input.slug?.trim()) {
     throw new Error("Publish requires slug");
@@ -135,7 +139,16 @@ export function isActiveOpportunity(input: {
 export const vehicleStatusLabel: Record<VehicleStatus, string> = {
   draft: "Borrador",
   available: "Disponible",
-  reserved: "Reservado",
+  reserved: "Apartado",
   sold: "Vendido",
   archived: "Archivado",
+};
+
+/** Public overlay labels (large badge on photos). */
+export const vehiclePublicAvailabilityLabel: Partial<
+  Record<VehicleStatus, string>
+> = {
+  available: "Disponible",
+  reserved: "Apartado",
+  sold: "Vendido",
 };
