@@ -8,6 +8,8 @@ import {
 } from "@/modules/inventory/application/public-queries";
 import { VehicleCard } from "@/modules/inventory/ui/public-vehicle-card";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Oportunidades",
   description:

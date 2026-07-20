@@ -131,6 +131,25 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 # SUPABASE_SERVICE_ROLE_KEY=eyJ...
 ```
 
+### Vercel (obligatorio para deploy)
+
+Si el build falla con `Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY`:
+
+1. Vercel → Project → **Settings → Environment Variables**
+2. Agregar para **Production** y **Preview**:
+
+| Name | Value |
+|------|--------|
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://PROJECT_REF.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon key del Dashboard |
+| `NEXT_PUBLIC_SITE_URL` | URL del sitio en Vercel (ej. `https://….vercel.app`) |
+| `NEXT_PUBLIC_WHATSAPP_NUMBER` | número internacional |
+
+3. **No** agregues `SUPABASE_SERVICE_ROLE_KEY` con prefijo `NEXT_PUBLIC_`.
+4. **Redeploy** (Deployments → … → Redeploy) tras guardar las variables.
+
+Las páginas de inventario son `force-dynamic` (datos en vivo); aun así **requieren** esas variables en runtime.
+
 Reiniciar:
 
 ```bash

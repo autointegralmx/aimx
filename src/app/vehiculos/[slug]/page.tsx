@@ -7,6 +7,8 @@ import {
   publicVehicleMetadata,
 } from "@/modules/inventory/ui/public-vehicle-detail";
 
+export const dynamic = "force-dynamic";
+
 const reserved = new Set(["accidentados", "recuperados", "seminuevos"]);
 
 export async function generateMetadata({
