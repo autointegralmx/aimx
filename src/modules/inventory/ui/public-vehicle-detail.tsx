@@ -114,9 +114,9 @@ export function PublicVehicleDetail({
               {vm.priceLabel}
             </p>
 
-            <span className="hidden md:inline">
+            <div className="hidden md:block">
               <VehicleSoldStatusChip status={vehicle.status} />
-            </span>
+            </div>
 
             {vm.auction.active ? (
               <div className="border border-border-subtle bg-surface-secondary px-4 py-3">

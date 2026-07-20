@@ -93,7 +93,7 @@ export function VehicleSoldStatusChip({
 
   return (
     <span
-      className={`mt-1 inline-flex animate-[ai-sold-fade_200ms_ease-out] items-center rounded-md px-2.5 py-1.5 text-xs font-medium ${tone}`}
+      className={`inline-flex animate-[ai-sold-fade_200ms_ease-out] items-center rounded-md px-3 py-2 text-xs font-medium ${tone}`}
       aria-label={label}
     >
       {label}
