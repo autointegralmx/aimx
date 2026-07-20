@@ -284,7 +284,10 @@ export async function publishVehicleUseCase(
     profile.id,
   );
 
-  const patch = buildPublishPatch(vehicle, new Date().toISOString());
+  // Re-read so En subasta / deadline from the preceding Guardar are not lost.
+  const latest =
+    (await ctx.repo.getAdminVehicleById(id)) ?? vehicle;
+  const patch = buildPublishPatch(latest, new Date().toISOString());
   const updated = await ctx.repo.applyLifecyclePatch(id, patch, profile.id);
   await writeAuditEvent(ctx.client, {
     actorId: profile.id,

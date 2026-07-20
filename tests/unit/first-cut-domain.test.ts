@@ -175,6 +175,21 @@ describe("publication flags (A1)", () => {
     });
   });
 
+  it("keeps auction intent on available unpublished (pre-publish)", () => {
+    expect(
+      normalizeVehiclePublicationFlags({
+        status: "available",
+        is_published: false,
+        is_featured: true,
+        is_weekly_opportunity: true,
+      }),
+    ).toMatchObject({
+      is_published: false,
+      is_weekly_opportunity: true,
+      is_featured: true,
+    });
+  });
+
   it("keeps published available opportunity", () => {
     expect(
       normalizeVehiclePublicationFlags({

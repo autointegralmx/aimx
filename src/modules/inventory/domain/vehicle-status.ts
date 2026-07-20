@@ -76,11 +76,10 @@ export function normalizeVehiclePublicationFlags(
     }
   }
 
+  // Allow auction intent while unpublished (admin can check En subasta before
+  // Publicar). Public lists still require is_published.
   if (next.is_weekly_opportunity) {
-    if (
-      !next.is_published ||
-      (next.status !== "available" && next.status !== "reserved")
-    ) {
+    if (next.status !== "available" && next.status !== "reserved") {
       next.is_weekly_opportunity = false;
     }
   }

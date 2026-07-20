@@ -19,6 +19,7 @@ import {
   buildArchivePatch,
   buildMakeAvailablePatch,
   buildMarkSoldPatch,
+  buildPublishPatch,
   buildReservePatch,
   buildUnpublishPatch,
 } from "@/modules/inventory/domain/vehicle-lifecycle";
@@ -281,6 +282,22 @@ describe("lifecycle patches", () => {
     expect(patch.is_published).toBe(false);
     expect(patch.is_weekly_opportunity).toBe(false);
     expect(patch.is_featured).toBe(true);
+  });
+
+  it("publish keeps auction intent that was set while unpublished", () => {
+    const patch = buildPublishPatch(
+      {
+        ...base,
+        is_published: false,
+        is_weekly_opportunity: true,
+        published_at: null,
+        opportunity_deadline: "2026-07-26T12:00:00.000Z",
+      },
+      "2026-07-20T18:00:00.000Z",
+    );
+    expect(patch.is_published).toBe(true);
+    expect(patch.is_weekly_opportunity).toBe(true);
+    expect(patch.published_at).toBe("2026-07-20T18:00:00.000Z");
   });
 });
 
