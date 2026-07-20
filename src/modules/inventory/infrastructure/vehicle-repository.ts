@@ -200,6 +200,7 @@ export function createVehicleRepository(
       const asset = row.media_assets;
       if (!asset || Array.isArray(asset)) continue;
       if (asset.deleted_at) continue;
+      if (!asset.bucket || !asset.object_path) continue;
       map.set(
         row.vehicle_id,
         publicStorageUrl(supabaseUrl, asset.bucket, asset.object_path),

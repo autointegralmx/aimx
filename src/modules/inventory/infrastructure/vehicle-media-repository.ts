@@ -43,8 +43,8 @@ export function createVehicleMediaRepository(
     is_cover: boolean;
     media_assets:
       | {
-          bucket: string;
-          object_path: string;
+          bucket: string | null;
+          object_path: string | null;
           original_filename: string;
           mime_type: string;
           byte_size: number;
@@ -58,6 +58,8 @@ export function createVehicleMediaRepository(
   }): VehicleMediaItem | null {
     const asset = row.media_assets;
     if (!asset || Array.isArray(asset) || asset.deleted_at) return null;
+    // Phase 1: display path still Supabase Storage only.
+    if (!asset.bucket || !asset.object_path) return null;
     return {
       media_asset_id: row.media_asset_id,
       vehicle_id: row.vehicle_id,

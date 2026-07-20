@@ -177,47 +177,65 @@ export type Database = {
       media_assets: {
         Row: {
           alt_text: string | null
-          bucket: string
+          bucket: string | null
           byte_size: number
           checksum: string | null
           created_at: string
           created_by: string | null
           deleted_at: string | null
+          format: string | null
           height: number | null
           id: string
           mime_type: string
-          object_path: string
+          object_path: string | null
           original_filename: string
+          provider: string
+          public_id: string | null
+          resource_type: string | null
+          secure_url: string | null
+          version: number | null
           width: number | null
         }
         Insert: {
           alt_text?: string | null
-          bucket: string
+          bucket?: string | null
           byte_size: number
           checksum?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
+          format?: string | null
           height?: number | null
           id?: string
           mime_type: string
-          object_path: string
+          object_path?: string | null
           original_filename: string
+          provider?: string
+          public_id?: string | null
+          resource_type?: string | null
+          secure_url?: string | null
+          version?: number | null
           width?: number | null
         }
         Update: {
           alt_text?: string | null
-          bucket?: string
+          bucket?: string | null
           byte_size?: number
           checksum?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
+          format?: string | null
           height?: number | null
           id?: string
           mime_type?: string
-          object_path?: string
+          object_path?: string | null
           original_filename?: string
+          provider?: string
+          public_id?: string | null
+          resource_type?: string | null
+          secure_url?: string | null
+          version?: number | null
           width?: number | null
         }
         Relationships: [

@@ -1,5 +1,6 @@
 # Auto Integral — ignore
 node_modules
+.pnpm-store
 .next
 out
 dist

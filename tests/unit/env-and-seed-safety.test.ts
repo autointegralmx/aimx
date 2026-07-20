@@ -12,6 +12,8 @@ describe("env and seed safety", () => {
     expect(example).toMatch(/NEXT_PUBLIC_SUPABASE_URL=/);
     expect(example).toMatch(/NEXT_PUBLIC_SUPABASE_ANON_KEY=/);
     expect(example).toMatch(/NEXT_PUBLIC_WHATSAPP_NUMBER=/);
+    expect(example).not.toMatch(/NEXT_PUBLIC_CLOUDINARY_API_SECRET/);
+    expect(example).not.toMatch(/NEXT_PUBLIC_CLOUDINARY_API_KEY/);
   });
 
   it("browser and middleware clients use anon key only", () => {

@@ -131,6 +131,7 @@ export async function deleteVehiclePermanently(
     mediaAssetIds.push(row.media_asset_id);
     const asset = row.media_assets;
     if (!asset || Array.isArray(asset)) continue;
+    if (!asset.bucket || !asset.object_path) continue;
     const key = `${asset.bucket}:${asset.object_path}`;
     if (seenPaths.has(key)) continue;
     seenPaths.add(key);
