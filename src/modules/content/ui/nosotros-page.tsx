@@ -98,23 +98,29 @@ export function NosotrosPageView() {
                     </ul>
                   </Reveal>
 
-                  <Reveal delayMs={120} className="order-1 lg:order-2">
-                    <div className="grid gap-8 border-y border-border-subtle bg-surface-primary/70 px-5 py-8 sm:grid-cols-3 sm:gap-6 sm:px-6 sm:py-10">
-                      <AnimatedStat
-                        prefix="+"
-                        value={10}
-                        label="Años de experiencia"
-                      />
-                      <AnimatedStat
-                        prefix="+"
-                        value={1000}
-                        label="Clientes asesorados"
-                      />
-                      <AnimatedStat
-                        value={100}
-                        suffix="%"
-                        label="Compra legal y transparente"
-                      />
+                  <Reveal delayMs={120} className="order-1 min-w-0 lg:order-2">
+                    <div className="grid grid-cols-1 gap-8 overflow-hidden border-y border-border-subtle bg-surface-primary/70 px-5 py-8 sm:grid-cols-3 sm:gap-4 sm:px-5 sm:py-10 md:gap-5 md:px-6">
+                      <div className="min-w-0">
+                        <AnimatedStat
+                          prefix="+"
+                          value={10}
+                          label="Años de experiencia"
+                        />
+                      </div>
+                      <div className="min-w-0 sm:border-l sm:border-border-subtle sm:pl-4 md:pl-5">
+                        <AnimatedStat
+                          prefix="+"
+                          value={1000}
+                          label="Clientes asesorados"
+                        />
+                      </div>
+                      <div className="min-w-0 sm:border-l sm:border-border-subtle sm:pl-4 md:pl-5">
+                        <AnimatedStat
+                          value={100}
+                          suffix="%"
+                          label="Compra legal y transparente"
+                        />
+                      </div>
                     </div>
                   </Reveal>
                 </div>

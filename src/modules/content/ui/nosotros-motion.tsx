@@ -110,15 +110,13 @@ export function AnimatedStat({
   }, [started, value]);
 
   return (
-    <div ref={ref} className="text-center sm:text-left">
-      <p className="text-[clamp(2.75rem,6vw,3.75rem)] font-extrabold leading-none tracking-tight text-text-primary">
-        <span className="text-brand-red">{prefix}</span>
-        {display.toLocaleString("es-MX")}
-        {suffix ? (
-          <span className="text-brand-red">{suffix}</span>
-        ) : null}
+    <div ref={ref} className="min-w-0 text-center sm:text-left">
+      <p className="flex flex-wrap items-baseline justify-center gap-x-0.5 text-[clamp(2rem,4.2vw,2.75rem)] font-extrabold leading-none tracking-tight text-text-primary tabular-nums sm:justify-start">
+        {prefix ? <span className="text-brand-red">{prefix}</span> : null}
+        <span>{display.toLocaleString("es-MX", { useGrouping: false })}</span>
+        {suffix ? <span className="text-brand-red">{suffix}</span> : null}
       </p>
-      <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary">
+      <p className="mt-3 max-w-[12rem] text-[11px] font-semibold uppercase leading-snug tracking-[0.14em] text-text-secondary sm:mx-0 mx-auto">
         {label}
       </p>
     </div>
