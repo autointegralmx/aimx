@@ -42,7 +42,7 @@ export const ADMIN_VEHICLE_LIST_COLUMNS = [
   "deleted_at",
 ] as const;
 
-export const PUBLIC_VEHICLE_COLUMNS = [
+export const PUBLIC_VEHICLE_BASE_COLUMNS = [
   "id",
   "slug",
   "category",
@@ -77,6 +77,27 @@ export const PUBLIC_VEHICLE_COLUMNS = [
   "created_at",
 ] as const;
 
+export const PUBLIC_VEHICLE_OPERATIONAL_COLUMNS = [
+  "starts_status",
+  "drives_status",
+  "has_keys_status",
+  "airbags_status",
+  "invoice_type",
+  "invoice_entity",
+  "tenencias_label",
+  "verification_status",
+  "publish_observations",
+] as const;
+
+export const PUBLIC_VEHICLE_COLUMNS = [
+  ...PUBLIC_VEHICLE_BASE_COLUMNS,
+  ...PUBLIC_VEHICLE_OPERATIONAL_COLUMNS,
+] as const;
+
+const OPERATIONAL_WRITE_KEYS = [
+  ...PUBLIC_VEHICLE_OPERATIONAL_COLUMNS,
+] as const;
+
 export type AdminVehicleListItem = Pick<
   VehiclesRow,
   (typeof ADMIN_VEHICLE_LIST_COLUMNS)[number]
@@ -90,8 +111,18 @@ export type AdminVehicleDetail = VehiclesRow & {
 
 export type PublicVehicle = Pick<
   VehiclesPublicRow,
-  (typeof PUBLIC_VEHICLE_COLUMNS)[number]
->;
+  (typeof PUBLIC_VEHICLE_BASE_COLUMNS)[number]
+> & {
+  starts_status?: string | null;
+  drives_status?: string | null;
+  has_keys_status?: string | null;
+  airbags_status?: string | null;
+  invoice_type?: string | null;
+  invoice_entity?: string | null;
+  tenencias_label?: string | null;
+  verification_status?: string | null;
+  publish_observations?: boolean | null;
+};
 
 export type ListAdminVehiclesResult = {
   items: AdminVehicleListItem[];
@@ -107,6 +138,38 @@ export type ListPublicVehiclesInput = {
   limit?: number;
   offset?: number;
 };
+
+function isMissingColumnError(message: string): boolean {
+  return /column|does not exist|schema cache/i.test(message);
+}
+
+function normalizePublicVehicle(
+  row: Partial<PublicVehicle> | null | undefined,
+): PublicVehicle | null {
+  if (!row) return null;
+  return {
+    ...row,
+    starts_status: row.starts_status ?? "unknown",
+    drives_status: row.drives_status ?? "unknown",
+    has_keys_status: row.has_keys_status ?? "unknown",
+    airbags_status: row.airbags_status ?? "unknown",
+    invoice_type: row.invoice_type ?? "unknown",
+    invoice_entity: row.invoice_entity ?? null,
+    tenencias_label: row.tenencias_label ?? null,
+    verification_status: row.verification_status ?? "unknown",
+    publish_observations: row.publish_observations ?? true,
+  } as PublicVehicle;
+}
+
+function stripOperationalWriteFields(
+  update: VehiclesUpdate,
+): VehiclesUpdate {
+  const next = { ...update };
+  for (const key of OPERATIONAL_WRITE_KEYS) {
+    delete (next as Record<string, unknown>)[key];
+  }
+  return next;
+}
 
 function publicStorageUrl(
   supabaseUrl: string,
@@ -294,13 +357,30 @@ export function createVehicleRepository(
         update.slug = await ensureUniqueSlug(client, input.slug.trim(), id);
       }
 
-      const { data, error } = await client
+      let { data, error } = await client
         .from("vehicles")
         .update(update)
         .eq("id", id)
         .is("deleted_at", null)
         .select("*")
         .single();
+
+      if (
+        error &&
+        isMissingColumnError(error.message) &&
+        OPERATIONAL_WRITE_KEYS.some((key) => key in update)
+      ) {
+        const fallback = stripOperationalWriteFields(update);
+        const retry = await client
+          .from("vehicles")
+          .update(fallback)
+          .eq("id", id)
+          .is("deleted_at", null)
+          .select("*")
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (error || !data) {
         throw new Error(
@@ -410,39 +490,55 @@ export function createVehicleRepository(
       const limit = input.limit ?? 24;
       const offset = input.offset ?? 0;
 
-      let query = client
-        .from("vehicles_public")
-        .select(PUBLIC_VEHICLE_COLUMNS.join(", "))
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .range(offset, offset + limit - 1);
-
-      if (input.category) {
-        query = query.eq("category", input.category);
+      async function runSelect(columns: string) {
+        let query = client
+          .from("vehicles_public")
+          .select(columns)
+          .order("published_at", { ascending: false, nullsFirst: false })
+          .range(offset, offset + limit - 1);
+        if (input.category) query = query.eq("category", input.category);
+        if (input.featured !== undefined) {
+          query = query.eq("is_featured", input.featured);
+        }
+        return query;
       }
-      if (input.featured !== undefined) {
-        query = query.eq("is_featured", input.featured);
+
+      let { data, error } = await runSelect(PUBLIC_VEHICLE_COLUMNS.join(", "));
+      if (error && isMissingColumnError(error.message)) {
+        ({ data, error } = await runSelect(
+          PUBLIC_VEHICLE_BASE_COLUMNS.join(", "),
+        ));
       }
 
-      const { data, error } = await query;
       if (error) {
         throw new Error(`No se pudo listar vehículos públicos: ${error.message}`);
       }
-      return (data as unknown as PublicVehicle[]) ?? [];
+      return ((data as unknown as PublicVehicle[]) ?? [])
+        .map((row) => normalizePublicVehicle(row))
+        .filter((row): row is PublicVehicle => row != null);
     },
 
     async getPublicVehicleBySlug(
       slug: string,
     ): Promise<PublicVehicle | null> {
-      const { data, error } = await client
+      let { data, error } = await client
         .from("vehicles_public")
         .select(PUBLIC_VEHICLE_COLUMNS.join(", "))
         .eq("slug", slug)
         .maybeSingle();
 
+      if (error && isMissingColumnError(error.message)) {
+        ({ data, error } = await client
+          .from("vehicles_public")
+          .select(PUBLIC_VEHICLE_BASE_COLUMNS.join(", "))
+          .eq("slug", slug)
+          .maybeSingle());
+      }
+
       if (error) {
         throw new Error(`No se pudo cargar el vehículo público: ${error.message}`);
       }
-      return (data as unknown as PublicVehicle | null) ?? null;
+      return normalizePublicVehicle(data as unknown as PublicVehicle | null);
     },
 
     async listActiveOpportunities(input?: {
@@ -453,7 +549,7 @@ export function createVehicleRepository(
       const limit = input?.limit ?? 24;
       const nowIso = now.toISOString();
 
-      const { data, error } = await client
+      let { data, error } = await client
         .from("vehicles_public")
         .select(PUBLIC_VEHICLE_COLUMNS.join(", "))
         .eq("is_weekly_opportunity", true)
@@ -463,14 +559,27 @@ export function createVehicleRepository(
         .order("published_at", { ascending: false, nullsFirst: false })
         .limit(limit);
 
+      if (error && isMissingColumnError(error.message)) {
+        ({ data, error } = await client
+          .from("vehicles_public")
+          .select(PUBLIC_VEHICLE_BASE_COLUMNS.join(", "))
+          .eq("is_weekly_opportunity", true)
+          .or(`opportunity_deadline.is.null,opportunity_deadline.gt.${nowIso}`)
+          .order("featured_order", { ascending: true, nullsFirst: false })
+          .order("opportunity_deadline", { ascending: true, nullsFirst: false })
+          .order("published_at", { ascending: false, nullsFirst: false })
+          .limit(limit));
+      }
+
       if (error) {
         throw new Error(
           `No se pudieron listar oportunidades: ${error.message}`,
         );
       }
 
-      const rows = (data as unknown as PublicVehicle[]) ?? [];
-      // vehicles_public already requires is_published = true
+      const rows = ((data as unknown as PublicVehicle[]) ?? [])
+        .map((row) => normalizePublicVehicle(row))
+        .filter((row): row is PublicVehicle => row != null);
       return rows.filter((row) =>
         isActiveOpportunity({
           is_published: true,

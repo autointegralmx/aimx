@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="es-MX">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Formulario simplificado — fixture visual</title>
+    <style>
+      :root {
+        --ink: #111;
+        --muted: #6b7280;
+        --line: #e5e7eb;
+        --paper: #fff;
+        --red: #c8102e;
+        --bg: #f7f7f5;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+      }
+      .wrap { max-width: 960px; margin: 0 auto; padding: 16px; }
+      .sticky {
+        position: sticky; top: 0; z-index: 2;
+        display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+        padding: 12px 0; margin-bottom: 12px;
+        background: color-mix(in srgb, var(--bg) 95%, transparent);
+        backdrop-filter: blur(8px); border-bottom: 1px solid var(--line);
+      }
+      .btn {
+        min-height: 40px; padding: 0 14px; border-radius: 6px;
+        border: 1px solid var(--line); background: var(--paper); font-weight: 600;
+      }
+      .btn-primary { background: var(--red); color: #fff; border-color: var(--red); }
+      details {
+        border: 1px solid var(--line); border-radius: 8px; background: var(--paper);
+        margin-bottom: 12px;
+      }
+      summary {
+        cursor: pointer; list-style: none; padding: 10px 16px;
+        font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      }
+      .body { padding: 12px 16px 16px; border-top: 1px solid var(--line); }
+      .grid { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+      label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 4px; }
+      input, select, textarea {
+        width: 100%; min-height: 40px; border: 1px solid var(--line); border-radius: 6px;
+        padding: 0 12px; font: inherit; background: #fafafa;
+      }
+      textarea { min-height: 72px; padding: 8px 12px; resize: vertical; }
+      .seg { display: flex; flex-wrap: wrap; gap: 6px; }
+      .chip {
+        min-height: 36px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--line);
+        background: var(--paper); font-size: 12px; font-weight: 600;
+      }
+      .chip.active { background: var(--red); color: #fff; border-color: var(--red); }
+      .tag {
+        border-radius: 999px; border: 1px solid var(--line); padding: 4px 10px; font-size: 12px;
+      }
+      .tag.active { border-color: var(--red); color: var(--red); background: color-mix(in srgb, var(--red) 10%, white); }
+      .muted { color: var(--muted); font-size: 12px; }
+      .opt { font-weight: 400; text-transform: none; letter-spacing: 0; font-size: 11px; color: var(--muted); margin-left: 8px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="sticky">
+        <button class="btn btn-primary" type="button">Guardar</button>
+        <button class="btn" type="button">Publicar</button>
+        <button class="btn" type="button">Vista previa</button>
+        <span class="muted">Volver al detalle</span>
+      </div>
+
+      <details open>
+        <summary>Vehículo</summary>
+        <div class="body grid">
+          <div><label>Marca *</label><input value="Mazda" /></div>
+          <div><label>Modelo *</label><input value="MX-5" /></div>
+          <div><label>Versión</label><input placeholder="Opcional" /></div>
+          <div><label>Año *</label><input value="2025" /></div>
+          <div><label>Categoría *</label><select><option>Accidentados</option></select></div>
+          <div><label>Carrocería</label><select><option>Coupé</option></select></div>
+          <div><label>Color exterior</label><input value="Negro" /></div>
+          <div><label>Kilometraje</label><input placeholder="Vacío = por confirmar" /></div>
+          <div><label>Transmisión</label><select><option>Manual</option></select></div>
+          <div><label>Combustible</label><select><option>Gasolina</option></select></div>
+          <div><label>Folio interno</label><input /></div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>Estado operativo</summary>
+        <div class="body">
+          <div class="grid" style="margin-bottom:12px">
+            <div>
+              <label>Arranca</label>
+              <div class="seg">
+                <button class="chip" type="button">Sí</button>
+                <button class="chip" type="button">No</button>
+                <button class="chip active" type="button">Por confirmar</button>
+              </div>
+            </div>
+            <div>
+              <label>Camina</label>
+              <div class="seg">
+                <button class="chip" type="button">Sí</button>
+                <button class="chip" type="button">No</button>
+                <button class="chip active" type="button">Por confirmar</button>
+              </div>
+            </div>
+            <div>
+              <label>Llaves</label>
+              <div class="seg">
+                <button class="chip" type="button">Sí</button>
+                <button class="chip" type="button">No</button>
+                <button class="chip active" type="button">Por confirmar</button>
+              </div>
+            </div>
+            <div>
+              <label>Bolsas de aire</label>
+              <div class="seg">
+                <button class="chip" type="button">Íntegras</button>
+                <button class="chip" type="button">Activadas</button>
+                <button class="chip active" type="button">Por confirmar</button>
+              </div>
+            </div>
+          </div>
+          <div class="grid">
+            <div><label>Tipo de factura</label><select><option>Por confirmar</option></select></div>
+            <div><label>Refacturación</label><input placeholder="Razón social" /></div>
+            <div><label>Tenencias</label><input placeholder="2025, 2026" /></div>
+            <div><label>Verificación</label><select><option>Por confirmar</option></select></div>
+          </div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>Daños</summary>
+        <div class="body">
+          <p class="muted" style="margin:0 0 8px">Frontal</p>
+          <div class="seg" style="margin-bottom:12px">
+            <span class="tag">Defensa Delantera</span>
+            <span class="tag active">Cofre</span>
+            <span class="tag">Parabrisas</span>
+            <span class="tag">Daño Frontal</span>
+          </div>
+          <p class="muted" style="margin:0 0 8px">Trasero</p>
+          <div class="seg">
+            <span class="tag active">Defensa Trasera</span>
+            <span class="tag">Cajuela</span>
+            <span class="tag active">Daño Trasero</span>
+          </div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>Fotos</summary>
+        <div class="body muted">Subir · portada · orden (galería real en admin)</div>
+      </details>
+
+      <details open>
+        <summary>Precio y publicación</summary>
+        <div class="body grid">
+          <div><label>Precio público</label><input placeholder="Vacío = por confirmar" /></div>
+          <div><label>Estado *</label><select><option>Disponible</option></select></div>
+          <div><label>Ubicación</label><input /></div>
+        </div>
+        <div class="body" style="border-top:0;padding-top:0">
+          <label><input type="checkbox" checked /> Destacar vehículo</label>
+        </div>
+      </details>
+
+      <details open>
+        <summary>Observaciones</summary>
+        <div class="body">
+          <label>Observaciones</label>
+          <textarea>Arrancando y caminando. Una llave. Valor comercial aprox. $245,000.</textarea>
+          <div style="display:flex;justify-content:space-between;margin-top:6px">
+            <span class="muted"><input type="checkbox" /> No publicar estas observaciones</span>
+            <span class="muted">78/300</span>
+          </div>
+        </div>
+      </details>
+
+      <details>
+        <summary>Datos internos <span class="opt">(opcional)</span></summary>
+        <div class="body muted">VIN · referencia · precio interno</div>
+      </details>
+
+      <details>
+        <summary>Personalización avanzada <span class="opt">(opcional)</span></summary>
+        <div class="body muted">Título / descripción / SEO manual — cerrado por defecto</div>
+      </details>
+    </div>
+  </body>
+</html>

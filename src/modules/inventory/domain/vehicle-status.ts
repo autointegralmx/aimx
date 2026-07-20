@@ -85,20 +85,28 @@ export function normalizeVehiclePublicationFlags(
 
 export function assertCanPublish(input: {
   status: VehicleStatus;
-  public_title?: string | null;
-  short_description?: string | null;
+  make?: string | null;
+  model?: string | null;
+  year?: number | null;
+  category?: string | null;
   slug?: string | null;
   has_cover_image: boolean;
   image_count: number;
 }): void {
+  if (!input.make?.trim()) {
+    throw new Error("Publish requires make");
+  }
+  if (!input.model?.trim()) {
+    throw new Error("Publish requires model");
+  }
+  if (!input.year) {
+    throw new Error("Publish requires year");
+  }
+  if (!input.category) {
+    throw new Error("Publish requires category");
+  }
   if (input.status !== "available" && input.status !== "reserved") {
     throw new Error("Publish requires status available or reserved");
-  }
-  if (!input.public_title?.trim()) {
-    throw new Error("Publish requires public_title");
-  }
-  if (!input.short_description?.trim()) {
-    throw new Error("Publish requires short_description");
   }
   if (!input.slug?.trim()) {
     throw new Error("Publish requires slug");

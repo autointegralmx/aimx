@@ -10,11 +10,17 @@ import {
   unpublishVehicleAction,
   updateVehicleAction,
 } from "@/modules/inventory/application/vehicle-actions";
-import { DAMAGE_TAGS, PUBLIC_TAGS } from "@/modules/inventory/domain/vehicle-schema";
+import {
+  DAMAGE_TAG_GROUPS,
+  PUBLIC_TAGS,
+  type AirbagsStatus,
+  type InvoiceType,
+  type TriState,
+  type VerificationStatus,
+} from "@/modules/inventory/domain/vehicle-schema";
 import {
   BODY_TYPE_OPTIONS,
   FUEL_OPTIONS,
-  PRICE_LABEL_SUGGESTIONS,
   TRANSMISSION_OPTIONS,
 } from "@/modules/inventory/domain/vehicle-options";
 import {
@@ -22,6 +28,7 @@ import {
   getPublishBlockers,
 } from "@/modules/inventory/domain/publish-readiness";
 import { buildVehicleSlug } from "@/modules/inventory/domain/slug";
+import { formatDamageTagLabel } from "@/modules/inventory/domain/vehicle-display";
 import { VehicleImageGallery } from "@/modules/inventory/ui/vehicle-image-gallery";
 import { Button } from "@/shared/ui/button";
 import { vehicleCategoryLabel } from "@/modules/inventory/domain/vehicle-labels";
@@ -33,6 +40,8 @@ type Props = {
   images: VehicleMediaItem[];
 };
 
+const OBSERVATIONS_MAX = 300;
+
 function mediaSignature(items: VehicleMediaItem[]) {
   return items
     .map(
@@ -43,33 +52,116 @@ function mediaSignature(items: VehicleMediaItem[]) {
 }
 
 const fieldClass =
-  "min-h-11 w-full rounded-md border border-line bg-paper-elevated px-3 text-sm text-ink";
+  "min-h-10 w-full rounded-md border border-line bg-paper-elevated px-3 text-sm text-ink";
 const labelClass =
   "mb-1 block text-xs font-medium uppercase tracking-wide text-ink-muted";
 
 function Section({
-  id,
   title,
   children,
   defaultOpen = true,
+  optional = false,
 }: {
-  id: string;
   title: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  optional?: boolean;
 }) {
   return (
     <details
-      id={id}
       open={defaultOpen}
       className="rounded-md border border-line bg-paper-elevated"
     >
-      <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold uppercase tracking-wide text-ink marker:content-none">
+      <summary className="cursor-pointer list-none px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-ink marker:content-none">
         {title}
+        {optional ? (
+          <span className="ml-2 text-[11px] font-normal normal-case tracking-normal text-ink-muted">
+            (opcional)
+          </span>
+        ) : null}
       </summary>
-      <div className="space-y-4 border-t border-line px-4 py-4">{children}</div>
+      <div className="space-y-3 border-t border-line px-4 py-3">{children}</div>
     </details>
   );
+}
+
+function SegmentedControl<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: Array<{ value: T; label: string }>;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div>
+      <p className={labelClass}>{label}</p>
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label={label}>
+        {options.map((option) => {
+          const active = value === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onChange(option.value)}
+              className={`min-h-9 rounded-md border px-3 text-xs font-medium transition-colors ${
+                active
+                  ? "border-brand-red bg-brand-red text-white"
+                  : "border-line bg-paper text-ink hover:border-ink-muted"
+              }`}
+              aria-pressed={active}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+const TRI_OPTIONS: Array<{ value: TriState; label: string }> = [
+  { value: "yes", label: "Sí" },
+  { value: "no", label: "No" },
+  { value: "unknown", label: "Por confirmar" },
+];
+
+const AIRBAG_OPTIONS: Array<{ value: AirbagsStatus; label: string }> = [
+  { value: "intact", label: "Íntegras" },
+  { value: "deployed", label: "Activadas" },
+  { value: "unknown", label: "Por confirmar" },
+];
+
+function asTriState(value: string | null | undefined): TriState {
+  if (value === "yes" || value === "no") return value;
+  return "unknown";
+}
+
+function asAirbags(value: string | null | undefined): AirbagsStatus {
+  if (value === "intact" || value === "deployed") return value;
+  return "unknown";
+}
+
+function asInvoice(value: string | null | undefined): InvoiceType {
+  if (
+    value === "aseguradora" ||
+    value === "agencia" ||
+    value === "empresa" ||
+    value === "particular"
+  ) {
+    return value;
+  }
+  return "unknown";
+}
+
+function asVerification(value: string | null | undefined): VerificationStatus {
+  if (value === "vigente" || value === "no_vigente" || value === "no_aplica") {
+    return value;
+  }
+  return "unknown";
 }
 
 export function VehicleForm({ vehicle, images }: Props) {
@@ -104,46 +196,50 @@ export function VehicleForm({ vehicle, images }: Props) {
   );
   const [transmission, setTransmission] = useState(vehicle.transmission ?? "");
   const [fuel, setFuel] = useState(vehicle.fuel_type ?? "");
-  const [damageSummary, setDamageSummary] = useState(
-    vehicle.damage_summary ?? "",
+
+  const [startsStatus, setStartsStatus] = useState<TriState>(
+    asTriState(vehicle.starts_status),
   );
-  const [conditionNotes, setConditionNotes] = useState(
+  const [drivesStatus, setDrivesStatus] = useState<TriState>(
+    asTriState(vehicle.drives_status),
+  );
+  const [hasKeysStatus, setHasKeysStatus] = useState<TriState>(
+    asTriState(vehicle.has_keys_status),
+  );
+  const [airbagsStatus, setAirbagsStatus] = useState<AirbagsStatus>(
+    asAirbags(vehicle.airbags_status),
+  );
+  const [invoiceType, setInvoiceType] = useState<InvoiceType>(
+    asInvoice(vehicle.invoice_type),
+  );
+  const [invoiceEntity, setInvoiceEntity] = useState(
+    vehicle.invoice_entity ?? "",
+  );
+  const [tenenciasLabel, setTenenciasLabel] = useState(
+    vehicle.tenencias_label ?? "",
+  );
+  const [verificationStatus, setVerificationStatus] =
+    useState<VerificationStatus>(asVerification(vehicle.verification_status));
+
+  const [damageTags, setDamageTags] = useState<string[]>(
+    vehicle.damage_tags ?? [],
+  );
+  const [observations, setObservations] = useState(
     vehicle.condition_notes ?? "",
   );
-  const [damageTags, setDamageTags] = useState<string[]>(vehicle.damage_tags ?? []);
-  const [publicTitle, setPublicTitle] = useState(vehicle.public_title ?? "");
-  const [shortDescription, setShortDescription] = useState(
-    vehicle.short_description ?? "",
+  const [publishObservations, setPublishObservations] = useState(
+    vehicle.publish_observations ?? true,
   );
-  const [fullDescription, setFullDescription] = useState(
-    vehicle.full_description ?? vehicle.public_description ?? "",
-  );
+
   const [priceAmount, setPriceAmount] = useState(
     vehicle.price_amount != null ? String(vehicle.price_amount) : "",
   );
-  const [priceLabel, setPriceLabel] = useState(vehicle.price_label ?? "");
   const [locationLabel, setLocationLabel] = useState(
     vehicle.location_label ?? "",
   );
-  const [publicTags, setPublicTags] = useState<string[]>(
-    vehicle.public_tags ?? [],
-  );
   const [isFeatured, setIsFeatured] = useState(vehicle.is_featured);
-  const [isWeeklyOpportunity, setIsWeeklyOpportunity] = useState(
-    vehicle.is_weekly_opportunity,
-  );
-  const [opportunityDeadline, setOpportunityDeadline] = useState(
-    vehicle.opportunity_deadline
-      ? vehicle.opportunity_deadline.slice(0, 16)
-      : "",
-  );
-  const [featuredOrder, setFeaturedOrder] = useState(
-    vehicle.featured_order != null ? String(vehicle.featured_order) : "",
-  );
-  const [seoTitle, setSeoTitle] = useState(vehicle.seo_title ?? "");
-  const [seoDescription, setSeoDescription] = useState(
-    vehicle.seo_description ?? "",
-  );
+  const [status, setStatus] = useState(vehicle.status);
+
   const [vin, setVin] = useState(vehicle.vin ?? "");
   const [providerReference, setProviderReference] = useState(
     vehicle.provider_reference ?? "",
@@ -151,8 +247,23 @@ export function VehicleForm({ vehicle, images }: Props) {
   const [internalPrice, setInternalPrice] = useState(
     vehicle.internal_price != null ? String(vehicle.internal_price) : "",
   );
-  const [privateNotes, setPrivateNotes] = useState(vehicle.private_notes ?? "");
-  const [status, setStatus] = useState(vehicle.status);
+
+  // Advanced (collapsed) — preserved for override / compatibility
+  const [publicTitle, setPublicTitle] = useState(vehicle.public_title ?? "");
+  const [shortDescription, setShortDescription] = useState(
+    vehicle.short_description ?? "",
+  );
+  const [fullDescription, setFullDescription] = useState(
+    vehicle.full_description ?? vehicle.public_description ?? "",
+  );
+  const [priceLabel, setPriceLabel] = useState(vehicle.price_label ?? "");
+  const [publicTags, setPublicTags] = useState<string[]>(
+    vehicle.public_tags ?? [],
+  );
+  const [seoTitle, setSeoTitle] = useState(vehicle.seo_title ?? "");
+  const [seoDescription, setSeoDescription] = useState(
+    vehicle.seo_description ?? "",
+  );
 
   useEffect(() => {
     function onBeforeUnload(event: BeforeUnloadEvent) {
@@ -181,37 +292,28 @@ export function VehicleForm({ vehicle, images }: Props) {
         model,
         year,
         category,
-        public_title: publicTitle,
-        short_description: shortDescription,
         slug: effectiveSlug,
         status,
         image_count: mediaItems.length,
         has_cover_image: mediaItems.some((item) => item.is_cover),
       }),
-    [
-      make,
-      model,
-      year,
-      category,
-      publicTitle,
-      shortDescription,
-      effectiveSlug,
-      status,
-      mediaItems,
-    ],
+    [make, model, year, category, effectiveSlug, status, mediaItems],
   );
 
   function markDirty() {
     setDirty(true);
   }
 
-  function toggleTag(
-    list: string[],
-    setList: (value: string[]) => void,
-    tag: string,
-  ) {
+  function toggleDamageTag(tag: string) {
     markDirty();
-    setList(
+    setDamageTags((list) =>
+      list.includes(tag) ? list.filter((item) => item !== tag) : [...list, tag],
+    );
+  }
+
+  function togglePublicTag(tag: string) {
+    markDirty();
+    setPublicTags((list) =>
       list.includes(tag) ? list.filter((item) => item !== tag) : [...list, tag],
     );
   }
@@ -228,31 +330,33 @@ export function VehicleForm({ vehicle, images }: Props) {
       exterior_color: color || null,
       stock_code: stockCode || null,
       slug: effectiveSlug,
-      mileage_km: mileage ? Number(mileage) : null,
+      mileage_km: mileage.trim() === "" ? null : Number(mileage),
       transmission: transmission || null,
       fuel_type: fuel || null,
-      damage_summary: damageSummary || null,
-      condition_notes: conditionNotes || null,
       damage_tags: damageTags,
-      public_title: publicTitle || null,
-      short_description: shortDescription || null,
-      full_description: fullDescription || null,
-      price_amount: priceAmount ? Number(priceAmount) : null,
-      price_label: priceLabel || null,
-      location_label: locationLabel || null,
+      condition_notes: observations.trim() || null,
+      publish_observations: publishObservations,
+      starts_status: startsStatus,
+      drives_status: drivesStatus,
+      has_keys_status: hasKeysStatus,
+      airbags_status: airbagsStatus,
+      invoice_type: invoiceType,
+      invoice_entity: invoiceEntity.trim() || null,
+      tenencias_label: tenenciasLabel.trim() || null,
+      verification_status: verificationStatus,
+      public_title: publicTitle.trim() || null,
+      short_description: shortDescription.trim() || null,
+      full_description: fullDescription.trim() || null,
+      price_amount: priceAmount.trim() === "" ? null : Number(priceAmount),
+      price_label: priceLabel.trim() || null,
+      location_label: locationLabel.trim() || null,
       public_tags: publicTags,
       is_featured: isFeatured,
-      is_weekly_opportunity: isWeeklyOpportunity,
-      opportunity_deadline: opportunityDeadline
-        ? new Date(opportunityDeadline).toISOString()
-        : null,
-      featured_order: featuredOrder ? Number(featuredOrder) : null,
-      seo_title: seoTitle || null,
-      seo_description: seoDescription || null,
-      vin: vin || null,
-      provider_reference: providerReference || null,
-      internal_price: internalPrice ? Number(internalPrice) : null,
-      private_notes: privateNotes || null,
+      seo_title: seoTitle.trim() || null,
+      seo_description: seoDescription.trim() || null,
+      vin: vin.trim() || null,
+      provider_reference: providerReference.trim() || null,
+      internal_price: internalPrice.trim() === "" ? null : Number(internalPrice),
       status,
     };
   }
@@ -316,585 +420,714 @@ export function VehicleForm({ vehicle, images }: Props) {
   }
 
   const showDamage = category !== "seminuevo";
+  const obsCount = observations.length;
 
   return (
     <div className="space-y-4">
-      <div className="sticky top-0 z-10 -mx-5 border-b border-line bg-paper/95 px-5 py-3 backdrop-blur md:mx-0 md:rounded-md md:border">
+      <div className="sticky top-0 z-20 -mx-1 border-b border-line bg-page-background/95 px-1 py-3 backdrop-blur">
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" disabled={pending} onClick={save}>
-            {pending ? "Guardando…" : "Guardar cambios"}
-          </Button>
-          <Button
-            type="button"
-            variant="dark"
-            disabled={pending || blockers.length > 0}
-            onClick={publish}
-          >
-            Publicar
+          <Button type="button" onClick={save} disabled={pending}>
+            {pending ? "Guardando…" : "Guardar"}
           </Button>
           {vehicle.is_published ? (
             <Button
               type="button"
               variant="secondary"
-              disabled={pending}
               onClick={unpublish}
+              disabled={pending}
             >
               Despublicar
             </Button>
-          ) : null}
+          ) : (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={publish}
+              disabled={pending || blockers.length > 0}
+            >
+              Publicar
+            </Button>
+          )}
           <Link
             href={`/admin/vehiculos/${vehicle.id}/preview`}
-            className="btn-secondary touch-target inline-flex"
+            className="inline-flex min-h-10 items-center rounded-md border border-line px-3 text-sm font-medium text-ink hover:bg-paper-elevated"
           >
             Vista previa
           </Link>
           <Link
             href={`/admin/vehiculos/${vehicle.id}`}
-            className="touch-target inline-flex items-center px-3 text-sm text-ink-muted hover:text-ink"
+            className="text-sm text-ink-muted hover:text-ink"
           >
             Volver al detalle
           </Link>
-          {dirty ? (
-            <span className="text-xs text-ink-muted">Cambios sin guardar</span>
-          ) : null}
         </div>
+        {blockers.length > 0 && !vehicle.is_published ? (
+          <p className="mt-2 text-xs text-ink-muted">
+            Para publicar: {blockers.map((b) => b.message).join(" · ")}
+          </p>
+        ) : null}
         {message ? (
-          <p className="mt-2 text-sm text-success" role="status">
+          <p className="mt-2 text-sm text-green-700" role="status">
             {message}
           </p>
         ) : null}
         {error ? (
-          <pre className="mt-2 whitespace-pre-wrap text-sm text-danger" role="alert">
+          <p className="mt-2 whitespace-pre-line text-sm text-brand-red" role="alert">
             {error}
-          </pre>
+          </p>
         ) : null}
       </div>
 
-      <Section id="principal" title="1. Información principal">
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="block text-sm">
-            <span className={labelClass}>Marca *</span>
+      <Section title="Vehículo">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div>
+            <label className={labelClass} htmlFor="make">
+              Marca *
+            </label>
             <input
+              id="make"
               className={fieldClass}
               value={make}
-              onChange={(event) => {
+              onChange={(e) => {
                 markDirty();
-                setMake(event.target.value);
+                setMake(e.target.value);
               }}
             />
             {fieldErrors.make ? (
-              <span className="text-xs text-danger">{fieldErrors.make}</span>
+              <p className="mt-1 text-xs text-brand-red">{fieldErrors.make}</p>
             ) : null}
-          </label>
-          <label className="block text-sm">
-            <span className={labelClass}>Modelo *</span>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="model">
+              Modelo *
+            </label>
             <input
+              id="model"
               className={fieldClass}
               value={model}
-              onChange={(event) => {
+              onChange={(e) => {
                 markDirty();
-                setModel(event.target.value);
+                setModel(e.target.value);
               }}
             />
-          </label>
-          <label className="block text-sm">
-            <span className={labelClass}>Versión</span>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="version">
+              Versión
+            </label>
             <input
+              id="version"
               className={fieldClass}
               value={version}
-              onChange={(event) => {
+              onChange={(e) => {
                 markDirty();
-                setVersion(event.target.value);
+                setVersion(e.target.value);
               }}
             />
-          </label>
-          <label className="block text-sm">
-            <span className={labelClass}>Año *</span>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="year">
+              Año *
+            </label>
             <input
+              id="year"
               type="number"
-              min={1950}
-              max={2100}
               className={fieldClass}
               value={year}
-              onChange={(event) => {
+              onChange={(e) => {
                 markDirty();
-                setYear(Number(event.target.value));
+                setYear(Number(e.target.value));
               }}
             />
-          </label>
-          <label className="block text-sm">
-            <span className={labelClass}>Categoría *</span>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="category">
+              Categoría *
+            </label>
             <select
+              id="category"
               className={fieldClass}
               value={category}
-              onChange={(event) => {
+              onChange={(e) => {
                 markDirty();
                 setCategory(
-                  event.target.value as VehicleRow["category"],
+                  e.target.value as Database["public"]["Enums"]["vehicle_category"],
                 );
               }}
             >
-              <option value="accidentado">Accidentado</option>
-              <option value="recuperado">Recuperado</option>
-              <option value="seminuevo">Seminuevo</option>
+              {Object.entries(vehicleCategoryLabel).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
             </select>
-          </label>
-          <label className="block text-sm">
-            <span className={labelClass}>Carrocería</span>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="bodyType">
+              Carrocería
+            </label>
             <select
+              id="bodyType"
               className={fieldClass}
               value={bodyType}
-              onChange={(event) => {
+              onChange={(e) => {
                 markDirty();
-                setBodyType(event.target.value);
+                setBodyType(e.target.value);
               }}
             >
-              <option value="">—</option>
+              <option value="">Por confirmar</option>
               {BODY_TYPE_OPTIONS.map((option) => (
                 <option key={option} value={option}>
                   {option}
                 </option>
               ))}
             </select>
-          </label>
-          <label className="block text-sm">
-            <span className={labelClass}>Color</span>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="color">
+              Color exterior
+            </label>
             <input
+              id="color"
               className={fieldClass}
               value={color}
-              onChange={(event) => {
+              onChange={(e) => {
                 markDirty();
-                setColor(event.target.value);
+                setColor(e.target.value);
               }}
             />
-          </label>
-          <label className="block text-sm">
-            <span className={labelClass}>Folio interno</span>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="mileage">
+              Kilometraje
+            </label>
             <input
-              className={fieldClass}
-              value={stockCode}
-              onChange={(event) => {
-                markDirty();
-                setStockCode(event.target.value);
-              }}
-            />
-          </label>
-          <label className="block text-sm md:col-span-2">
-            <span className={labelClass}>
-              Slug {vehicle.is_published ? "(bloqueado al publicar)" : ""}
-            </span>
-            <input
-              className={fieldClass}
-              value={effectiveSlug}
-              disabled={vehicle.is_published}
-              onChange={(event) => {
-                markDirty();
-                setSlugTouched(true);
-                setSlug(event.target.value);
-              }}
-            />
-          </label>
-        </div>
-      </Section>
-
-      <Section id="caracteristicas" title="2. Características">
-        <div className="grid gap-4 md:grid-cols-3">
-          <label className="block text-sm">
-            <span className={labelClass}>Kilometraje</span>
-            <input
+              id="mileage"
               type="number"
               min={0}
+              placeholder="Vacío = por confirmar"
               className={fieldClass}
               value={mileage}
-              onChange={(event) => {
+              onChange={(e) => {
                 markDirty();
-                setMileage(event.target.value);
+                setMileage(e.target.value);
               }}
             />
-          </label>
-          <label className="block text-sm">
-            <span className={labelClass}>Transmisión</span>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="transmission">
+              Transmisión
+            </label>
             <select
+              id="transmission"
               className={fieldClass}
               value={transmission}
-              onChange={(event) => {
+              onChange={(e) => {
                 markDirty();
-                setTransmission(event.target.value);
+                setTransmission(e.target.value);
               }}
             >
-              <option value="">—</option>
+              <option value="">Por confirmar</option>
               {TRANSMISSION_OPTIONS.map((option) => (
                 <option key={option} value={option}>
                   {option}
                 </option>
               ))}
             </select>
-          </label>
-          <label className="block text-sm">
-            <span className={labelClass}>Combustible</span>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="fuel">
+              Combustible
+            </label>
             <select
+              id="fuel"
               className={fieldClass}
               value={fuel}
-              onChange={(event) => {
+              onChange={(e) => {
                 markDirty();
-                setFuel(event.target.value);
+                setFuel(e.target.value);
               }}
             >
-              <option value="">—</option>
+              <option value="">Por confirmar</option>
               {FUEL_OPTIONS.map((option) => (
                 <option key={option} value={option}>
                   {option}
                 </option>
               ))}
             </select>
-          </label>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="stockCode">
+              Folio interno
+            </label>
+            <input
+              id="stockCode"
+              className={fieldClass}
+              value={stockCode}
+              onChange={(e) => {
+                markDirty();
+                setStockCode(e.target.value);
+              }}
+            />
+          </div>
         </div>
       </Section>
 
-      <Section
-        id="condicion"
-        title="3. Condición y daños"
-        defaultOpen={showDamage}
-      >
-        <label className="block text-sm">
-          <span className={labelClass}>Notas de condición</span>
-          <textarea
-            className={`${fieldClass} min-h-24 py-2`}
-            value={conditionNotes}
-            onChange={(event) => {
+      <Section title="Estado operativo">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <SegmentedControl
+            label="Arranca"
+            value={startsStatus}
+            options={TRI_OPTIONS}
+            onChange={(value) => {
               markDirty();
-              setConditionNotes(event.target.value);
+              setStartsStatus(value);
             }}
           />
-        </label>
-        {showDamage ? (
-          <>
-            <label className="block text-sm">
-              <span className={labelClass}>Resumen de daños</span>
-              <textarea
-                className={`${fieldClass} min-h-20 py-2`}
-                value={damageSummary}
-                onChange={(event) => {
-                  markDirty();
-                  setDamageSummary(event.target.value);
-                }}
-              />
+          <SegmentedControl
+            label="Camina"
+            value={drivesStatus}
+            options={TRI_OPTIONS}
+            onChange={(value) => {
+              markDirty();
+              setDrivesStatus(value);
+            }}
+          />
+          <SegmentedControl
+            label="Llaves"
+            value={hasKeysStatus}
+            options={TRI_OPTIONS}
+            onChange={(value) => {
+              markDirty();
+              setHasKeysStatus(value);
+            }}
+          />
+          <SegmentedControl
+            label="Bolsas de aire"
+            value={airbagsStatus}
+            options={AIRBAG_OPTIONS}
+            onChange={(value) => {
+              markDirty();
+              setAirbagsStatus(value);
+            }}
+          />
+        </div>
+        <div className="grid gap-3 border-t border-line pt-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <label className={labelClass} htmlFor="invoiceType">
+              Tipo de factura
             </label>
-            <fieldset>
-              <legend className={labelClass}>Etiquetas de daño</legend>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {DAMAGE_TAGS.map((tag) => (
-                  <label
-                    key={tag}
-                    className="inline-flex min-h-11 items-center gap-2 rounded-sm border border-line px-3 text-xs"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={damageTags.includes(tag)}
-                      onChange={() =>
-                        toggleTag(damageTags, setDamageTags, tag)
-                      }
-                    />
-                    {tag.replaceAll("_", " ")}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-          </>
-        ) : (
-          <p className="text-sm text-ink-muted">
-            Para seminuevos la sección de daños es opcional.
-          </p>
-        )}
+            <select
+              id="invoiceType"
+              className={fieldClass}
+              value={invoiceType}
+              onChange={(e) => {
+                markDirty();
+                setInvoiceType(e.target.value as InvoiceType);
+              }}
+            >
+              <option value="unknown">Por confirmar</option>
+              <option value="aseguradora">Aseguradora</option>
+              <option value="agencia">Agencia</option>
+              <option value="empresa">Empresa</option>
+              <option value="particular">Particular</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="invoiceEntity">
+              Refacturación
+            </label>
+            <input
+              id="invoiceEntity"
+              className={fieldClass}
+              placeholder="Razón social"
+              value={invoiceEntity}
+              onChange={(e) => {
+                markDirty();
+                setInvoiceEntity(e.target.value);
+              }}
+            />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="tenencias">
+              Tenencias
+            </label>
+            <input
+              id="tenencias"
+              className={fieldClass}
+              placeholder="2025, 2026"
+              value={tenenciasLabel}
+              onChange={(e) => {
+                markDirty();
+                setTenenciasLabel(e.target.value);
+              }}
+            />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="verification">
+              Verificación
+            </label>
+            <select
+              id="verification"
+              className={fieldClass}
+              value={verificationStatus}
+              onChange={(e) => {
+                markDirty();
+                setVerificationStatus(e.target.value as VerificationStatus);
+              }}
+            >
+              <option value="unknown">Por confirmar</option>
+              <option value="vigente">Vigente</option>
+              <option value="no_vigente">No vigente</option>
+              <option value="no_aplica">No aplica</option>
+            </select>
+          </div>
+        </div>
       </Section>
 
-      <Section id="fotos" title="4. Fotografías">
+      {showDamage ? (
+        <Section title="Daños">
+          <div className="space-y-4">
+            {DAMAGE_TAG_GROUPS.map((group) => (
+              <div key={group.label}>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
+                  {group.label}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {group.tags.map((tag) => {
+                    const active = damageTags.includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => toggleDamageTag(tag)}
+                        className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
+                          active
+                            ? "border-brand-red bg-brand-red/10 text-brand-red"
+                            : "border-line text-ink-muted hover:border-ink-muted hover:text-ink"
+                        }`}
+                        aria-pressed={active}
+                      >
+                        {formatDamageTagLabel(tag)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+      ) : null}
+
+      <Section title="Fotos">
         <VehicleImageGallery
           vehicleId={vehicle.id}
           images={mediaItems}
-          onImagesChange={setMediaItems}
+          onImagesChange={(next) => {
+            setMediaItems(next);
+            markDirty();
+          }}
         />
       </Section>
 
-      <Section id="comercial" title="5. Información comercial">
-        <div className="grid gap-4">
-          <label className="block text-sm">
-            <span className={labelClass}>Título público</span>
-            <input
-              className={fieldClass}
-              value={publicTitle}
-              onChange={(event) => {
-                markDirty();
-                setPublicTitle(event.target.value);
-              }}
-            />
-          </label>
-          <label className="block text-sm">
-            <span className={labelClass}>Descripción corta</span>
-            <textarea
-              className={`${fieldClass} min-h-20 py-2`}
-              maxLength={280}
-              value={shortDescription}
-              onChange={(event) => {
-                markDirty();
-                setShortDescription(event.target.value);
-              }}
-            />
-            <span className="text-xs text-ink-muted">
-              {shortDescription.length}/280
-            </span>
-          </label>
-          <label className="block text-sm">
-            <span className={labelClass}>Descripción completa</span>
-            <textarea
-              className={`${fieldClass} min-h-32 py-2`}
-              value={fullDescription}
-              onChange={(event) => {
-                markDirty();
-                setFullDescription(event.target.value);
-              }}
-            />
-          </label>
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="block text-sm">
-              <span className={labelClass}>Precio público (MXN)</span>
-              <input
-                type="number"
-                min={0}
-                className={fieldClass}
-                value={priceAmount}
-                onChange={(event) => {
-                  markDirty();
-                  setPriceAmount(event.target.value);
-                }}
-              />
+      <Section title="Precio y publicación">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div>
+            <label className={labelClass} htmlFor="price">
+              Precio público
             </label>
-            <label className="block text-sm">
-              <span className={labelClass}>Etiqueta de precio</span>
-              <input
-                list="price-labels"
-                className={fieldClass}
-                value={priceLabel}
-                onChange={(event) => {
-                  markDirty();
-                  setPriceLabel(event.target.value);
-                }}
-              />
-              <datalist id="price-labels">
-                {PRICE_LABEL_SUGGESTIONS.map((option) => (
-                  <option key={option} value={option} />
-                ))}
-              </datalist>
-            </label>
-          </div>
-          <label className="block text-sm">
-            <span className={labelClass}>Ubicación pública</span>
             <input
-              className={fieldClass}
-              value={locationLabel}
-              onChange={(event) => {
-                markDirty();
-                setLocationLabel(event.target.value);
-              }}
-            />
-          </label>
-          <fieldset>
-            <legend className={labelClass}>Tags públicos</legend>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {PUBLIC_TAGS.map((tag) => (
-                <label
-                  key={tag}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-sm border border-line px-3 text-xs"
-                >
-                  <input
-                    type="checkbox"
-                    checked={publicTags.includes(tag)}
-                    onChange={() => toggleTag(publicTags, setPublicTags, tag)}
-                  />
-                  {tag.replaceAll("_", " ")}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-        </div>
-      </Section>
-
-      <Section id="oportunidad" title="6. Oportunidad y destacados">
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="inline-flex min-h-11 items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={isFeatured}
-              onChange={(event) => {
-                markDirty();
-                setIsFeatured(event.target.checked);
-              }}
-            />
-            Destacar vehículo
-          </label>
-          <label className="inline-flex min-h-11 items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={isWeeklyOpportunity}
-              onChange={(event) => {
-                markDirty();
-                setIsWeeklyOpportunity(event.target.checked);
-              }}
-            />
-            Mostrar como oportunidad
-          </label>
-          <label className="block text-sm">
-            <span className={labelClass}>Fecha límite oportunidad</span>
-            <input
-              type="datetime-local"
-              className={fieldClass}
-              value={opportunityDeadline}
-              onChange={(event) => {
-                markDirty();
-                setOpportunityDeadline(event.target.value);
-              }}
-            />
-          </label>
-          <label className="block text-sm">
-            <span className={labelClass}>Orden destacado</span>
-            <input
+              id="price"
               type="number"
               min={0}
+              placeholder="Vacío = por confirmar"
               className={fieldClass}
-              value={featuredOrder}
-              onChange={(event) => {
+              value={priceAmount}
+              onChange={(e) => {
                 markDirty();
-                setFeaturedOrder(event.target.value);
+                setPriceAmount(e.target.value);
               }}
             />
-          </label>
-        </div>
-        <p className="text-xs text-ink-muted">
-          La oportunidad solo se muestra públicamente si el vehículo está
-          publicado y disponible/reservado.
-        </p>
-      </Section>
-
-      <Section id="seo" title="7. SEO" defaultOpen={false}>
-        <label className="block text-sm">
-          <span className={labelClass}>SEO title ({seoTitle.length}/70)</span>
-          <input
-            className={fieldClass}
-            maxLength={70}
-            value={seoTitle}
-            onChange={(event) => {
-              markDirty();
-              setSeoTitle(event.target.value);
-            }}
-          />
-        </label>
-        <label className="block text-sm">
-          <span className={labelClass}>
-            SEO description ({seoDescription.length}/160)
-          </span>
-          <textarea
-            className={`${fieldClass} min-h-20 py-2`}
-            maxLength={160}
-            value={seoDescription}
-            onChange={(event) => {
-              markDirty();
-              setSeoDescription(event.target.value);
-            }}
-          />
-        </label>
-      </Section>
-
-      <Section id="interna" title="8. Información interna">
-        <p className="rounded-md border border-line bg-surface px-3 py-2 text-xs text-ink-muted">
-          Esta información no se publica.
-        </p>
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="block text-sm">
-            <span className={labelClass}>VIN</span>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="status">
+              Estado *
+            </label>
+            <select
+              id="status"
+              className={fieldClass}
+              value={status}
+              onChange={(e) => {
+                markDirty();
+                setStatus(
+                  e.target.value as Database["public"]["Enums"]["vehicle_status"],
+                );
+              }}
+            >
+              <option value="draft">Borrador</option>
+              <option value="available">Disponible</option>
+              <option value="reserved">Reservado</option>
+              <option value="sold">Vendido</option>
+              <option value="archived">No disponible</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="location">
+              Ubicación
+            </label>
             <input
+              id="location"
+              className={fieldClass}
+              value={locationLabel}
+              onChange={(e) => {
+                markDirty();
+                setLocationLabel(e.target.value);
+              }}
+            />
+          </div>
+        </div>
+        <label className="mt-2 flex items-center gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            checked={isFeatured}
+            onChange={(e) => {
+              markDirty();
+              setIsFeatured(e.target.checked);
+            }}
+          />
+          Destacar vehículo
+        </label>
+        <p className="text-xs text-ink-muted">
+          Estado actual:{" "}
+          {vehicle.is_published
+            ? "Publicado en el sitio"
+            : "No publicado"}
+          {" · "}
+          Slug: {effectiveSlug}
+        </p>
+        {!vehicle.is_published ? (
+          <div className="max-w-md">
+            <label className={labelClass} htmlFor="slug">
+              Slug
+            </label>
+            <input
+              id="slug"
+              className={fieldClass}
+              value={effectiveSlug}
+              onChange={(e) => {
+                markDirty();
+                setSlugTouched(true);
+                setSlug(e.target.value);
+              }}
+            />
+          </div>
+        ) : null}
+      </Section>
+
+      <Section title="Observaciones">
+        <div>
+          <label className={labelClass} htmlFor="observations">
+            Observaciones
+          </label>
+          <textarea
+            id="observations"
+            rows={3}
+            className={`${fieldClass} min-h-[4.5rem] resize-y py-2`}
+            placeholder="Ej. Arrancando y caminando. Una llave. Valor comercial aprox. $245,000."
+            value={observations}
+            onChange={(e) => {
+              markDirty();
+              setObservations(e.target.value);
+            }}
+          />
+          <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+            <label className="flex items-center gap-2 text-xs text-ink-muted">
+              <input
+                type="checkbox"
+                checked={!publishObservations}
+                onChange={(e) => {
+                  markDirty();
+                  setPublishObservations(!e.target.checked);
+                }}
+              />
+              No publicar estas observaciones
+            </label>
+            <span
+              className={`text-xs ${
+                obsCount > OBSERVATIONS_MAX ? "text-brand-red" : "text-ink-muted"
+              }`}
+            >
+              {obsCount}/{OBSERVATIONS_MAX}
+              {obsCount > OBSERVATIONS_MAX ? " (sugerido)" : ""}
+            </span>
+          </div>
+        </div>
+      </Section>
+
+      <Section title="Datos internos" defaultOpen={false} optional>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div>
+            <label className={labelClass} htmlFor="vin">
+              VIN
+            </label>
+            <input
+              id="vin"
               className={fieldClass}
               value={vin}
-              onChange={(event) => {
+              onChange={(e) => {
                 markDirty();
-                setVin(event.target.value);
+                setVin(e.target.value);
               }}
             />
-          </label>
-          <label className="block text-sm">
-            <span className={labelClass}>Referencia del proveedor</span>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="providerRef">
+              Referencia del proveedor
+            </label>
             <input
+              id="providerRef"
               className={fieldClass}
               value={providerReference}
-              onChange={(event) => {
+              onChange={(e) => {
                 markDirty();
-                setProviderReference(event.target.value);
+                setProviderReference(e.target.value);
               }}
             />
-          </label>
-          <label className="block text-sm">
-            <span className={labelClass}>Precio interno</span>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="internalPrice">
+              Precio interno
+            </label>
             <input
+              id="internalPrice"
               type="number"
               min={0}
               className={fieldClass}
               value={internalPrice}
-              onChange={(event) => {
+              onChange={(e) => {
                 markDirty();
-                setInternalPrice(event.target.value);
+                setInternalPrice(e.target.value);
               }}
             />
-          </label>
+          </div>
         </div>
-        <label className="block text-sm">
-          <span className={labelClass}>Notas privadas</span>
-          <textarea
-            className={`${fieldClass} min-h-24 py-2`}
-            value={privateNotes}
-            onChange={(event) => {
-              markDirty();
-              setPrivateNotes(event.target.value);
-            }}
-          />
-        </label>
       </Section>
 
-      <Section id="publicacion" title="9. Publicación">
-        <label className="block text-sm max-w-xs">
-          <span className={labelClass}>Estado</span>
-          <select
-            className={fieldClass}
-            value={status}
-            onChange={(event) => {
-              markDirty();
-              setStatus(event.target.value as VehicleRow["status"]);
-            }}
-          >
-            <option value="draft">Borrador</option>
-            <option value="available">Disponible</option>
-            <option value="reserved">Reservado</option>
-            <option value="sold">Vendido</option>
-            <option value="archived">Archivado</option>
-          </select>
-        </label>
-        <div className="rounded-md border border-line bg-surface px-4 py-3 text-sm">
-          <p className="font-medium text-ink">
-            {vehicle.is_published ? "Publicado" : "No publicado"} ·{" "}
-            {vehicleCategoryLabel[category]}
-          </p>
-          {vehicle.is_published ? (
-            <p className="mt-2 text-success">Publicado en el sitio.</p>
-          ) : blockers.length > 0 ? (
-            <div className="mt-3">
-              <p className="font-medium text-ink">No se puede publicar todavía:</p>
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-ink-muted">
-                {blockers.map((item) => (
-                  <li key={item.code}>{item.message}</li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <p className="mt-2 text-success">Listo para publicar.</p>
-          )}
+      <Section title="Personalización avanzada" defaultOpen={false} optional>
+        <p className="text-xs text-ink-muted">
+          No es necesario para publicar. El sistema genera título, descripción y
+          SEO a partir de los datos estructurados.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className={labelClass} htmlFor="publicTitle">
+              Título público manual
+            </label>
+            <input
+              id="publicTitle"
+              className={fieldClass}
+              value={publicTitle}
+              onChange={(e) => {
+                markDirty();
+                setPublicTitle(e.target.value);
+              }}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={labelClass} htmlFor="shortDescription">
+              Descripción corta manual
+            </label>
+            <textarea
+              id="shortDescription"
+              rows={2}
+              className={`${fieldClass} min-h-[3rem] py-2`}
+              value={shortDescription}
+              onChange={(e) => {
+                markDirty();
+                setShortDescription(e.target.value);
+              }}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={labelClass} htmlFor="fullDescription">
+              Descripción completa manual
+            </label>
+            <textarea
+              id="fullDescription"
+              rows={3}
+              className={`${fieldClass} min-h-[4rem] py-2`}
+              value={fullDescription}
+              onChange={(e) => {
+                markDirty();
+                setFullDescription(e.target.value);
+              }}
+            />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="priceLabel">
+              Etiqueta de precio manual
+            </label>
+            <input
+              id="priceLabel"
+              className={fieldClass}
+              value={priceLabel}
+              onChange={(e) => {
+                markDirty();
+                setPriceLabel(e.target.value);
+              }}
+            />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="seoTitle">
+              SEO título
+            </label>
+            <input
+              id="seoTitle"
+              className={fieldClass}
+              value={seoTitle}
+              onChange={(e) => {
+                markDirty();
+                setSeoTitle(e.target.value);
+              }}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={labelClass} htmlFor="seoDescription">
+              SEO descripción
+            </label>
+            <textarea
+              id="seoDescription"
+              rows={2}
+              className={`${fieldClass} min-h-[3rem] py-2`}
+              value={seoDescription}
+              onChange={(e) => {
+                markDirty();
+                setSeoDescription(e.target.value);
+              }}
+            />
+          </div>
+        </div>
+        <div>
+          <p className={labelClass}>Tags comerciales (legado)</p>
+          <div className="flex flex-wrap gap-1.5">
+            {PUBLIC_TAGS.map((tag) => {
+              const active = publicTags.includes(tag);
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => togglePublicTag(tag)}
+                  className={`rounded-full border px-2.5 py-1 text-xs ${
+                    active
+                      ? "border-brand-red bg-brand-red/10 text-brand-red"
+                      : "border-line text-ink-muted"
+                  }`}
+                >
+                  {tag.replaceAll("_", " ")}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </Section>
     </div>

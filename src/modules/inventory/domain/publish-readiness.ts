@@ -10,8 +10,6 @@ export type PublishReadinessInput = {
   model?: string | null;
   year?: number | null;
   category?: string | null;
-  public_title?: string | null;
-  short_description?: string | null;
   slug?: string | null;
   status: VehicleStatus;
   image_count: number;
@@ -34,18 +32,6 @@ export function getPublishBlockers(
   }
   if (!input.category) {
     blockers.push({ code: "category", message: "Selecciona la categoría." });
-  }
-  if (!input.public_title?.trim()) {
-    blockers.push({
-      code: "public_title",
-      message: "Completa el título público.",
-    });
-  }
-  if (!input.short_description?.trim()) {
-    blockers.push({
-      code: "short_description",
-      message: "Completa la descripción corta.",
-    });
   }
   if (!input.slug?.trim()) {
     blockers.push({ code: "slug", message: "Define un slug válido." });

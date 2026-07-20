@@ -190,12 +190,14 @@ describe("publication flags (A1)", () => {
 });
 
 describe("assertCanPublish", () => {
-  it("requires cover image and public fields", () => {
+  it("requires cover image and core identity fields", () => {
     expect(() =>
       assertCanPublish({
         status: "available",
-        public_title: "Honda Civic 2021",
-        short_description: "Buen estado",
+        make: "Honda",
+        model: "Civic",
+        year: 2021,
+        category: "seminuevo",
         slug: "2021-honda-civic",
         has_cover_image: false,
         image_count: 2,
@@ -203,12 +205,14 @@ describe("assertCanPublish", () => {
     ).toThrow(/cover/i);
   });
 
-  it("passes with complete data", () => {
+  it("passes with complete structured data without title", () => {
     expect(() =>
       assertCanPublish({
         status: "reserved",
-        public_title: "Honda Civic 2021",
-        short_description: "Buen estado",
+        make: "Honda",
+        model: "Civic",
+        year: 2021,
+        category: "seminuevo",
         slug: "2021-honda-civic",
         has_cover_image: true,
         image_count: 1,
@@ -255,7 +259,7 @@ describe("vehicle schemas", () => {
     ).toBe(true);
   });
 
-  it("rejects publish without public_title", () => {
+  it("allows publish without public_title (auto-generated later)", () => {
     const result = vehicleWriteSchema.safeParse({
       category: "seminuevo",
       make: "Honda",
@@ -266,12 +270,12 @@ describe("vehicle schemas", () => {
       is_featured: false,
       is_weekly_opportunity: false,
       slug: "2021-honda-civic",
-      short_description: "Ok",
+      short_description: "",
       damage_tags: [],
       public_tags: [],
       currency: "MXN",
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 
   it("rejects arbitrary damage tags", () => {

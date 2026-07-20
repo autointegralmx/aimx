@@ -1,10 +1,11 @@
 import Link from "next/link";
 import {
-  briefConditionNote,
+  briefObservations,
   buildDefaultSeoDescription,
   buildDefaultSeoTitle,
   buildInfoFacts,
   buildObjectiveBadges,
+  buildOperationalBadges,
   buildPublicHeadline,
   buildPublicSpecCards,
   buildPublicSpecLine,
@@ -60,27 +61,36 @@ export function PublicVehicleDetail({
     body_type: vehicle.body_type,
     version: vehicle.version,
     status: vehicle.status,
+    invoice_type: vehicle.invoice_type,
+    tenencias_label: vehicle.tenencias_label,
+    verification_status: vehicle.verification_status,
+  });
+  const operationalBadges = buildOperationalBadges({
+    starts_status: vehicle.starts_status,
+    drives_status: vehicle.drives_status,
+    has_keys_status: vehicle.has_keys_status,
+    airbags_status: vehicle.airbags_status,
   });
   const badges = buildObjectiveBadges({
     category: vehicle.category,
-    transmission: vehicle.transmission,
-    fuel_type: vehicle.fuel_type,
-    body_type: vehicle.body_type,
+    invoice_type: vehicle.invoice_type,
+    verification_status: vehicle.verification_status,
+    tenencias_label: vehicle.tenencias_label,
     status: vehicle.status,
   });
   const infoFacts = buildInfoFacts({
     category: vehicle.category,
     status: vehicle.status,
+    invoice_type: vehicle.invoice_type,
+    verification_status: vehicle.verification_status,
+    tenencias_label: vehicle.tenencias_label,
+    invoice_entity: vehicle.invoice_entity,
   });
-  const customNote =
-    vehicle.short_description?.trim() ||
-    vehicle.full_description?.trim() ||
-    null;
-  const damageTags = (vehicle.damage_tags ?? []).filter(Boolean);
-  const conditionNote = briefConditionNote({
-    damage_summary: vehicle.damage_summary,
+  const observations = briefObservations({
     condition_notes: vehicle.condition_notes,
+    publish_observations: vehicle.publish_observations,
   });
+  const damageTags = (vehicle.damage_tags ?? []).filter(Boolean);
 
   const pageUrl = `${getSiteOrigin()}/vehiculos/${vehicle.slug}`;
   const whatsappUrl = buildSiteWhatsAppUrl(
@@ -128,12 +138,25 @@ export function PublicVehicleDetail({
               {price}
             </p>
 
-            {badges.length > 0 ? (
-              <ul className="flex flex-wrap gap-2" aria-label="Características">
-                {badges.map((badge) => (
+            {operationalBadges.length > 0 ? (
+              <ul className="flex flex-wrap gap-2" aria-label="Estado operativo">
+                {operationalBadges.map((badge) => (
                   <li
                     key={badge}
                     className="border border-border-subtle bg-surface-primary px-2.5 py-1 text-xs font-medium text-text-primary"
+                  >
+                    {badge}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
+            {badges.length > 0 ? (
+              <ul className="flex flex-wrap gap-2" aria-label="Documentación">
+                {badges.map((badge) => (
+                  <li
+                    key={badge}
+                    className="border border-border-subtle bg-surface-secondary px-2.5 py-1 text-xs font-medium text-text-primary"
                   >
                     {badge}
                   </li>
@@ -162,14 +185,11 @@ export function PublicVehicleDetail({
               </ul>
             ) : null}
 
-            {infoFacts.length > 0 || customNote ? (
-              <PublicVehicleInfoCard
-                facts={infoFacts}
-                customNote={customNote}
-              />
+            {infoFacts.length > 0 ? (
+              <PublicVehicleInfoCard facts={infoFacts} customNote={null} />
             ) : null}
 
-            {damageTags.length > 0 || conditionNote ? (
+            {damageTags.length > 0 ? (
               <section aria-labelledby="vehicle-damage-heading">
                 <h2
                   id="vehicle-damage-heading"
@@ -177,23 +197,32 @@ export function PublicVehicleDetail({
                 >
                   Daños registrados
                 </h2>
-                {damageTags.length > 0 ? (
-                  <ul className="mt-3 flex flex-wrap gap-2">
-                    {damageTags.map((tag) => (
-                      <li
-                        key={tag}
-                        className="bg-surface-secondary px-2.5 py-1 text-xs font-medium text-text-primary"
-                      >
-                        {formatDamageTagLabel(tag)}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-                {conditionNote ? (
-                  <p className="mt-3 line-clamp-2 text-sm text-text-secondary">
-                    {conditionNote}
-                  </p>
-                ) : null}
+                <ul className="mt-3 flex flex-wrap gap-2">
+                  {damageTags.map((tag) => (
+                    <li
+                      key={tag}
+                      className="bg-surface-secondary px-2.5 py-1 text-xs font-medium text-text-primary"
+                    >
+                      {formatDamageTagLabel(tag)}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
+            {observations ? (
+              <section aria-labelledby="vehicle-observations-heading">
+                <h2
+                  id="vehicle-observations-heading"
+                  className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary"
+                >
+                  Observaciones
+                </h2>
+                <PublicVehicleInfoCard
+                  facts={[]}
+                  customNote={observations}
+                  hideHeading
+                />
               </section>
             ) : null}
 
@@ -204,7 +233,7 @@ export function PublicVehicleDetail({
               className="btn-primary inline-flex w-full justify-center"
               data-testid="vehicle-whatsapp-cta"
             >
-              Quiero más información
+              Contactar por WhatsApp
             </a>
 
             {!preview ? (
@@ -230,6 +259,7 @@ export function publicVehicleMetadata(vehicle: PublicVehicle) {
       year: vehicle.year ?? 0,
       make: vehicle.make ?? "",
       model: vehicle.model ?? "",
+      version: vehicle.version,
       category: vehicle.category ?? "vehículo",
     });
   const description =
@@ -244,6 +274,7 @@ export function publicVehicleMetadata(vehicle: PublicVehicle) {
       fuel_type: vehicle.fuel_type,
       status: vehicle.status,
       damage_tags: vehicle.damage_tags,
+      invoice_type: vehicle.invoice_type,
     });
   return { title, description };
 }

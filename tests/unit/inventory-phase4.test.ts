@@ -9,15 +9,22 @@ import {
   MAX_VEHICLE_IMAGES,
 } from "@/modules/inventory/domain/vehicle-media-rules";
 import {
-  briefConditionNote,
+  briefObservations,
   buildInfoFacts,
   buildObjectiveBadges,
+  buildOperationalBadges,
   buildPublicHeadline,
+  buildPublicSpecCards,
   buildStructuredPublicDescription,
   formatDamageTagLabel,
   formatDetailPrice,
   formatPublicPrice,
 } from "@/modules/inventory/domain/vehicle-display";
+import {
+  buildAutoPublicTitle,
+  buildDamageSummaryFromTags,
+  resolvePublicCopyFields,
+} from "@/modules/inventory/domain/vehicle-auto-copy";
 import {
   vehicleUpdateSchema,
   vehicleWriteSchema,
@@ -25,40 +32,36 @@ import {
 import { buildVehicleWhatsAppMessage } from "@/modules/leads/domain/whatsapp";
 
 describe("publish readiness", () => {
-  it("lists missing requirements", () => {
+  it("lists missing requirements without requiring title or description", () => {
     const blockers = getPublishBlockers({
       make: "Toyota",
       model: "Corolla",
       year: 2020,
       category: "recuperado",
-      public_title: "",
-      short_description: "",
       slug: "toyota-corolla-2020",
       status: "draft",
       image_count: 0,
       has_cover_image: false,
     });
     expect(blockers.map((item) => item.code)).toEqual(
-      expect.arrayContaining([
-        "public_title",
-        "short_description",
-        "status",
-        "images",
-        "cover",
-      ]),
+      expect.arrayContaining(["status", "images", "cover"]),
     );
-    expect(formatPublishBlockersMessage(blockers)).toMatch(/No se puede publicar/);
+    expect(blockers.map((item) => item.code)).not.toContain("public_title");
+    expect(blockers.map((item) => item.code)).not.toContain(
+      "short_description",
+    );
+    expect(formatPublishBlockersMessage(blockers)).toMatch(
+      /No se puede publicar/,
+    );
   });
 
-  it("allows a complete vehicle", () => {
+  it("allows publish with structured data only", () => {
     expect(
       getPublishBlockers({
         make: "Toyota",
         model: "Corolla",
         year: 2020,
         category: "recuperado",
-        public_title: "Toyota Corolla",
-        short_description: "Listo",
         slug: "toyota-corolla-2020",
         status: "available",
         image_count: 2,
@@ -110,13 +113,14 @@ describe("vehicle media rules", () => {
 });
 
 describe("public price formatting", () => {
-  it("prefers label and never shows zero", () => {
+  it("prefers amount and never shows zero as price", () => {
     expect(
       formatPublicPrice({ price_label: "Solicita información", price_amount: 0 }),
     ).toBe("Solicita información");
     expect(formatPublicPrice({ price_amount: 0 })).toBeNull();
     expect(formatPublicPrice({ price_amount: 185000 })).toMatch(/185/);
     expect(formatDetailPrice({ price_amount: 0 })).toBe("Precio por confirmar");
+    expect(formatDetailPrice({})).toBe("Precio por confirmar");
   });
 });
 
@@ -132,32 +136,84 @@ describe("public vehicle display helpers", () => {
     ).toBe("Mazda MX-5");
   });
 
-  it("uses objective badges and ignores marketing tags", () => {
+  it("uses objective invoice badges without inventing legal copy", () => {
     expect(
       buildObjectiveBadges({
         category: "accidentado",
-        transmission: "Manual",
-        fuel_type: "Gasolina",
-        body_type: "Convertible",
+        invoice_type: "unknown",
         status: "available",
       }),
+    ).toEqual(["Factura de aseguradora"]);
+    expect(
+      buildObjectiveBadges({
+        category: "seminuevo",
+        invoice_type: "unknown",
+        status: "available",
+      }),
+    ).toEqual([]);
+    expect(
+      buildObjectiveBadges({
+        category: "seminuevo",
+        invoice_type: "agencia",
+        verification_status: "vigente",
+        tenencias_label: "2025, 2026",
+      }),
     ).toEqual([
-      "Factura de aseguradora",
-      "Vehículo legal",
+      "Factura de agencia",
+      "Verificación vigente",
+      "Tenencias 2025, 2026",
     ]);
+  });
+
+  it("builds operational badges only for confirmed values", () => {
+    expect(
+      buildOperationalBadges({
+        starts_status: "yes",
+        drives_status: "no",
+        has_keys_status: "unknown",
+        airbags_status: "intact",
+      }),
+    ).toEqual(["Arranca", "No camina", "Bolsas íntegras"]);
+    expect(
+      buildOperationalBadges({
+        starts_status: "unknown",
+        drives_status: "unknown",
+        has_keys_status: "unknown",
+        airbags_status: "unknown",
+      }),
+    ).toEqual([]);
+  });
+
+  it("omits unknown mileage and never invents 0 km", () => {
+    const cards = buildPublicSpecCards({
+      year: 2025,
+      mileage_km: null,
+      status: "available",
+    });
+    expect(cards.some((card) => card.label === "Kilometraje")).toBe(false);
   });
 
   it("builds info facts and damage labels", () => {
     expect(
-      buildInfoFacts({ category: "accidentado", status: "available" }),
-    ).toContain("Vehículo de aseguradora");
+      buildInfoFacts({
+        category: "accidentado",
+        status: "available",
+        invoice_type: "aseguradora",
+      }),
+    ).toContain("Factura: Aseguradora");
     expect(formatDamageTagLabel("defensa_trasera")).toBe("Defensa Trasera");
     expect(
-      briefConditionNote({
-        damage_summary: "DAÑO TRASERO Y SUSPENSION",
-        condition_notes: "DESCONOCIDO",
+      briefObservations({
+        condition_notes: "Arrancando y caminando. Una llave.",
+        publish_observations: true,
       }),
-    ).toBe("DESCONOCIDO");
+    ).toBe("Arrancando y caminando. Una llave.");
+    expect(
+      briefObservations({
+        condition_notes: "Secreto interno",
+        publish_observations: false,
+      }),
+    ).toBeNull();
   });
 
   it("builds a compact structured description", () => {
@@ -170,11 +226,60 @@ describe("public vehicle display helpers", () => {
       fuel_type: "Gasolina",
       status: "available",
       damage_tags: ["defensa_trasera", "cofre"],
+      invoice_type: "aseguradora",
     });
     expect(text).toMatch(/Mazda MX-5 2025/);
     expect(text).toMatch(/aseguradora/);
     expect(text).toMatch(/Defensa Trasera/);
     expect(text.length).toBeLessThanOrEqual(300);
+  });
+});
+
+describe("auto public copy", () => {
+  it("builds title and damage summary from structure", () => {
+    expect(
+      buildAutoPublicTitle({
+        make: "Mazda",
+        model: "MX-5",
+        version: "Miata",
+        year: 2025,
+      }),
+    ).toBe("MAZDA MX-5 Miata 2025");
+    expect(
+      buildDamageSummaryFromTags(["cofre", "dano_trasero"]),
+    ).toBe("Cofre, Daño Trasero");
+  });
+
+  it("does not overwrite historical public title", () => {
+    const resolved = resolvePublicCopyFields(
+      {
+        make: "Mazda",
+        model: "MX-5",
+        year: 2025,
+        public_title: "Título histórico largo",
+        short_description: "Desc histórica",
+      },
+      { make: "Mazda", model: "MX-5", year: 2025, damage_tags: ["cofre"] },
+    );
+    expect(resolved.public_title).toBe("Título histórico largo");
+    expect(resolved.short_description).toBe("Desc histórica");
+    expect(resolved.damage_summary).toBe("Cofre");
+  });
+
+  it("fills missing copy for minimal publish", () => {
+    const resolved = resolvePublicCopyFields(
+      { make: "Geely", model: "Emgrand", year: 2025, status: "available" },
+      {
+        make: "Geely",
+        model: "Emgrand",
+        year: 2025,
+        transmission: "Automática",
+        status: "available",
+      },
+    );
+    expect(resolved.public_title).toMatch(/GEELY/);
+    expect(resolved.short_description).toMatch(/Automática/);
+    expect(resolved.seo_title).toMatch(/Auto Integral/);
   });
 });
 
@@ -200,8 +305,6 @@ describe("publish checklist after media change", () => {
     model: "Jetta",
     year: 2019,
     category: "recuperado" as const,
-    public_title: "Volkswagen Jetta 2019",
-    short_description: "Listo para publicar.",
     slug: "volkswagen-jetta-2019",
     status: "available" as const,
   };
@@ -225,7 +328,6 @@ describe("publish checklist after media change", () => {
     });
     expect(before.some((item) => item.code === "images")).toBe(true);
 
-    // Optimistic gallery state after successful upload (first image becomes cover).
     const afterUpload = getPublishBlockers({
       ...readyBase,
       image_count: 1,
@@ -246,7 +348,7 @@ describe("vehicle update schema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects published payload without title", () => {
+  it("accepts published payload without title when slug and status are valid", () => {
     const result = vehicleWriteSchema.safeParse({
       make: "Seat",
       model: "Leon",
@@ -255,9 +357,27 @@ describe("vehicle update schema", () => {
       status: "available",
       is_published: true,
       public_title: "",
-      short_description: "x",
+      short_description: "",
       slug: "seat-leon-2020",
+      starts_status: "yes",
+      drives_status: "no",
+      has_keys_status: "unknown",
+      airbags_status: "unknown",
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts tri-state operational defaults", () => {
+    const result = vehicleUpdateSchema.safeParse({
+      starts_status: "unknown",
+      drives_status: "yes",
+      has_keys_status: "no",
+      airbags_status: "deployed",
+      invoice_type: "particular",
+      verification_status: "vigente",
+      publish_observations: false,
+      condition_notes: "Nota corta",
+    });
+    expect(result.success).toBe(true);
   });
 });

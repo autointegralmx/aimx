@@ -14,6 +14,22 @@ export const vehicleStatusSchema = z.enum([
   "archived",
 ]);
 
+export const triStateSchema = z.enum(["yes", "no", "unknown"]);
+export const airbagsStatusSchema = z.enum(["intact", "deployed", "unknown"]);
+export const invoiceTypeSchema = z.enum([
+  "aseguradora",
+  "agencia",
+  "empresa",
+  "particular",
+  "unknown",
+]);
+export const verificationStatusSchema = z.enum([
+  "vigente",
+  "no_vigente",
+  "no_aplica",
+  "unknown",
+]);
+
 export const damageTagSchema = z.enum([
   "defensa_delantera",
   "defensa_trasera",
@@ -46,6 +62,43 @@ export const publicTagSchema = z.enum([
 
 export const DAMAGE_TAGS = damageTagSchema.options;
 export const PUBLIC_TAGS = publicTagSchema.options;
+
+/** Damage chips grouped by zone for the simplified admin form. */
+export const DAMAGE_TAG_GROUPS: Array<{
+  label: string;
+  tags: Array<z.infer<typeof damageTagSchema>>;
+}> = [
+  {
+    label: "Frontal",
+    tags: ["defensa_delantera", "cofre", "parabrisas", "dano_frontal"],
+  },
+  {
+    label: "Lateral",
+    tags: [
+      "salpicadera_izquierda",
+      "salpicadera_derecha",
+      "puerta_izquierda",
+      "puerta_derecha",
+      "dano_lateral",
+    ],
+  },
+  {
+    label: "Trasero",
+    tags: ["defensa_trasera", "cajuela", "dano_trasero"],
+  },
+  {
+    label: "Mecánico / Seguridad",
+    tags: [
+      "suspension",
+      "motor",
+      "bolsas_de_aire",
+      "inundacion",
+      "incendio",
+      "techo",
+      "otro",
+    ],
+  },
+];
 
 const optionalText = (max: number) =>
   z.string().trim().max(max).optional().nullable();
@@ -106,6 +159,15 @@ export const vehicleWriteObjectSchema = z.object({
   internal_price: z.number().min(0).optional().nullable(),
   seo_title: optionalText(70),
   seo_description: optionalText(160),
+  starts_status: triStateSchema.default("unknown"),
+  drives_status: triStateSchema.default("unknown"),
+  has_keys_status: triStateSchema.default("unknown"),
+  airbags_status: airbagsStatusSchema.default("unknown"),
+  invoice_type: invoiceTypeSchema.default("unknown"),
+  invoice_entity: optionalText(160),
+  tenencias_label: optionalText(80),
+  verification_status: verificationStatusSchema.default("unknown"),
+  publish_observations: z.boolean().default(true),
 });
 
 function refineVehicleWrite(
@@ -127,20 +189,7 @@ function refineVehicleWrite(
         message: "Solo available o reserved pueden publicarse.",
       });
     }
-    if (!value.public_title?.trim()) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["public_title"],
-        message: "Título público requerido para publicar.",
-      });
-    }
-    if (!value.short_description?.trim()) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["short_description"],
-        message: "Descripción corta requerida para publicar.",
-      });
-    }
+    // public_title / short_description are auto-filled before publish when empty.
     if (!value.slug?.trim()) {
       ctx.addIssue({
         code: "custom",
@@ -177,3 +226,7 @@ export type VehicleCategory = z.infer<typeof vehicleCategorySchema>;
 export type VehicleStatus = z.infer<typeof vehicleStatusSchema>;
 export type DamageTag = z.infer<typeof damageTagSchema>;
 export type PublicTag = z.infer<typeof publicTagSchema>;
+export type TriState = z.infer<typeof triStateSchema>;
+export type AirbagsStatus = z.infer<typeof airbagsStatusSchema>;
+export type InvoiceType = z.infer<typeof invoiceTypeSchema>;
+export type VerificationStatus = z.infer<typeof verificationStatusSchema>;

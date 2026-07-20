@@ -98,6 +98,15 @@ function sampleVehicle(overrides: Partial<VehicleRow> = {}): VehicleRow {
     created_at: "2026-07-19T12:00:00Z",
     updated_at: "2026-07-19T12:00:00Z",
     deleted_at: null,
+    starts_status: "unknown",
+    drives_status: "unknown",
+    has_keys_status: "unknown",
+    airbags_status: "unknown",
+    invoice_type: "unknown",
+    invoice_entity: null,
+    tenencias_label: null,
+    verification_status: "unknown",
+    publish_observations: true,
     ...overrides,
   };
 }
@@ -108,7 +117,7 @@ describe("VehicleForm media checklist", () => {
 
     expect(screen.getByRole("button", { name: /^Publicar$/ })).toBeDisabled();
     expect(
-      screen.getByText("Agrega al menos una fotografía."),
+      screen.getByText(/Agrega al menos una fotografía/i),
     ).toBeInTheDocument();
 
     const file = new File([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], "a.jpg", {
@@ -123,10 +132,10 @@ describe("VehicleForm media checklist", () => {
       expect(screen.getByRole("button", { name: /^Publicar$/ })).toBeEnabled();
     });
     expect(
-      screen.queryByText("Agrega al menos una fotografía."),
+      screen.queryByText(/Agrega al menos una fotografía/i),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByText("Selecciona una portada."),
+      screen.queryByText(/Selecciona una portada/i),
     ).not.toBeInTheDocument();
     expect(refresh).toHaveBeenCalled();
   });

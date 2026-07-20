@@ -1,6 +1,10 @@
 import type {
+  AirbagsStatus,
+  InvoiceType,
+  TriState,
   VehicleCategory,
   VehicleStatus,
+  VerificationStatus,
 } from "@/modules/inventory/domain/vehicle-schema";
 import { vehicleStatusLabel } from "@/modules/inventory/domain/vehicle-status";
 
@@ -9,21 +13,22 @@ export function formatPublicPrice(input: {
   price_label?: string | null;
   currency?: string | null;
 }): string | null {
+  const amount = input.price_amount;
+  if (amount != null && Number(amount) > 0) {
+    try {
+      return new Intl.NumberFormat("es-MX", {
+        style: "currency",
+        currency: input.currency?.trim() || "MXN",
+        maximumFractionDigits: 0,
+      }).format(Number(amount));
+    } catch {
+      return `$${Number(amount).toLocaleString("es-MX")}`;
+    }
+  }
+
   const label = input.price_label?.trim();
   if (label) return label;
-
-  const amount = input.price_amount;
-  if (amount == null || Number(amount) <= 0) return null;
-
-  try {
-    return new Intl.NumberFormat("es-MX", {
-      style: "currency",
-      currency: input.currency?.trim() || "MXN",
-      maximumFractionDigits: 0,
-    }).format(Number(amount));
-  } catch {
-    return `$${Number(amount).toLocaleString("es-MX")}`;
-  }
+  return null;
 }
 
 /** Detail page always shows a price string. */
@@ -77,9 +82,13 @@ export function buildPublicSpecCards(input: {
   body_type?: string | null;
   version?: string | null;
   status?: VehicleStatus | null;
+  invoice_type?: InvoiceType | string | null;
+  tenencias_label?: string | null;
+  verification_status?: VerificationStatus | string | null;
 }): SpecCard[] {
   const cards: SpecCard[] = [];
   if (input.year) cards.push({ label: "Año", value: String(input.year) });
+  // Only show mileage when explicitly set (null/undefined = unknown — never invent 0 km).
   if (input.mileage_km != null) {
     cards.push({
       label: "Kilometraje",
@@ -110,36 +119,101 @@ export function buildPublicSpecCards(input: {
       value: vehicleStatusLabel[input.status],
     });
   }
+  const invoice = formatInvoiceTypeLabel(input.invoice_type);
+  if (invoice) cards.push({ label: "Facturación", value: invoice });
+  if (input.tenencias_label?.trim()) {
+    cards.push({ label: "Tenencias", value: input.tenencias_label.trim() });
+  }
+  const verification = formatVerificationLabel(input.verification_status);
+  if (verification) {
+    cards.push({ label: "Verificación", value: verification });
+  }
   return cards;
 }
 
-/** Objective badges only — never marketing public_tags. Specs live in cards. */
+/** Confirmed operational chips only (never show "por confirmar"). */
+export function buildOperationalBadges(input: {
+  starts_status?: TriState | string | null;
+  drives_status?: TriState | string | null;
+  has_keys_status?: TriState | string | null;
+  airbags_status?: AirbagsStatus | string | null;
+}): string[] {
+  const badges: string[] = [];
+  if (input.starts_status === "yes") badges.push("Arranca");
+  if (input.starts_status === "no") badges.push("No arranca");
+  if (input.drives_status === "yes") badges.push("Camina");
+  if (input.drives_status === "no") badges.push("No camina");
+  if (input.has_keys_status === "yes") badges.push("Con llaves");
+  if (input.has_keys_status === "no") badges.push("Sin llaves");
+  if (input.airbags_status === "intact") badges.push("Bolsas íntegras");
+  if (input.airbags_status === "deployed") badges.push("Bolsas activadas");
+  return badges;
+}
+
+/**
+ * Objective badges only — never marketing public_tags.
+ * Uses structured invoice data; insurance category is a historical fallback.
+ */
 export function buildObjectiveBadges(input: {
   category?: VehicleCategory | null;
+  invoice_type?: InvoiceType | string | null;
+  verification_status?: VerificationStatus | string | null;
+  tenencias_label?: string | null;
   transmission?: string | null;
   fuel_type?: string | null;
   body_type?: string | null;
   status?: VehicleStatus | null;
 }): string[] {
   const badges: string[] = [];
-  if (isInsuranceCategory(input.category)) {
+  const invoice = input.invoice_type;
+  if (invoice === "aseguradora") {
     badges.push("Factura de aseguradora");
-    badges.push("Vehículo legal");
+  } else if (
+    (invoice == null || invoice === "unknown") &&
+    isInsuranceCategory(input.category)
+  ) {
+    // Historical fallback when invoice_type was never captured.
+    badges.push("Factura de aseguradora");
+  } else if (invoice === "agencia") {
+    badges.push("Factura de agencia");
+  } else if (invoice === "empresa") {
+    badges.push("Factura de empresa");
+  } else if (invoice === "particular") {
+    badges.push("Factura particular");
+  }
+
+  if (input.verification_status === "vigente") {
+    badges.push("Verificación vigente");
+  }
+  if (input.tenencias_label?.trim()) {
+    badges.push(`Tenencias ${input.tenencias_label.trim()}`);
   }
   return uniquePreserveOrder(badges);
 }
 
+/** Facts for the info card — only confirmed objective data. */
 export function buildInfoFacts(input: {
   category?: VehicleCategory | null;
   status?: VehicleStatus | null;
+  invoice_type?: InvoiceType | string | null;
+  verification_status?: VerificationStatus | string | null;
+  tenencias_label?: string | null;
+  invoice_entity?: string | null;
 }): string[] {
   const facts: string[] = [];
-  if (isInsuranceCategory(input.category)) {
+  const invoice = formatInvoiceTypeLabel(input.invoice_type);
+  if (invoice) {
+    facts.push(`Factura: ${invoice}`);
+  } else if (isInsuranceCategory(input.category)) {
     facts.push("Vehículo de aseguradora");
-    facts.push("Facturación disponible");
-    facts.push("Documentación legal");
-  } else if (input.category === "seminuevo") {
-    facts.push("Documentación legal");
+  }
+  if (input.invoice_entity?.trim()) {
+    facts.push(`Refacturación: ${input.invoice_entity.trim()}`);
+  }
+  const verification = formatVerificationLabel(input.verification_status);
+  if (verification) facts.push(`Verificación: ${verification}`);
+  if (input.tenencias_label?.trim()) {
+    facts.push(`Tenencias: ${input.tenencias_label.trim()}`);
   }
   if (input.status === "available") facts.push("Disponible");
   if (input.status === "reserved") facts.push("Reservado");
@@ -150,22 +224,36 @@ export function formatDamageTagLabel(tag: string): string {
   return tag
     .replaceAll("_", " ")
     .replace(/\bdano\b/gi, "daño")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+    .split(/\s+/)
+    .map((word) =>
+      word ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : word,
+    )
+    .join(" ");
 }
 
+/** Public observations: condition_notes only when allowed to publish. */
+export function briefObservations(input: {
+  condition_notes?: string | null;
+  publish_observations?: boolean | null;
+  /** @deprecated historical fallback only */
+  damage_summary?: string | null;
+}): string | null {
+  if (input.publish_observations === false) return null;
+  const note = input.condition_notes?.trim();
+  if (note) {
+    if (note.length > 140) return `${note.slice(0, 137).trimEnd()}…`;
+    return note;
+  }
+  return null;
+}
+
+/** @deprecated use briefObservations */
 export function briefConditionNote(input: {
   damage_summary?: string | null;
   condition_notes?: string | null;
+  publish_observations?: boolean | null;
 }): string | null {
-  const candidates = [input.damage_summary, input.condition_notes]
-    .map((value) => value?.trim() ?? "")
-    .filter(Boolean);
-  if (candidates.length === 0) return null;
-  // Prefer the shortest factual note (avoid long paragraphs).
-  const sorted = [...candidates].sort((a, b) => a.length - b.length);
-  const note = sorted[0]!;
-  if (note.length > 140) return `${note.slice(0, 137).trimEnd()}…`;
-  return note;
+  return briefObservations(input);
 }
 
 export function buildStructuredPublicDescription(input: {
@@ -177,6 +265,7 @@ export function buildStructuredPublicDescription(input: {
   fuel_type?: string | null;
   status?: VehicleStatus | null;
   damage_tags?: string[] | null;
+  invoice_type?: InvoiceType | string | null;
 }): string {
   const lines: string[] = [];
   const headline = [
@@ -187,7 +276,11 @@ export function buildStructuredPublicDescription(input: {
     .filter(Boolean)
     .join(" ");
   if (headline) lines.push(`${headline}.`);
-  if (isInsuranceCategory(input.category)) {
+  if (
+    input.invoice_type === "aseguradora" ||
+    ((input.invoice_type == null || input.invoice_type === "unknown") &&
+      isInsuranceCategory(input.category))
+  ) {
     lines.push("Vehículo de aseguradora.");
   }
   if (input.transmission?.trim()) {
@@ -212,12 +305,13 @@ export function buildDefaultSeoTitle(input: {
   year: number;
   make: string;
   model: string;
-  category: string;
+  version?: string | null;
+  category?: string;
 }): string {
-  return `${input.year} ${input.make} ${input.model} · ${input.category}`.slice(
-    0,
-    70,
-  );
+  const core = [input.make, input.model, input.version?.trim(), input.year]
+    .filter(Boolean)
+    .join(" ");
+  return `${core} | Auto Integral`.slice(0, 70);
 }
 
 export function buildDefaultSeoDescription(input: {
@@ -230,6 +324,7 @@ export function buildDefaultSeoDescription(input: {
   fuel_type?: string | null;
   status?: VehicleStatus | null;
   damage_tags?: string[] | null;
+  invoice_type?: InvoiceType | string | null;
 }): string {
   const structured = buildStructuredPublicDescription({
     make: input.make,
@@ -240,12 +335,45 @@ export function buildDefaultSeoDescription(input: {
     fuel_type: input.fuel_type,
     status: input.status,
     damage_tags: input.damage_tags,
+    invoice_type: input.invoice_type,
   });
   if (structured.length >= 40) return structured.slice(0, 160);
   const base =
     input.short_description?.trim() ||
     `${input.year} ${input.make} ${input.model} disponible en Auto Integral.`;
   return base.slice(0, 160);
+}
+
+function formatInvoiceTypeLabel(
+  value?: InvoiceType | string | null,
+): string | null {
+  switch (value) {
+    case "aseguradora":
+      return "Aseguradora";
+    case "agencia":
+      return "Agencia";
+    case "empresa":
+      return "Empresa";
+    case "particular":
+      return "Particular";
+    default:
+      return null;
+  }
+}
+
+function formatVerificationLabel(
+  value?: VerificationStatus | string | null,
+): string | null {
+  switch (value) {
+    case "vigente":
+      return "Vigente";
+    case "no_vigente":
+      return "No vigente";
+    case "no_aplica":
+      return "No aplica";
+    default:
+      return null;
+  }
 }
 
 function isInsuranceCategory(category?: VehicleCategory | null): boolean {
@@ -256,7 +384,6 @@ function formatNamePart(value: string): string {
   return value
     .split(/\s+/)
     .map((word) => {
-      // Keep model codes with digits (MX-5) or short trim codes (GTI, LE).
       if (/[0-9]/.test(word) || /^[A-Za-z]{2,3}$/.test(word)) {
         return word.toUpperCase();
       }

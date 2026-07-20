@@ -17,6 +17,7 @@ import {
   buildReservePatch,
   buildUnpublishPatch,
 } from "@/modules/inventory/domain/vehicle-lifecycle";
+import { resolvePublicCopyFields } from "@/modules/inventory/domain/vehicle-auto-copy";
 import { assertCanPublish } from "@/modules/inventory/domain/vehicle-status";
 import { writeAuditEvent } from "@/modules/inventory/infrastructure/audit";
 import type {
@@ -146,6 +147,16 @@ export async function updateVehicleUseCase(
     );
   }
 
+  const copy = resolvePublicCopyFields(current, payload);
+  payload.public_title = copy.public_title;
+  payload.short_description = copy.short_description;
+  payload.damage_summary = copy.damage_summary;
+  payload.seo_title = copy.seo_title;
+  payload.seo_description = copy.seo_description;
+  if (payload.price_amount !== undefined || payload.price_label !== undefined) {
+    payload.price_label = copy.price_label;
+  }
+
   // Opportunity/featured intent may be stored on drafts; public queries
   // only surface them when is_published (and not expired) is true.
 
@@ -182,12 +193,28 @@ export async function publishVehicleUseCase(
 
   assertCanPublish({
     status: vehicle.status,
-    public_title: vehicle.public_title,
-    short_description: vehicle.short_description,
+    make: vehicle.make,
+    model: vehicle.model,
+    year: vehicle.year,
+    category: vehicle.category,
     slug: vehicle.slug,
     has_cover_image: hasCover,
     image_count: imageCount,
   });
+
+  const copy = resolvePublicCopyFields(vehicle, {});
+  await ctx.repo.updateVehicle(
+    id,
+    {
+      public_title: copy.public_title,
+      short_description: copy.short_description,
+      damage_summary: copy.damage_summary,
+      seo_title: copy.seo_title,
+      seo_description: copy.seo_description,
+      price_label: copy.price_label,
+    },
+    profile.id,
+  );
 
   const patch = buildPublishPatch(vehicle, new Date().toISOString());
   const updated = await ctx.repo.applyLifecyclePatch(id, patch, profile.id);
