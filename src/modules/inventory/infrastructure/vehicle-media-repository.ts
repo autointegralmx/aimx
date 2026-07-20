@@ -4,6 +4,7 @@ import { readPublicSupabaseEnv } from "@/shared/lib/supabase/env";
 import {
   buildVehicleStorageObjectPath,
   isAllowedVehicleImageMime,
+  isExpectedVehicleStorageObjectPath,
   publicStorageUrl,
   validateVehicleImageFile,
   VEHICLE_IMAGE_BUCKET,
@@ -146,22 +147,103 @@ export function createVehicleMediaRepository(
         throw new Error(`No se pudo subir la imagen: ${uploadError.message}`);
       }
 
+      try {
+        return await this.attachUploadedVehicleImage({
+          vehicleId: input.vehicleId,
+          actorId: input.actorId,
+          assetId,
+          objectPath,
+          fileName: input.fileName,
+          mimeType: mime,
+          byteSize,
+          makeCoverIfEmpty: input.makeCoverIfEmpty,
+          currentCount,
+          skipStorageCheck: true,
+        });
+      } catch (error) {
+        await client.storage.from(VEHICLE_IMAGE_BUCKET).remove([objectPath]);
+        throw error;
+      }
+    },
+
+    /**
+     * Registers DB rows after a browser-side Storage upload.
+     * Avoids sending image bytes through Next.js/Vercel (413 Payload Too Large).
+     */
+    async attachUploadedVehicleImage(input: {
+      vehicleId: string;
+      actorId: string;
+      assetId: string;
+      objectPath: string;
+      fileName: string;
+      mimeType: string;
+      byteSize: number;
+      makeCoverIfEmpty?: boolean;
+      currentCount?: number;
+      skipStorageCheck?: boolean;
+    }): Promise<VehicleMediaItem> {
+      if (
+        !isExpectedVehicleStorageObjectPath({
+          vehicleId: input.vehicleId,
+          assetId: input.assetId,
+          objectPath: input.objectPath,
+          mimeType: input.mimeType,
+        })
+      ) {
+        throw new Error("Ruta de Storage inválida para este vehículo.");
+      }
+
+      const currentCount =
+        input.currentCount ?? (await this.countVehicleMedia(input.vehicleId));
+      const validation = validateVehicleImageFile({
+        mimeType: input.mimeType,
+        byteSize: input.byteSize,
+        currentCount,
+      });
+      if (!validation.ok) {
+        throw new Error(validation.error);
+      }
+      if (!isAllowedVehicleImageMime(input.mimeType)) {
+        throw new Error("Formato no permitido.");
+      }
+      const mime = input.mimeType as AllowedVehicleImageMime;
+
+      if (!input.skipStorageCheck) {
+        const { data: listed, error: listError } = await client.storage
+          .from(VEHICLE_IMAGE_BUCKET)
+          .list(`vehicles/${input.vehicleId}`, {
+            search: input.assetId,
+            limit: 20,
+          });
+        if (listError) {
+          throw new Error(
+            `No se pudo verificar el archivo en Storage: ${listError.message}`,
+          );
+        }
+        const leaf = input.objectPath.split("/").pop();
+        const found = (listed ?? []).some((item) => item.name === leaf);
+        if (!found) {
+          throw new Error(
+            "El archivo no está en Storage. Vuelve a subir la fotografía.",
+          );
+        }
+      }
+
       const { data: asset, error: assetError } = await client
         .from("media_assets")
         .insert({
-          id: assetId,
+          id: input.assetId,
           bucket: VEHICLE_IMAGE_BUCKET,
-          object_path: objectPath,
+          object_path: input.objectPath,
           original_filename: input.fileName.slice(0, 240),
           mime_type: mime,
-          byte_size: byteSize,
+          byte_size: input.byteSize,
           created_by: input.actorId,
         })
         .select("*")
         .single();
 
       if (assetError || !asset) {
-        await client.storage.from(VEHICLE_IMAGE_BUCKET).remove([objectPath]);
         throw new Error(
           `No se pudo registrar el archivo: ${assetError?.message ?? "sin datos"}`,
         );
@@ -172,19 +254,20 @@ export function createVehicleMediaRepository(
 
       const { error: linkError } = await client.from("vehicle_media").insert({
         vehicle_id: input.vehicleId,
-        media_asset_id: assetId,
+        media_asset_id: input.assetId,
         position: currentCount,
         is_cover: makeCover,
       });
 
       if (linkError) {
-        await client.from("media_assets").delete().eq("id", assetId);
-        await client.storage.from(VEHICLE_IMAGE_BUCKET).remove([objectPath]);
+        await client.from("media_assets").delete().eq("id", input.assetId);
         throw new Error(`No se pudo vincular la imagen: ${linkError.message}`);
       }
 
       const items = await this.listVehicleMedia(input.vehicleId);
-      const created = items.find((item) => item.media_asset_id === assetId);
+      const created = items.find(
+        (item) => item.media_asset_id === input.assetId,
+      );
       if (!created) {
         throw new Error("La imagen se subió pero no se pudo leer.");
       }

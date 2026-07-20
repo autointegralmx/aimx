@@ -7,8 +7,8 @@ import {
   deleteVehicleImageAction,
   reorderVehicleImagesAction,
   setVehicleCoverAction,
-  uploadVehicleImagesAction,
 } from "@/modules/inventory/application/vehicle-actions";
+import { uploadVehicleImageDirect } from "@/modules/inventory/application/upload-vehicle-image-client";
 import {
   MAX_VEHICLE_IMAGE_BYTES,
   MAX_VEHICLE_IMAGES,
@@ -34,15 +34,17 @@ export function VehicleImageGallery({
   const [fileErrors, setFileErrors] = useState<
     Array<{ fileName: string; error: string }>
   >([]);
+  const [uploading, setUploading] = useState(false);
   const [pending, startTransition] = useTransition();
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const busy = pending || uploading;
 
   const refresh = useCallback(() => {
     router.refresh();
   }, [router]);
 
   async function handleFiles(fileList: FileList | File[]) {
-    if (pending) return;
+    if (busy) return;
     const files = Array.from(fileList);
     if (files.length === 0) return;
 
@@ -83,32 +85,55 @@ export function VehicleImageGallery({
       return;
     }
 
-    const formData = new FormData();
-    formData.set("vehicleId", vehicleId);
-    for (const file of accepted) {
-      formData.append("files", file);
-    }
+    setUploading(true);
+    const uploaded: VehicleMediaItem[] = [];
+    const uploadErrors = [...localErrors];
+    let currentCount = images.length;
 
-    startTransition(async () => {
-      const result = await uploadVehicleImagesAction(formData);
-      if (!result.ok) {
-        setError(result.error);
-        setFileErrors(localErrors);
+    try {
+      for (const file of accepted) {
+        try {
+          const item = await uploadVehicleImageDirect({
+            vehicleId,
+            file,
+            currentCount,
+          });
+          uploaded.push(item);
+          currentCount += 1;
+        } catch (err) {
+          uploadErrors.push({
+            fileName: file.name,
+            error: err instanceof Error ? err.message : "Error al subir",
+          });
+        }
+      }
+
+      if (uploaded.length === 0) {
+        setError(
+          uploadErrors[0]?.error ?? "No se pudo subir ninguna imagen.",
+        );
+        setFileErrors(uploadErrors);
         return;
       }
-      setMessage(result.message);
-      setFileErrors([...localErrors, ...result.errors]);
-      if (result.uploaded?.length) {
-        const next = [...images];
-        for (const item of result.uploaded) {
-          if (!next.some((row) => row.media_asset_id === item.media_asset_id)) {
-            next.push(item);
-          }
+
+      const next = [...images];
+      for (const item of uploaded) {
+        if (!next.some((row) => row.media_asset_id === item.media_asset_id)) {
+          next.push(item);
         }
-        onImagesChange(next);
       }
+      onImagesChange(next);
+      setFileErrors(uploadErrors);
+      setMessage(
+        uploadErrors.length > localErrors.length
+          ? `Se subieron ${uploaded.length} imagen(es). Algunas fallaron.`
+          : `Se subieron ${uploaded.length} imagen(es).`,
+      );
       refresh();
-    });
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
   }
 
   function onDrop(event: React.DragEvent) {
@@ -129,7 +154,7 @@ export function VehicleImageGallery({
   }
 
   function persistOrder() {
-    if (pending) return;
+    if (busy) return;
     startTransition(async () => {
       const result = await reorderVehicleImagesAction({
         vehicleId,
@@ -145,7 +170,7 @@ export function VehicleImageGallery({
   }
 
   function setCover(mediaAssetId: string) {
-    if (pending) return;
+    if (busy) return;
     startTransition(async () => {
       const result = await setVehicleCoverAction({ vehicleId, mediaAssetId });
       if (!result.ok) {
@@ -164,7 +189,7 @@ export function VehicleImageGallery({
   }
 
   function removeImage(mediaAssetId: string) {
-    if (pending) return;
+    if (busy) return;
     if (
       !window.confirm(
         "Esta fotografía se eliminará del vehículo y del almacenamiento.",
@@ -221,10 +246,10 @@ export function VehicleImageGallery({
           type="button"
           variant="secondary"
           className="mt-4"
-          disabled={pending || images.length >= MAX_VEHICLE_IMAGES}
+          disabled={busy || images.length >= MAX_VEHICLE_IMAGES}
           onClick={() => inputRef.current?.click()}
         >
-          {pending ? "Subiendo…" : "Seleccionar archivos"}
+          {uploading ? "Subiendo…" : "Seleccionar archivos"}
         </Button>
       </div>
 
@@ -283,7 +308,7 @@ export function VehicleImageGallery({
                   <button
                     type="button"
                     className="touch-target inline-flex items-center px-2 text-xs font-medium text-ink hover:text-accent disabled:opacity-50"
-                    disabled={pending || image.is_cover}
+                    disabled={busy || image.is_cover}
                     onClick={() => setCover(image.media_asset_id)}
                   >
                     Usar como portada
@@ -291,7 +316,7 @@ export function VehicleImageGallery({
                   <button
                     type="button"
                     className="touch-target inline-flex items-center px-2 text-xs font-medium text-ink-muted hover:text-ink disabled:opacity-50"
-                    disabled={pending || index === 0}
+                    disabled={busy || index === 0}
                     onClick={() => moveItem(index, index - 1)}
                     aria-label="Mover arriba"
                   >
@@ -300,7 +325,7 @@ export function VehicleImageGallery({
                   <button
                     type="button"
                     className="touch-target inline-flex items-center px-2 text-xs font-medium text-ink-muted hover:text-ink disabled:opacity-50"
-                    disabled={pending || index === images.length - 1}
+                    disabled={busy || index === images.length - 1}
                     onClick={() => moveItem(index, index + 1)}
                     aria-label="Mover abajo"
                   >
@@ -309,7 +334,7 @@ export function VehicleImageGallery({
                   <button
                     type="button"
                     className="touch-target inline-flex items-center px-2 text-xs font-medium text-danger disabled:opacity-50"
-                    disabled={pending}
+                    disabled={busy}
                     onClick={() => removeImage(image.media_asset_id)}
                   >
                     Eliminar
@@ -321,7 +346,7 @@ export function VehicleImageGallery({
           <Button
             type="button"
             variant="secondary"
-            disabled={pending}
+            disabled={busy}
             onClick={persistOrder}
           >
             Guardar orden

@@ -68,6 +68,19 @@ export function buildVehicleStorageObjectPath(
   return `vehicles/${vehicleId}/${assetId}.${extensionForVehicleImageMime(mime)}`;
 }
 
+export function isExpectedVehicleStorageObjectPath(input: {
+  vehicleId: string;
+  assetId: string;
+  objectPath: string;
+  mimeType: string;
+}): boolean {
+  if (!isAllowedVehicleImageMime(input.mimeType)) return false;
+  return (
+    input.objectPath ===
+    buildVehicleStorageObjectPath(input.vehicleId, input.assetId, input.mimeType)
+  );
+}
+
 export function publicStorageUrl(
   supabaseUrl: string,
   bucket: string,

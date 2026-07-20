@@ -25,9 +25,9 @@ import {
 } from "@/modules/inventory/domain/vehicle-schema";
 import {
   deleteVehicleImageUseCase,
+  registerUploadedVehicleImageUseCase,
   reorderVehicleImagesUseCase,
   setVehicleCoverUseCase,
-  uploadVehicleImagesUseCase,
 } from "@/modules/inventory/application/media-use-cases";
 import {
   PermanentDeleteError,
@@ -94,9 +94,7 @@ export type UploadImagesResult =
       ok: true;
       message: string;
       uploadedCount: number;
-      uploaded: Awaited<
-        ReturnType<typeof uploadVehicleImagesUseCase>
-      >["uploaded"];
+      uploaded: Array<{ media_asset_id: string }>;
       errors: Array<{ fileName: string; error: string }>;
     }
   | { ok: false; error: string };
@@ -104,66 +102,55 @@ export type UploadImagesResult =
 export async function uploadVehicleImagesAction(
   formData: FormData,
 ): Promise<UploadImagesResult> {
-  const vehicleId = String(formData.get("vehicleId") ?? "");
-  const idParsed = z.string().uuid().safeParse(vehicleId);
-  if (!idParsed.success) return { ok: false, error: "Identificador inválido." };
+  return {
+    ok: false,
+    error:
+      "La subida por este canal está deshabilitada. Recarga la página e intenta de nuevo.",
+  };
+}
 
-  const files = formData.getAll("files").filter((item): item is File => {
-    return typeof File !== "undefined" && item instanceof File && item.size > 0;
-  });
-
-  if (files.length === 0) {
-    return { ok: false, error: "Selecciona al menos una imagen." };
-  }
+export async function registerUploadedVehicleImageAction(
+  input: unknown,
+): Promise<
+  | { ok: true; message: string; uploaded: Awaited<ReturnType<typeof registerUploadedVehicleImageUseCase>> }
+  | { ok: false; error: string }
+> {
+  const parsed = z
+    .object({
+      vehicleId: z.string().uuid(),
+      assetId: z.string().uuid(),
+      objectPath: z.string().min(8).max(400),
+      fileName: z.string().min(1).max(240),
+      mimeType: z.string().min(3).max(80),
+      byteSize: z.number().int().positive().max(10 * 1024 * 1024),
+    })
+    .safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Datos de imagen inválidos." };
 
   try {
     const profile = await requireStaffProfile();
     const client = await createSupabaseServerClient();
     const repo = createVehicleRepository(client);
     const mediaRepo = createVehicleMediaRepository(client);
-    const prepared = await Promise.all(
-      files.map(async (file) => ({
-        fileName: file.name,
-        mimeType: file.type || "application/octet-stream",
-        bytes: await file.arrayBuffer(),
-      })),
-    );
-
-    const result = await uploadVehicleImagesUseCase(
+    const uploaded = await registerUploadedVehicleImageUseCase(
       { profile, client, repo, mediaRepo },
-      { vehicleId: idParsed.data, files: prepared },
+      parsed.data,
     );
-
-    const vehicle = await repo.getAdminVehicleById(idParsed.data);
+    const vehicle = await repo.getAdminVehicleById(parsed.data.vehicleId);
     revalidateVehicleSurfaces({
       slug: vehicle?.slug,
-      vehicleId: idParsed.data,
+      vehicleId: parsed.data.vehicleId,
     });
-
-    if (result.uploaded.length === 0) {
-      return {
-        ok: false,
-        error:
-          result.errors[0]?.error ??
-          "No se pudo subir ninguna imagen.",
-      };
-    }
-
     return {
       ok: true,
-      message:
-        result.errors.length > 0
-          ? `Se subieron ${result.uploaded.length} imagen(es). Algunas fallaron.`
-          : `Se subieron ${result.uploaded.length} imagen(es).`,
-      uploadedCount: result.uploaded.length,
-      uploaded: result.uploaded,
-      errors: result.errors,
+      message: "Imagen subida.",
+      uploaded,
     };
   } catch (error) {
     return {
       ok: false,
       error:
-        error instanceof Error ? error.message : "No se pudieron subir imágenes.",
+        error instanceof Error ? error.message : "No se pudo registrar la imagen.",
     };
   }
 }

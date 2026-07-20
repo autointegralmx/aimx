@@ -19,33 +19,29 @@ vi.mock("@/modules/inventory/application/vehicle-actions", () => ({
   updateVehicleAction: vi.fn(),
   publishVehicleAction: vi.fn(),
   unpublishVehicleAction: vi.fn(),
-  uploadVehicleImagesAction: vi.fn(async () => ({
-    ok: true as const,
-    message: "Se subieron 1 imagen(es).",
-    uploadedCount: 1,
-    uploaded: [
-      {
-        media_asset_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1",
-        vehicle_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
-        position: 0,
-        is_cover: true,
-        bucket: "vehicle-images",
-        object_path:
-          "vehicles/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1.jpg",
-        original_filename: "a.jpg",
-        mime_type: "image/jpeg",
-        byte_size: 1200,
-        width: null,
-        height: null,
-        alt_text: null,
-        url: "http://127.0.0.1:54321/storage/v1/object/public/vehicle-images/demo.jpg",
-      } satisfies VehicleMediaItem,
-    ],
-    errors: [],
-  })),
+  registerUploadedVehicleImageAction: vi.fn(),
   reorderVehicleImagesAction: vi.fn(),
   setVehicleCoverAction: vi.fn(),
   deleteVehicleImageAction: vi.fn(),
+}));
+
+vi.mock("@/modules/inventory/application/upload-vehicle-image-client", () => ({
+  uploadVehicleImageDirect: vi.fn(async () => ({
+    media_asset_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1",
+    vehicle_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+    position: 0,
+    is_cover: true,
+    bucket: "vehicle-images",
+    object_path:
+      "vehicles/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1.jpg",
+    original_filename: "a.jpg",
+    mime_type: "image/jpeg",
+    byte_size: 1200,
+    width: null,
+    height: null,
+    alt_text: null,
+    url: "http://127.0.0.1:54321/storage/v1/object/public/vehicle-images/demo.jpg",
+  } satisfies VehicleMediaItem)),
 }));
 
 afterEach(() => {

@@ -83,6 +83,51 @@ export async function uploadVehicleImagesUseCase(
   return { uploaded, errors };
 }
 
+export async function registerUploadedVehicleImageUseCase(
+  ctx: MediaStaffContext,
+  input: {
+    vehicleId: string;
+    assetId: string;
+    objectPath: string;
+    fileName: string;
+    mimeType: string;
+    byteSize: number;
+  },
+) {
+  const profile = assertStaffCanManageVehicles({
+    supabaseConfigured: true,
+    hasSession: true,
+    profile: ctx.profile,
+  });
+  const vehicle = await ctx.repo.getAdminVehicleById(input.vehicleId);
+  if (!vehicle) throw new Error("Vehículo no encontrado.");
+
+  const item = await ctx.mediaRepo.attachUploadedVehicleImage({
+    vehicleId: input.vehicleId,
+    actorId: profile.id,
+    assetId: input.assetId,
+    objectPath: input.objectPath,
+    fileName: input.fileName,
+    mimeType: input.mimeType,
+    byteSize: input.byteSize,
+  });
+
+  await writeAuditEvent(ctx.client, {
+    actorId: profile.id,
+    action: "upload_vehicle_images",
+    entityType: "vehicle",
+    entityId: input.vehicleId,
+    metadata: {
+      uploaded_count: 1,
+      failed_count: 0,
+      media_asset_id: input.assetId,
+      via: "direct_storage",
+    },
+  });
+
+  return item;
+}
+
 export async function setVehicleCoverUseCase(
   ctx: MediaStaffContext,
   input: { vehicleId: string; mediaAssetId: string },
