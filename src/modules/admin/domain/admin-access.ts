@@ -49,7 +49,7 @@ export function evaluateAdminAccess(input: {
 export function adminGateMessage(reason: AdminGateDenialReason): string {
   switch (reason) {
     case "missing_config":
-      return "Supabase no está configurado. Define NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY, inicia Docker y ejecuta supabase start.";
+      return "Supabase no está configurado. Define NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY en .env.local (desarrollo) o en Vercel → Settings → Environment Variables (Production/Preview) y redespliega.";
     case "no_session":
       return "Debes iniciar sesión.";
     case "no_profile":

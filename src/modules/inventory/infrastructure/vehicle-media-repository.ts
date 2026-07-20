@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/shared/lib/database.types";
+import { readPublicSupabaseEnv } from "@/shared/lib/supabase/env";
 import {
   buildVehicleStorageObjectPath,
   isAllowedVehicleImageMime,
@@ -32,7 +33,7 @@ export function createVehicleMediaRepository(
   options?: { supabaseUrl?: string },
 ) {
   const supabaseUrl =
-    options?.supabaseUrl ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+    options?.supabaseUrl ?? readPublicSupabaseEnv().url ?? "";
 
   function toItem(row: {
     media_asset_id: string;

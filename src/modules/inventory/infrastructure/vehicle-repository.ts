@@ -13,6 +13,7 @@ import {
 import { buildVehicleSlug } from "@/modules/inventory/domain/slug";
 import type { VehicleLifecyclePatch } from "@/modules/inventory/domain/vehicle-lifecycle";
 import { isActiveOpportunity } from "@/modules/inventory/domain/vehicle-status";
+import { readPublicSupabaseEnv } from "@/shared/lib/supabase/env";
 
 export type InventorySupabase = SupabaseClient<Database>;
 
@@ -125,7 +126,7 @@ export function createVehicleRepository(
   options?: { supabaseUrl?: string },
 ) {
   const supabaseUrl =
-    options?.supabaseUrl ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+    options?.supabaseUrl ?? readPublicSupabaseEnv().url ?? "";
 
   async function loadCoverMap(
     vehicleIds: string[],

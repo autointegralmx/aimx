@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/shared/lib/supabase/server";
+import { readPublicSupabaseEnv } from "@/shared/lib/supabase/env";
 import {
   adminGateMessage,
   evaluateAdminAccess,
@@ -7,10 +8,7 @@ import {
 } from "@/modules/admin/domain/admin-access";
 
 export function isSupabaseConfigured(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim(),
-  );
+  return readPublicSupabaseEnv().configured;
 }
 
 export async function resolveAdminGate(): Promise<AdminGateResult> {

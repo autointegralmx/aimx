@@ -4,6 +4,7 @@ import {
   evaluateAdminAccess,
   type AdminProfileAccess,
 } from "@/modules/admin/domain/admin-access";
+import { readPublicSupabaseEnv } from "@/shared/lib/supabase/env";
 
 /**
  * Session refresh + admin access gate.
@@ -19,11 +20,9 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
-  const configured = Boolean(url && anonKey);
+  const env = readPublicSupabaseEnv();
 
-  if (!configured) {
+  if (!env.configured) {
     if (isLoginRoute) {
       const loginUrl = new URL("/admin/login", request.url);
       loginUrl.searchParams.set("error", "missing_config");
@@ -36,7 +35,7 @@ export async function updateSession(request: NextRequest) {
 
   let supabaseResponse = NextResponse.next({ request });
 
-  const supabase = createServerClient(url!, anonKey!, {
+  const supabase = createServerClient(env.url!, env.anonKey!, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
