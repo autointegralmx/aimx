@@ -143,7 +143,7 @@ describe("public vehicle display helpers", () => {
         invoice_type: "unknown",
         status: "available",
       }),
-    ).toEqual(["Factura de aseguradora"]);
+    ).toEqual([]);
     expect(
       buildObjectiveBadges({
         category: "seminuevo",
@@ -190,7 +190,16 @@ describe("public vehicle display helpers", () => {
       mileage_km: null,
       status: "available",
     });
-    expect(cards.some((card) => card.label === "Kilometraje")).toBe(false);
+    expect(cards.find((card) => card.label === "Kilometraje")?.value).toBe(
+      "Por confirmar",
+    );
+    expect(
+      buildPublicSpecCards({
+        year: 2025,
+        mileage_km: 0,
+        status: "available",
+      }).find((card) => card.label === "Kilometraje")?.value,
+    ).toBe("Por confirmar");
   });
 
   it("builds info facts and damage labels", () => {
@@ -201,6 +210,13 @@ describe("public vehicle display helpers", () => {
         invoice_type: "aseguradora",
       }),
     ).toContain("Factura: Aseguradora");
+    expect(
+      buildInfoFacts({
+        category: "accidentado",
+        status: "available",
+        invoice_type: "unknown",
+      }),
+    ).not.toContain("Vehículo de aseguradora");
     expect(formatDamageTagLabel("defensa_trasera")).toBe("Defensa Trasera");
     expect(
       briefObservations({
@@ -208,6 +224,12 @@ describe("public vehicle display helpers", () => {
         publish_observations: true,
       }),
     ).toBe("Arrancando y caminando. Una llave.");
+    expect(
+      briefObservations({
+        condition_notes: "DESCONOCIDO",
+        publish_observations: true,
+      }),
+    ).toBeNull();
     expect(
       briefObservations({
         condition_notes: "Secreto interno",

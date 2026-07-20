@@ -168,6 +168,8 @@ export const vehicleWriteObjectSchema = z.object({
   tenencias_label: optionalText(80),
   verification_status: verificationStatusSchema.default("unknown"),
   publish_observations: z.boolean().default(true),
+  /** When false (default), structured fields drive public UI; manual copy is ignored. */
+  use_manual_public_copy: z.boolean().default(false),
 });
 
 function refineVehicleWrite(

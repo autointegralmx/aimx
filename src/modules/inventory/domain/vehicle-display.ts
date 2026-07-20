@@ -2,11 +2,14 @@ import type {
   AirbagsStatus,
   InvoiceType,
   TriState,
-  VehicleCategory,
   VehicleStatus,
   VerificationStatus,
 } from "@/modules/inventory/domain/vehicle-schema";
 import { vehicleStatusLabel } from "@/modules/inventory/domain/vehicle-status";
+import {
+  isUnknownMileage,
+  isUnknownPublicValue,
+} from "@/modules/inventory/domain/public-value";
 
 export function formatPublicPrice(input: {
   price_amount?: number | null;
@@ -27,7 +30,7 @@ export function formatPublicPrice(input: {
   }
 
   const label = input.price_label?.trim();
-  if (label) return label;
+  if (label && !isUnknownPublicValue(label)) return label;
   return null;
 }
 
@@ -40,19 +43,34 @@ export function formatDetailPrice(input: {
   return formatPublicPrice(input) ?? "Precio por confirmar";
 }
 
-/** Compact title: Marca + Modelo (ignores long marketing public_title). */
+/**
+ * Compact title: Marca + Modelo (+ versión opcional).
+ * Manual public_title only when useManualPublicCopy is true.
+ */
 export function buildPublicHeadline(input: {
   make?: string | null;
   model?: string | null;
+  version?: string | null;
   public_title?: string | null;
+  useManualPublicCopy?: boolean;
 }): string {
-  const make = input.make?.trim();
-  const model = input.model?.trim();
-  if (make && model) return `${formatNamePart(make)} ${formatNamePart(model)}`;
+  if (input.useManualPublicCopy) {
+    const manual = input.public_title?.trim();
+    if (manual && !isUnknownPublicValue(manual)) {
+      return shortenTitle(manual);
+    }
+  }
+
+  const make = cleanText(input.make);
+  const model = cleanText(input.model);
+  const version = cleanText(input.version);
+  if (make && model) {
+    const base = `${formatNamePart(make)} ${formatNamePart(model)}`;
+    return version ? `${base} ${formatNamePart(version)}` : base;
+  }
   if (make) return formatNamePart(make);
   if (model) return formatNamePart(model);
-  const fallback = input.public_title?.trim();
-  return fallback ? shortenTitle(fallback) : "Vehículo";
+  return "Vehículo";
 }
 
 export function buildPublicSpecLine(input: {
@@ -64,10 +82,14 @@ export function buildPublicSpecLine(input: {
 }): string[] {
   const parts: string[] = [];
   if (input.year) parts.push(String(input.year));
-  if (input.transmission?.trim()) parts.push(input.transmission.trim());
-  if (input.body_type?.trim()) parts.push(input.body_type.trim());
-  if (input.fuel_type?.trim()) parts.push(input.fuel_type.trim());
-  if (input.version?.trim()) parts.push(input.version.trim());
+  const transmission = cleanText(input.transmission);
+  const body = cleanText(input.body_type);
+  const fuel = cleanText(input.fuel_type);
+  const version = cleanText(input.version);
+  if (transmission) parts.push(transmission);
+  if (body) parts.push(body);
+  if (fuel) parts.push(fuel);
+  if (version) parts.push(version);
   return parts;
 }
 
@@ -88,30 +110,37 @@ export function buildPublicSpecCards(input: {
 }): SpecCard[] {
   const cards: SpecCard[] = [];
   if (input.year) cards.push({ label: "Año", value: String(input.year) });
-  // Only show mileage when explicitly set (null/undefined = unknown — never invent 0 km).
-  if (input.mileage_km != null) {
-    cards.push({
-      label: "Kilometraje",
-      value: `${input.mileage_km.toLocaleString("es-MX")} km`,
-    });
+
+  // Always surface mileage: confirmed value or “Por confirmar” (never “0 km”).
+  cards.push({
+    label: "Kilometraje",
+    value: isUnknownMileage(input.mileage_km)
+      ? "Por confirmar"
+      : `${Number(input.mileage_km).toLocaleString("es-MX")} km`,
+  });
+
+  const transmission = cleanText(input.transmission);
+  if (transmission) {
+    cards.push({ label: "Transmisión", value: transmission });
   }
-  if (input.transmission?.trim()) {
-    cards.push({ label: "Transmisión", value: input.transmission.trim() });
+  const fuel = cleanText(input.fuel_type);
+  if (fuel) {
+    cards.push({ label: "Combustible", value: fuel });
   }
-  if (input.fuel_type?.trim()) {
-    cards.push({ label: "Combustible", value: input.fuel_type.trim() });
-  }
-  if (input.exterior_color?.trim()) {
+  const color = cleanText(input.exterior_color);
+  if (color) {
     cards.push({
       label: "Color",
-      value: titleCaseWords(input.exterior_color.trim()),
+      value: titleCaseWords(color),
     });
   }
-  if (input.body_type?.trim()) {
-    cards.push({ label: "Carrocería", value: input.body_type.trim() });
+  const body = cleanText(input.body_type);
+  if (body) {
+    cards.push({ label: "Carrocería", value: body });
   }
-  if (input.version?.trim()) {
-    cards.push({ label: "Versión", value: input.version.trim() });
+  const version = cleanText(input.version);
+  if (version) {
+    cards.push({ label: "Versión", value: version });
   }
   if (input.status === "available" || input.status === "reserved") {
     cards.push({
@@ -121,8 +150,9 @@ export function buildPublicSpecCards(input: {
   }
   const invoice = formatInvoiceTypeLabel(input.invoice_type);
   if (invoice) cards.push({ label: "Facturación", value: invoice });
-  if (input.tenencias_label?.trim()) {
-    cards.push({ label: "Tenencias", value: input.tenencias_label.trim() });
+  const tenencias = cleanText(input.tenencias_label);
+  if (tenencias) {
+    cards.push({ label: "Tenencias", value: tenencias });
   }
   const verification = formatVerificationLabel(input.verification_status);
   if (verification) {
@@ -151,11 +181,10 @@ export function buildOperationalBadges(input: {
 }
 
 /**
- * Objective badges only — never marketing public_tags.
- * Uses structured invoice data; insurance category is a historical fallback.
+ * Objective documentation badges only — never marketing public_tags.
+ * Never invents “aseguradora” from category.
  */
 export function buildObjectiveBadges(input: {
-  category?: VehicleCategory | null;
   invoice_type?: InvoiceType | string | null;
   verification_status?: VerificationStatus | string | null;
   tenencias_label?: string | null;
@@ -163,16 +192,12 @@ export function buildObjectiveBadges(input: {
   fuel_type?: string | null;
   body_type?: string | null;
   status?: VehicleStatus | null;
+  /** @deprecated ignored — category must not invent invoice copy */
+  category?: unknown;
 }): string[] {
   const badges: string[] = [];
   const invoice = input.invoice_type;
   if (invoice === "aseguradora") {
-    badges.push("Factura de aseguradora");
-  } else if (
-    (invoice == null || invoice === "unknown") &&
-    isInsuranceCategory(input.category)
-  ) {
-    // Historical fallback when invoice_type was never captured.
     badges.push("Factura de aseguradora");
   } else if (invoice === "agencia") {
     badges.push("Factura de agencia");
@@ -185,35 +210,37 @@ export function buildObjectiveBadges(input: {
   if (input.verification_status === "vigente") {
     badges.push("Verificación vigente");
   }
-  if (input.tenencias_label?.trim()) {
-    badges.push(`Tenencias ${input.tenencias_label.trim()}`);
+  const tenencias = cleanText(input.tenencias_label);
+  if (tenencias) {
+    badges.push(`Tenencias ${tenencias}`);
   }
   return uniquePreserveOrder(badges);
 }
 
 /** Facts for the info card — only confirmed objective data. */
 export function buildInfoFacts(input: {
-  category?: VehicleCategory | null;
   status?: VehicleStatus | null;
   invoice_type?: InvoiceType | string | null;
   verification_status?: VerificationStatus | string | null;
   tenencias_label?: string | null;
   invoice_entity?: string | null;
+  /** @deprecated ignored — category must not invent invoice copy */
+  category?: unknown;
 }): string[] {
   const facts: string[] = [];
   const invoice = formatInvoiceTypeLabel(input.invoice_type);
   if (invoice) {
     facts.push(`Factura: ${invoice}`);
-  } else if (isInsuranceCategory(input.category)) {
-    facts.push("Vehículo de aseguradora");
   }
-  if (input.invoice_entity?.trim()) {
-    facts.push(`Refacturación: ${input.invoice_entity.trim()}`);
+  const entity = cleanText(input.invoice_entity);
+  if (entity) {
+    facts.push(`Refacturación: ${entity}`);
   }
   const verification = formatVerificationLabel(input.verification_status);
   if (verification) facts.push(`Verificación: ${verification}`);
-  if (input.tenencias_label?.trim()) {
-    facts.push(`Tenencias: ${input.tenencias_label.trim()}`);
+  const tenencias = cleanText(input.tenencias_label);
+  if (tenencias) {
+    facts.push(`Tenencias: ${tenencias}`);
   }
   if (input.status === "available") facts.push("Disponible");
   if (input.status === "reserved") facts.push("Reservado");
@@ -231,7 +258,7 @@ export function formatDamageTagLabel(tag: string): string {
     .join(" ");
 }
 
-/** Public observations: condition_notes only when allowed to publish. */
+/** Public observations: condition_notes only when allowed and not a placeholder. */
 export function briefObservations(input: {
   condition_notes?: string | null;
   publish_observations?: boolean | null;
@@ -240,11 +267,9 @@ export function briefObservations(input: {
 }): string | null {
   if (input.publish_observations === false) return null;
   const note = input.condition_notes?.trim();
-  if (note) {
-    if (note.length > 140) return `${note.slice(0, 137).trimEnd()}…`;
-    return note;
-  }
-  return null;
+  if (!note || isUnknownPublicValue(note)) return null;
+  if (note.length > 140) return `${note.slice(0, 137).trimEnd()}…`;
+  return note;
 }
 
 /** @deprecated use briefObservations */
@@ -260,34 +285,33 @@ export function buildStructuredPublicDescription(input: {
   make?: string | null;
   model?: string | null;
   year?: number | null;
-  category?: VehicleCategory | null;
   transmission?: string | null;
   fuel_type?: string | null;
   status?: VehicleStatus | null;
   damage_tags?: string[] | null;
   invoice_type?: InvoiceType | string | null;
+  /** @deprecated ignored */
+  category?: unknown;
 }): string {
   const lines: string[] = [];
   const headline = [
-    input.make?.trim(),
-    input.model?.trim(),
+    cleanText(input.make),
+    cleanText(input.model),
     input.year ? String(input.year) : null,
   ]
     .filter(Boolean)
     .join(" ");
   if (headline) lines.push(`${headline}.`);
-  if (
-    input.invoice_type === "aseguradora" ||
-    ((input.invoice_type == null || input.invoice_type === "unknown") &&
-      isInsuranceCategory(input.category))
-  ) {
+  if (input.invoice_type === "aseguradora") {
     lines.push("Vehículo de aseguradora.");
   }
-  if (input.transmission?.trim()) {
-    lines.push(`Transmisión ${input.transmission.trim().toLowerCase()}.`);
+  const transmission = cleanText(input.transmission);
+  if (transmission) {
+    lines.push(`Transmisión ${transmission.toLowerCase()}.`);
   }
-  if (input.fuel_type?.trim()) {
-    lines.push(`Motor a ${input.fuel_type.trim().toLowerCase()}.`);
+  const fuel = cleanText(input.fuel_type);
+  if (fuel) {
+    lines.push(`Motor a ${fuel.toLowerCase()}.`);
   }
   if (input.status === "available") lines.push("Disponible.");
   if (input.status === "reserved") lines.push("Reservado.");
@@ -308,7 +332,12 @@ export function buildDefaultSeoTitle(input: {
   version?: string | null;
   category?: string;
 }): string {
-  const core = [input.make, input.model, input.version?.trim(), input.year]
+  const core = [
+    cleanText(input.make),
+    cleanText(input.model),
+    cleanText(input.version),
+    input.year || null,
+  ]
     .filter(Boolean)
     .join(" ");
   return `${core} | Auto Integral`.slice(0, 70);
@@ -319,7 +348,7 @@ export function buildDefaultSeoDescription(input: {
   year: number;
   make: string;
   model: string;
-  category?: VehicleCategory | null;
+  category?: unknown;
   transmission?: string | null;
   fuel_type?: string | null;
   status?: VehicleStatus | null;
@@ -330,7 +359,6 @@ export function buildDefaultSeoDescription(input: {
     make: input.make,
     model: input.model,
     year: input.year,
-    category: input.category,
     transmission: input.transmission,
     fuel_type: input.fuel_type,
     status: input.status,
@@ -338,8 +366,9 @@ export function buildDefaultSeoDescription(input: {
     invoice_type: input.invoice_type,
   });
   if (structured.length >= 40) return structured.slice(0, 160);
+  const short = cleanText(input.short_description);
   const base =
-    input.short_description?.trim() ||
+    short ||
     `${input.year} ${input.make} ${input.model} disponible en Auto Integral.`;
   return base.slice(0, 160);
 }
@@ -376,8 +405,9 @@ function formatVerificationLabel(
   }
 }
 
-function isInsuranceCategory(category?: VehicleCategory | null): boolean {
-  return category === "accidentado" || category === "recuperado";
+function cleanText(value?: string | null): string | null {
+  if (isUnknownPublicValue(value)) return null;
+  return value!.trim();
 }
 
 function formatNamePart(value: string): string {

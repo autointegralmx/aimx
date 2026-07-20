@@ -2,20 +2,21 @@ import { describe, expect, it } from "vitest";
 import {
   formatAuctionClosesAt,
   formatAuctionClosesLong,
+  isAuctionActive,
   isAuctionEnded,
   isAuctionMissingDeadline,
-  isPublicAuctionVehicle,
   isoToMexicoCityDatetimeLocal,
   mexicoCityDatetimeLocalToIso,
+  resolveAuctionPublicState,
 } from "@/modules/inventory/domain/vehicle-auction";
 import { vehicleUpdateSchema } from "@/modules/inventory/domain/vehicle-schema";
 
-describe("isPublicAuctionVehicle", () => {
+describe("isAuctionActive", () => {
   const now = new Date("2026-07-19T18:00:00.000Z");
 
   it("shows accidentado in auction when published with future deadline", () => {
     expect(
-      isPublicAuctionVehicle(
+      isAuctionActive(
         {
           is_published: true,
           is_weekly_opportunity: true,
@@ -29,7 +30,7 @@ describe("isPublicAuctionVehicle", () => {
 
   it("excludes published vehicles without auction flag", () => {
     expect(
-      isPublicAuctionVehicle(
+      isAuctionActive(
         {
           is_published: true,
           is_weekly_opportunity: false,
@@ -43,7 +44,7 @@ describe("isPublicAuctionVehicle", () => {
 
   it("excludes featured-only vehicles from auction board", () => {
     expect(
-      isPublicAuctionVehicle(
+      isAuctionActive(
         {
           is_published: true,
           is_weekly_opportunity: false,
@@ -57,7 +58,7 @@ describe("isPublicAuctionVehicle", () => {
 
   it("excludes auction without deadline", () => {
     expect(
-      isPublicAuctionVehicle(
+      isAuctionActive(
         {
           is_published: true,
           is_weekly_opportunity: true,
@@ -77,7 +78,7 @@ describe("isPublicAuctionVehicle", () => {
 
   it("excludes expired auctions", () => {
     expect(
-      isPublicAuctionVehicle(
+      isAuctionActive(
         {
           is_published: true,
           is_weekly_opportunity: true,
@@ -97,7 +98,7 @@ describe("isPublicAuctionVehicle", () => {
 
   it("excludes unpublished and sold", () => {
     expect(
-      isPublicAuctionVehicle(
+      isAuctionActive(
         {
           is_published: false,
           is_weekly_opportunity: true,
@@ -108,7 +109,7 @@ describe("isPublicAuctionVehicle", () => {
       ),
     ).toBe(false);
     expect(
-      isPublicAuctionVehicle(
+      isAuctionActive(
         {
           is_published: true,
           is_weekly_opportunity: true,
@@ -122,7 +123,7 @@ describe("isPublicAuctionVehicle", () => {
 
   it("excludes reserved from public auction board", () => {
     expect(
-      isPublicAuctionVehicle(
+      isAuctionActive(
         {
           is_published: true,
           is_weekly_opportunity: true,
@@ -132,6 +133,22 @@ describe("isPublicAuctionVehicle", () => {
         now,
       ),
     ).toBe(false);
+  });
+
+  it("resolveAuctionPublicState keeps category separate from auction CTA", () => {
+    const state = resolveAuctionPublicState(
+      {
+        is_published: true,
+        is_weekly_opportunity: true,
+        status: "available",
+        opportunity_deadline: "2026-07-21T02:30:00.000Z",
+      },
+      now,
+    );
+    expect(state.active).toBe(true);
+    expect(state.badgeLabel).toBe("En subasta");
+    expect(state.ctaLabel).toMatch(/participar/i);
+    expect(state.includeInAuctionBoard).toBe(true);
   });
 });
 

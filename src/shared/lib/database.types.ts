@@ -373,6 +373,7 @@ export type Database = {
           transmission: string | null
           updated_at: string
           updated_by: string | null
+          use_manual_public_copy: boolean
           verification_status: string
           version: string | null
           vin: string | null
@@ -427,6 +428,7 @@ export type Database = {
           transmission?: string | null
           updated_at?: string
           updated_by?: string | null
+          use_manual_public_copy?: boolean
           verification_status?: string
           version?: string | null
           vin?: string | null
@@ -481,6 +483,7 @@ export type Database = {
           transmission?: string | null
           updated_at?: string
           updated_by?: string | null
+          use_manual_public_copy?: boolean
           verification_status?: string
           version?: string | null
           vin?: string | null
@@ -545,6 +548,7 @@ export type Database = {
           status: Database["public"]["Enums"]["vehicle_status"] | null
           tenencias_label: string | null
           transmission: string | null
+          use_manual_public_copy: boolean | null
           verification_status: string | null
           version: string | null
           year: number | null

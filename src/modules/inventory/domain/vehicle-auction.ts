@@ -4,11 +4,12 @@ import type { VehicleStatus } from "@/modules/inventory/domain/vehicle-schema";
 export const BUSINESS_TIMEZONE = "America/Mexico_City";
 
 /**
- * DB columns (compatibility):
- * - is_weekly_opportunity → isInAuction
- * - opportunity_deadline → auctionEndsAt
+ * DB columns (compatibility — no migration):
+ * - is_weekly_opportunity → isInAuction / “En subasta”
+ * - opportunity_deadline → auctionEndsAt / “Cierre de subasta”
+ * - is_featured → Destacar (independent; never means auction)
  *
- * No new columns required: opportunity fields already represent auction intent.
+ * Table: public.vehicles
  */
 
 export type PublicAuctionInput = {
@@ -22,6 +23,21 @@ export type PublicAuctionInput = {
   opportunity_deadline?: string | null;
   auctionEndsAt?: string | null;
   now?: Date;
+};
+
+export type AuctionPublicState = {
+  /** Flag on, regardless of deadline validity */
+  flagged: boolean;
+  /** Meets public board + badge rules */
+  active: boolean;
+  ended: boolean;
+  missingDeadline: boolean;
+  endsAt: string | null;
+  badgeLabel: string | null;
+  closesLabel: string | null;
+  closesLong: string | null;
+  ctaLabel: string;
+  includeInAuctionBoard: boolean;
 };
 
 export function resolveIsInAuction(input: {
@@ -42,10 +58,10 @@ export function resolveAuctionEndsAt(input: {
 }
 
 /**
- * Central rule: published + available publicly + auction flag + future deadline.
- * Reserved units stay out of the auction board (held / not open to new interest).
+ * Única fuente de verdad para subasta pública activa.
+ * Alias: isPublicAuctionVehicle (compat).
  */
-export function isPublicAuctionVehicle(
+export function isAuctionActive(
   input: PublicAuctionInput,
   now: Date = input.now ?? new Date(),
 ): boolean {
@@ -60,6 +76,44 @@ export function isPublicAuctionVehicle(
   const endMs = Date.parse(endsAt);
   if (Number.isNaN(endMs)) return false;
   return endMs > now.getTime();
+}
+
+/** @deprecated use isAuctionActive */
+export function isPublicAuctionVehicle(
+  input: PublicAuctionInput,
+  now?: Date,
+): boolean {
+  return isAuctionActive(input, now ?? input.now ?? new Date());
+}
+
+/**
+ * Single DTO for admin list, cards, detail, preview, and /subastas.
+ * Components must not re-implement auction rules.
+ */
+export function resolveAuctionPublicState(
+  input: PublicAuctionInput,
+  now: Date = input.now ?? new Date(),
+): AuctionPublicState {
+  const flagged = resolveIsInAuction(input);
+  const endsAt = resolveAuctionEndsAt(input);
+  const active = isAuctionActive(input, now);
+  const ended = flagged && isAuctionEnded({ ...input, now });
+  const missingDeadline = isAuctionMissingDeadline(input);
+
+  return {
+    flagged,
+    active,
+    ended,
+    missingDeadline,
+    endsAt,
+    badgeLabel: active ? "En subasta" : null,
+    closesLabel: active && endsAt ? formatAuctionClosesLabel(endsAt, now) : null,
+    closesLong: active && endsAt ? formatAuctionClosesLong(endsAt) : null,
+    ctaLabel: active
+      ? "Solicitar información para participar"
+      : "Contactar por WhatsApp",
+    includeInAuctionBoard: active,
+  };
 }
 
 /** True when flag is on but deadline is missing or invalid (admin warning). */

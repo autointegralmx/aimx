@@ -196,7 +196,9 @@ export function VehicleForm({ vehicle, images }: Props) {
   const [slug, setSlug] = useState(vehicle.slug);
   const [slugTouched, setSlugTouched] = useState(vehicle.is_published);
   const [mileage, setMileage] = useState(
-    vehicle.mileage_km != null ? String(vehicle.mileage_km) : "",
+    vehicle.mileage_km != null && vehicle.mileage_km > 0
+      ? String(vehicle.mileage_km)
+      : "",
   );
   const [transmission, setTransmission] = useState(vehicle.transmission ?? "");
   const [fuel, setFuel] = useState(vehicle.fuel_type ?? "");
@@ -245,8 +247,18 @@ export function VehicleForm({ vehicle, images }: Props) {
   const [isInAuction, setIsInAuction] = useState(
     vehicle.is_weekly_opportunity,
   );
-  const [auctionEndsLocal, setAuctionEndsLocal] = useState(
-    isoToMexicoCityDatetimeLocal(vehicle.opportunity_deadline),
+  const initialAuctionLocal = isoToMexicoCityDatetimeLocal(
+    vehicle.opportunity_deadline,
+  );
+  const [auctionEndsDate, setAuctionEndsDate] = useState(() =>
+    initialAuctionLocal.includes("T")
+      ? initialAuctionLocal.slice(0, 10)
+      : "",
+  );
+  const [auctionEndsTime, setAuctionEndsTime] = useState(() =>
+    initialAuctionLocal.includes("T")
+      ? initialAuctionLocal.slice(11, 16)
+      : "",
   );
   const [status, setStatus] = useState(vehicle.status);
 
@@ -258,7 +270,10 @@ export function VehicleForm({ vehicle, images }: Props) {
     vehicle.internal_price != null ? String(vehicle.internal_price) : "",
   );
 
-  // Advanced (collapsed) — preserved for override / compatibility
+  // Advanced (collapsed) — preserved; only applied publicly when flag is on
+  const [useManualPublicCopy, setUseManualPublicCopy] = useState(
+    vehicle.use_manual_public_copy ?? false,
+  );
   const [publicTitle, setPublicTitle] = useState(vehicle.public_title ?? "");
   const [shortDescription, setShortDescription] = useState(
     vehicle.short_description ?? "",
@@ -340,7 +355,13 @@ export function VehicleForm({ vehicle, images }: Props) {
       exterior_color: color || null,
       stock_code: stockCode || null,
       slug: effectiveSlug,
-      mileage_km: mileage.trim() === "" ? null : Number(mileage),
+      mileage_km: (() => {
+        if (mileage.trim() === "") return null;
+        const n = Number(mileage);
+        // 0 / invalid = unconfirmed (never persist as “0 km” publicly)
+        if (!Number.isFinite(n) || n <= 0) return null;
+        return n;
+      })(),
       transmission: transmission || null,
       fuel_type: fuel || null,
       damage_tags: damageTags,
@@ -354,6 +375,7 @@ export function VehicleForm({ vehicle, images }: Props) {
       invoice_entity: invoiceEntity.trim() || null,
       tenencias_label: tenenciasLabel.trim() || null,
       verification_status: verificationStatus,
+      use_manual_public_copy: useManualPublicCopy,
       public_title: publicTitle.trim() || null,
       short_description: shortDescription.trim() || null,
       full_description: fullDescription.trim() || null,
@@ -364,7 +386,11 @@ export function VehicleForm({ vehicle, images }: Props) {
       is_featured: isFeatured,
       is_weekly_opportunity: isInAuction,
       opportunity_deadline: isInAuction
-        ? mexicoCityDatetimeLocalToIso(auctionEndsLocal)
+        ? mexicoCityDatetimeLocalToIso(
+            auctionEndsDate && auctionEndsTime
+              ? `${auctionEndsDate}T${auctionEndsTime}`
+              : "",
+          )
         : vehicle.opportunity_deadline,
       seo_title: seoTitle.trim() || null,
       seo_description: seoDescription.trim() || null,
@@ -923,28 +949,51 @@ export function VehicleForm({ vehicle, images }: Props) {
           En subasta
         </label>
         {isInAuction ? (
-          <div className="max-w-md">
-            <label className={labelClass} htmlFor="auctionEnds">
-              Cierre de subasta *
-            </label>
-            <input
-              id="auctionEnds"
-              type="datetime-local"
-              className={fieldClass}
-              value={auctionEndsLocal}
-              onChange={(e) => {
-                markDirty();
-                setAuctionEndsLocal(e.target.value);
-              }}
-            />
+          <div className="max-w-lg space-y-2">
+            <p className={labelClass}>Cierre de subasta *</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className={labelClass} htmlFor="auctionEndsDate">
+                  Fecha
+                </label>
+                <input
+                  id="auctionEndsDate"
+                  type="date"
+                  className={fieldClass}
+                  value={auctionEndsDate}
+                  onChange={(e) => {
+                    markDirty();
+                    setAuctionEndsDate(e.target.value);
+                  }}
+                />
+              </div>
+              <div>
+                <label className={labelClass} htmlFor="auctionEndsTime">
+                  Hora
+                </label>
+                <input
+                  id="auctionEndsTime"
+                  type="time"
+                  className={fieldClass}
+                  value={auctionEndsTime}
+                  onChange={(e) => {
+                    markDirty();
+                    setAuctionEndsTime(e.target.value);
+                  }}
+                />
+              </div>
+            </div>
             {fieldErrors.opportunity_deadline ? (
-              <p className="mt-1 text-xs text-brand-red">
+              <p className="text-xs text-brand-red">
                 {fieldErrors.opportunity_deadline}
               </p>
+            ) : !auctionEndsDate || !auctionEndsTime ? (
+              <p className="text-xs text-brand-red">
+                Completa fecha y hora para publicarlo en En subasta.
+              </p>
             ) : (
-              <p className="mt-1 text-xs text-ink-muted">
-                Zona horaria: Ciudad de México. Obligatoria para aparecer en En
-                subasta.
+              <p className="text-xs text-ink-muted">
+                Zona horaria: Ciudad de México.
               </p>
             )}
           </div>
@@ -1067,9 +1116,28 @@ export function VehicleForm({ vehicle, images }: Props) {
 
       <Section title="Personalización avanzada" defaultOpen={false} optional>
         <p className="text-xs text-ink-muted">
-          No es necesario para publicar. El sistema genera título, descripción y
-          SEO a partir de los datos estructurados.
+          No es necesario para publicar. Por defecto la ficha usa solo datos
+          estructurados. Activa la opción abajo solo si quieres que los textos
+          manuales reemplacen título, precio, SEO y tags en el sitio público.
         </p>
+        <label className="flex items-start gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            checked={useManualPublicCopy}
+            onChange={(e) => {
+              markDirty();
+              setUseManualPublicCopy(e.target.checked);
+            }}
+          />
+          <span>
+            Usar personalización manual en la ficha pública
+            <span className="mt-0.5 block text-xs text-ink-muted">
+              Sin esta casilla, título/descripciones/etiqueta de precio/SEO/tags
+              legacy se guardan pero no se muestran.
+            </span>
+          </span>
+        </label>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label className={labelClass} htmlFor="publicTitle">

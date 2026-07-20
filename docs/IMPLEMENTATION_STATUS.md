@@ -2,7 +2,16 @@
 
 **Última actualización:** 2026-07-19
 
-## En subasta (ex Oportunidades)
+## Contrato público (admin → DTO → preview/público)
+
+- [x] `buildPublicVehicleViewModel` única fuente para detalle, cards, subastas, SEO
+- [x] `isUnknownPublicValue` / kilometraje 0 → “Por confirmar”
+- [x] Sin inventar factura por categoría; legacy manual solo con `use_manual_public_copy`
+- [x] Preview usa `toPublicVehicleFromAdmin` + mismo `PublicVehicleDetail`
+- [x] Migración `20260720020000_use_manual_public_copy.sql` (local aplicada; remoto pendiente)
+- [x] typecheck + 112+ tests + build + smoke local Mazda (`SMOKE_LOCAL_DB=1`)
+- [ ] Aplicar en remoto: `20260720010000` + `20260720020000` (columnas operativas aún ausentes en prod)
+
 
 - [x] Dominio `isPublicAuctionVehicle` (publicado + available + flag + fecha futura)
 - [x] Reutiliza `is_weekly_opportunity` / `opportunity_deadline` (sin migración nueva)

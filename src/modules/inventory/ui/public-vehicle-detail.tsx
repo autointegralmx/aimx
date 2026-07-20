@@ -1,23 +1,5 @@
 import Link from "next/link";
-import {
-  briefObservations,
-  buildDefaultSeoDescription,
-  buildDefaultSeoTitle,
-  buildInfoFacts,
-  buildObjectiveBadges,
-  buildOperationalBadges,
-  buildPublicHeadline,
-  buildPublicSpecCards,
-  buildPublicSpecLine,
-  formatDamageTagLabel,
-  formatDetailPrice,
-} from "@/modules/inventory/domain/vehicle-display";
-import {
-  formatAuctionClosesLong,
-  isAuctionEnded,
-  isPublicAuctionVehicle,
-} from "@/modules/inventory/domain/vehicle-auction";
-import { vehicleCategoryLabel } from "@/modules/inventory/domain/vehicle-labels";
+import { buildPublicVehicleViewModel } from "@/modules/inventory/domain/public-vehicle-view-model";
 import type { PublicVehicle } from "@/modules/inventory/infrastructure/vehicle-repository";
 import type { VehicleMediaItem } from "@/modules/inventory/infrastructure/vehicle-media-repository";
 import {
@@ -42,88 +24,22 @@ export function PublicVehicleDetail({
   images,
   preview = false,
 }: Props) {
-  const headline = buildPublicHeadline({
-    make: vehicle.make,
-    model: vehicle.model,
-    public_title: vehicle.public_title,
-  });
-  const price = formatDetailPrice({
-    price_amount: vehicle.price_amount,
-    price_label: vehicle.price_label,
-    currency: vehicle.currency,
-  });
-  const specLine = buildPublicSpecLine({
-    year: vehicle.year,
-    transmission: vehicle.transmission,
-    body_type: vehicle.body_type,
-    fuel_type: vehicle.fuel_type,
-  });
-  const specCards = buildPublicSpecCards({
-    year: vehicle.year,
-    mileage_km: vehicle.mileage_km,
-    transmission: vehicle.transmission,
-    fuel_type: vehicle.fuel_type,
-    exterior_color: vehicle.exterior_color,
-    body_type: vehicle.body_type,
-    version: vehicle.version,
-    status: vehicle.status,
-    invoice_type: vehicle.invoice_type,
-    tenencias_label: vehicle.tenencias_label,
-    verification_status: vehicle.verification_status,
-  });
-  const operationalBadges = buildOperationalBadges({
-    starts_status: vehicle.starts_status,
-    drives_status: vehicle.drives_status,
-    has_keys_status: vehicle.has_keys_status,
-    airbags_status: vehicle.airbags_status,
-  });
-  const badges = buildObjectiveBadges({
-    category: vehicle.category,
-    invoice_type: vehicle.invoice_type,
-    verification_status: vehicle.verification_status,
-    tenencias_label: vehicle.tenencias_label,
-    status: vehicle.status,
-  });
-  const infoFacts = buildInfoFacts({
-    category: vehicle.category,
-    status: vehicle.status,
-    invoice_type: vehicle.invoice_type,
-    verification_status: vehicle.verification_status,
-    tenencias_label: vehicle.tenencias_label,
-    invoice_entity: vehicle.invoice_entity,
-  });
-  const observations = briefObservations({
-    condition_notes: vehicle.condition_notes,
-    publish_observations: vehicle.publish_observations,
-  });
-  const damageTags = (vehicle.damage_tags ?? []).filter(Boolean);
-  const auctionActive = isPublicAuctionVehicle({
-    is_published: true,
-    is_weekly_opportunity: vehicle.is_weekly_opportunity,
-    status: vehicle.status,
-    opportunity_deadline: vehicle.opportunity_deadline,
-  });
-  const auctionFinished =
-    Boolean(vehicle.is_weekly_opportunity) &&
-    isAuctionEnded({
-      opportunity_deadline: vehicle.opportunity_deadline,
-    });
-
-  const pageUrl = `${getSiteOrigin()}/vehiculos/${vehicle.slug}`;
+  const vm = buildPublicVehicleViewModel(vehicle);
+  const pageUrl = `${getSiteOrigin()}/vehiculos/${vm.slug}`;
   const whatsappUrl = buildSiteWhatsAppUrl(
-    auctionActive
+    vm.auction.active
       ? buildAuctionVehicleWhatsAppMessage({
-          year: vehicle.year ?? "",
-          make: vehicle.make ?? "",
-          model: vehicle.model ?? "",
-          version: vehicle.version,
+          year: vm.year ?? "",
+          make: vm.make ?? "",
+          model: vm.model ?? "",
+          version: vm.version,
           pageUrl: preview ? undefined : pageUrl,
         })
       : buildVehicleWhatsAppMessage({
-          year: vehicle.year ?? "",
-          make: vehicle.make ?? "",
-          model: vehicle.model ?? "",
-          version: vehicle.version,
+          year: vm.year ?? "",
+          make: vm.make ?? "",
+          model: vm.model ?? "",
+          version: vm.version,
           pageUrl: preview ? undefined : pageUrl,
         }),
   );
@@ -139,50 +55,50 @@ export function PublicVehicleDetail({
         ) : null}
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.75fr)] lg:gap-10 lg:items-start">
-          <PublicVehicleGallery images={images} alt={headline} />
+          <PublicVehicleGallery images={images} alt={vm.title} />
 
           <aside className="space-y-5 lg:sticky lg:top-24">
-            {vehicle.category ? (
+            {vm.categoryLabel ? (
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-red">
-                {vehicleCategoryLabel[vehicle.category]}
+                {vm.categoryLabel}
               </p>
             ) : null}
 
             <div>
               <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight text-text-primary sm:text-[2rem]">
-                {headline}
+                {vm.title}
               </h1>
-              {specLine.length > 0 ? (
+              {vm.summaryItems.length > 0 ? (
                 <p className="mt-2 text-sm text-text-secondary sm:text-[15px]">
-                  {specLine.join(" · ")}
+                  {vm.summaryItems.join(" · ")}
                 </p>
               ) : null}
             </div>
 
             <p className="text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">
-              {price}
+              {vm.priceLabel}
             </p>
 
-            {auctionActive && vehicle.opportunity_deadline ? (
+            {vm.auction.active && vm.auction.closesLong ? (
               <div className="border border-border-subtle bg-surface-secondary px-4 py-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-red">
-                  En subasta
+                  {vm.auction.badgeLabel}
                 </p>
                 <p className="mt-1 text-sm text-text-secondary">
-                  Cierra: {formatAuctionClosesLong(vehicle.opportunity_deadline)}
+                  Cierra: {vm.auction.closesLong}
                 </p>
               </div>
             ) : null}
 
-            {!auctionActive && auctionFinished ? (
+            {!vm.auction.active && vm.auction.ended ? (
               <p className="text-sm font-medium text-text-secondary">
                 Subasta finalizada
               </p>
             ) : null}
 
-            {operationalBadges.length > 0 ? (
+            {vm.operationalBadges.length > 0 ? (
               <ul className="flex flex-wrap gap-2" aria-label="Estado operativo">
-                {operationalBadges.map((badge) => (
+                {vm.operationalBadges.map((badge) => (
                   <li
                     key={badge}
                     className="border border-border-subtle bg-surface-primary px-2.5 py-1 text-xs font-medium text-text-primary"
@@ -193,9 +109,9 @@ export function PublicVehicleDetail({
               </ul>
             ) : null}
 
-            {badges.length > 0 ? (
+            {vm.documentationBadges.length > 0 ? (
               <ul className="flex flex-wrap gap-2" aria-label="Documentación">
-                {badges.map((badge) => (
+                {vm.documentationBadges.map((badge) => (
                   <li
                     key={badge}
                     className="border border-border-subtle bg-surface-secondary px-2.5 py-1 text-xs font-medium text-text-primary"
@@ -206,12 +122,12 @@ export function PublicVehicleDetail({
               </ul>
             ) : null}
 
-            {specCards.length > 0 ? (
+            {vm.specCards.length > 0 ? (
               <ul
                 className="grid grid-cols-2 gap-2 sm:grid-cols-3"
                 aria-label="Datos principales"
               >
-                {specCards.map((card) => (
+                {vm.specCards.map((card) => (
                   <li
                     key={`${card.label}-${card.value}`}
                     className="border border-border-subtle bg-surface-primary px-3 py-3"
@@ -227,11 +143,11 @@ export function PublicVehicleDetail({
               </ul>
             ) : null}
 
-            {infoFacts.length > 0 ? (
-              <PublicVehicleInfoCard facts={infoFacts} customNote={null} />
+            {vm.infoFacts.length > 0 ? (
+              <PublicVehicleInfoCard facts={vm.infoFacts} customNote={null} />
             ) : null}
 
-            {damageTags.length > 0 ? (
+            {vm.damageTagLabels.length > 0 ? (
               <section aria-labelledby="vehicle-damage-heading">
                 <h2
                   id="vehicle-damage-heading"
@@ -240,19 +156,19 @@ export function PublicVehicleDetail({
                   Daños registrados
                 </h2>
                 <ul className="mt-3 flex flex-wrap gap-2">
-                  {damageTags.map((tag) => (
+                  {vm.damageTags.map((tag, index) => (
                     <li
                       key={tag}
                       className="bg-surface-secondary px-2.5 py-1 text-xs font-medium text-text-primary"
                     >
-                      {formatDamageTagLabel(tag)}
+                      {vm.damageTagLabels[index]}
                     </li>
                   ))}
                 </ul>
               </section>
             ) : null}
 
-            {observations ? (
+            {vm.observations ? (
               <section aria-labelledby="vehicle-observations-heading">
                 <h2
                   id="vehicle-observations-heading"
@@ -262,7 +178,7 @@ export function PublicVehicleDetail({
                 </h2>
                 <PublicVehicleInfoCard
                   facts={[]}
-                  customNote={observations}
+                  customNote={vm.observations}
                   hideHeading
                 />
               </section>
@@ -275,9 +191,7 @@ export function PublicVehicleDetail({
               className="btn-primary inline-flex w-full justify-center"
               data-testid="vehicle-whatsapp-cta"
             >
-              {auctionActive
-                ? "Solicitar información para participar"
-                : "Contactar por WhatsApp"}
+              {vm.ctaLabel}
             </a>
 
             {!preview ? (
@@ -297,28 +211,6 @@ export function PublicVehicleDetail({
 }
 
 export function publicVehicleMetadata(vehicle: PublicVehicle) {
-  const title =
-    vehicle.seo_title?.trim() ||
-    buildDefaultSeoTitle({
-      year: vehicle.year ?? 0,
-      make: vehicle.make ?? "",
-      model: vehicle.model ?? "",
-      version: vehicle.version,
-      category: vehicle.category ?? "vehículo",
-    });
-  const description =
-    vehicle.seo_description?.trim() ||
-    buildDefaultSeoDescription({
-      short_description: vehicle.short_description,
-      year: vehicle.year ?? 0,
-      make: vehicle.make ?? "",
-      model: vehicle.model ?? "",
-      category: vehicle.category,
-      transmission: vehicle.transmission,
-      fuel_type: vehicle.fuel_type,
-      status: vehicle.status,
-      damage_tags: vehicle.damage_tags,
-      invoice_type: vehicle.invoice_type,
-    });
-  return { title, description };
+  const vm = buildPublicVehicleViewModel(vehicle);
+  return { title: vm.seo.title, description: vm.seo.description };
 }

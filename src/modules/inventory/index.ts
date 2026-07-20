@@ -25,10 +25,19 @@ export {
 } from "@/modules/inventory/domain/vehicle-status";
 
 export {
+  isAuctionActive,
   isPublicAuctionVehicle,
+  resolveAuctionPublicState,
   formatAuctionClosesLabel,
   BUSINESS_TIMEZONE,
 } from "@/modules/inventory/domain/vehicle-auction";
+
+export {
+  buildPublicVehicleViewModel,
+} from "@/modules/inventory/domain/public-vehicle-view-model";
+export type { PublicVehicleViewModel } from "@/modules/inventory/domain/public-vehicle-view-model";
+export { isUnknownPublicValue, isUnknownMileage } from "@/modules/inventory/domain/public-value";
+export { toPublicVehicleFromAdmin } from "@/modules/inventory/domain/to-public-vehicle";
 
 export {
   parseAdminVehicleListParams,

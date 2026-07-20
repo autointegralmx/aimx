@@ -1,5 +1,5 @@
 import type { VehicleStatus } from "@/modules/inventory/domain/vehicle-schema";
-import { isPublicAuctionVehicle } from "@/modules/inventory/domain/vehicle-auction";
+import { isAuctionActive } from "@/modules/inventory/domain/vehicle-auction";
 
 const transitions: Record<VehicleStatus, readonly VehicleStatus[]> = {
   draft: ["available", "archived"],
@@ -128,7 +128,7 @@ export function isActiveOpportunity(input: {
   opportunity_deadline?: string | null;
   now?: Date;
 }): boolean {
-  return isPublicAuctionVehicle(input, input.now);
+  return isAuctionActive(input, input.now);
 }
 
 /** UX labels for admin (Spanish). */

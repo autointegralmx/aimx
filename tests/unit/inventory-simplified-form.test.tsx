@@ -80,6 +80,7 @@ function sampleVehicle(overrides: Partial<VehicleRow> = {}): VehicleRow {
     tenencias_label: null,
     verification_status: "unknown",
     publish_observations: true,
+    use_manual_public_copy: false,
     ...overrides,
   };
 }

@@ -12,7 +12,7 @@ import {
 } from "@/modules/inventory/domain/admin-list-filters";
 import { buildVehicleSlug } from "@/modules/inventory/domain/slug";
 import type { VehicleLifecyclePatch } from "@/modules/inventory/domain/vehicle-lifecycle";
-import { isPublicAuctionVehicle } from "@/modules/inventory/domain/vehicle-auction";
+import { isAuctionActive } from "@/modules/inventory/domain/vehicle-auction";
 import { readPublicSupabaseEnv } from "@/shared/lib/supabase/env";
 
 export type InventorySupabase = SupabaseClient<Database>;
@@ -87,6 +87,7 @@ export const PUBLIC_VEHICLE_OPERATIONAL_COLUMNS = [
   "tenencias_label",
   "verification_status",
   "publish_observations",
+  "use_manual_public_copy",
 ] as const;
 
 export const PUBLIC_VEHICLE_COLUMNS = [
@@ -122,6 +123,7 @@ export type PublicVehicle = Pick<
   tenencias_label?: string | null;
   verification_status?: string | null;
   publish_observations?: boolean | null;
+  use_manual_public_copy?: boolean | null;
 };
 
 export type ListAdminVehiclesResult = {
@@ -158,6 +160,7 @@ function normalizePublicVehicle(
     tenencias_label: row.tenencias_label ?? null,
     verification_status: row.verification_status ?? "unknown",
     publish_observations: row.publish_observations ?? true,
+    use_manual_public_copy: row.use_manual_public_copy ?? false,
   } as PublicVehicle;
 }
 
@@ -582,7 +585,7 @@ export function createVehicleRepository(
         .filter((row): row is PublicVehicle => row != null);
 
       return rows.filter((row) =>
-        isPublicAuctionVehicle({
+        isAuctionActive({
           is_published: true,
           is_weekly_opportunity: Boolean(row.is_weekly_opportunity),
           status: (row.status ?? "draft") as VehicleStatus,
