@@ -9,6 +9,7 @@ import {
 import { PublicShell } from "@/shared/ui/public-shell";
 import { WhatsAppCta } from "@/shared/ui/whatsapp-cta";
 import { whatsappMessages } from "@/modules/leads/domain/whatsapp";
+import { getShareImageUrl } from "@/shared/config/site";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,10 @@ export async function generateMetadata({
     const images = vehicle.id
       ? await ctx.mediaRepo.listVehicleMedia(vehicle.id)
       : [];
-    const coverUrl = images.find((img) => img.is_cover)?.url ?? images[0]?.url;
+    const coverUrl =
+      images.find((img) => img.is_cover)?.url ??
+      images[0]?.url ??
+      getShareImageUrl();
 
     return {
       title: meta.title,
@@ -45,20 +49,18 @@ export async function generateMetadata({
         locale: "es_MX",
         url: `/vehiculos/${slug}`,
         siteName: "Auto Integral",
-        images: coverUrl
-          ? [
-              {
-                url: coverUrl,
-                alt: meta.title,
-              },
-            ]
-          : undefined,
+        images: [
+          {
+            url: coverUrl,
+            alt: meta.title,
+          },
+        ],
       },
       twitter: {
         card: "summary_large_image",
         title: meta.title,
         description: meta.description,
-        images: coverUrl ? [coverUrl] : undefined,
+        images: [coverUrl],
       },
     };
   } catch {

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
-import { getSiteOrigin } from "@/shared/config/site";
+import { getShareImageUrl, getSiteOrigin } from "@/shared/config/site";
 import "@/styles/tokens.css";
 
 const title =
@@ -9,6 +9,7 @@ const description =
   "Vehículos de aseguradora, accidentados, recuperados y seminuevos. Atención personalizada en CDMX y Estado de México, con envíos a toda la República.";
 
 const siteOrigin = getSiteOrigin();
+const shareImage = getShareImageUrl("/og-share.png");
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteOrigin),
@@ -30,8 +31,11 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "/" },
   icons: {
-    icon: [{ url: "/brand/logo-autointegral.png", type: "image/png" }],
-    apple: [{ url: "/brand/logo-autointegral.png", type: "image/png" }],
+    icon: [
+      { url: "/icon", type: "image/png", sizes: "512x512" },
+      { url: "/brand/logo-autointegral.png", type: "image/png" },
+    ],
+    apple: [{ url: "/brand/logo-autointegral.png", type: "image/png", sizes: "180x180" }],
   },
   openGraph: {
     title,
@@ -42,9 +46,11 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/opengraph-image",
+        url: shareImage,
+        secureUrl: shareImage,
         width: 1200,
         height: 630,
+        type: "image/png",
         alt: "Auto Integral — vehículos de aseguradora y seminuevos",
       },
     ],
@@ -53,7 +59,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title,
     description,
-    images: ["/opengraph-image"],
+    images: [shareImage],
   },
 };
 
