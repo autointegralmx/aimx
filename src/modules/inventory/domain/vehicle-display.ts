@@ -140,7 +140,11 @@ export function buildPublicSpecCards(input: {
   if (version) {
     cards.push({ label: "Versión", value: version });
   }
-  if (input.status === "available" || input.status === "reserved") {
+  if (
+    input.status === "available" ||
+    input.status === "reserved" ||
+    input.status === "sold"
+  ) {
     cards.push({
       label: "Estado",
       value: vehicleStatusLabel[input.status],

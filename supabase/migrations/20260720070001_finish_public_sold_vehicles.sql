@@ -1,8 +1,6 @@
--- Keep sold vehicles visible on public catalog with a "Vendido" badge.
--- Additive: constraint + trigger + view. No data deletion.
+-- Finish / repair sold-visible public catalog if 20260720070000 was partially applied.
+-- Safe to re-run.
 
--- Allow published + sold (still block draft/archived/deleted).
--- Idempotent: drop old and new names before recreate (safe to re-run).
 alter table public.vehicles
   drop constraint if exists vehicles_published_requires_available;
 
@@ -18,8 +16,6 @@ alter table public.vehicles
     )
   );
 
--- Sold stays public; only draft/archived/deleted force unpublish.
--- Sold cannot be in auction.
 create or replace function public.vehicles_normalize_publication_flags()
 returns trigger
 language plpgsql
@@ -112,7 +108,6 @@ comment on view public.vehicles_public is
 
 grant select on public.vehicles_public to anon, authenticated;
 
--- Re-show already-sold units that were auto-unpublished by the old rule.
 update public.vehicles
 set is_published = true
 where status = 'sold'

@@ -90,15 +90,19 @@ export function isPublicAuctionVehicle(
 }
 
 /**
- * Inventario propio público: publicado + available|reserved + SIN flag En subasta.
- * Mientras el flag esté activo (aunque la subasta haya vencido), NO es inventario propio.
+ * Inventario propio público: publicado + available|reserved|sold + SIN flag En subasta.
+ * Sold stays visible with a Vendido badge. Auction flag (even expired) excludes owned inventory.
  */
 export function isPublicOwnedInventoryVehicle(
   input: PublicAuctionInput,
 ): boolean {
   if (input.deleted_at) return false;
   if (!input.is_published) return false;
-  if (input.status !== "available" && input.status !== "reserved") {
+  if (
+    input.status !== "available" &&
+    input.status !== "reserved" &&
+    input.status !== "sold"
+  ) {
     return false;
   }
   if (resolveIsInAuction(input)) return false;

@@ -228,6 +228,18 @@ describe("public channel mutual exclusion", () => {
     expect(resolvePublicChannel(vehicle, now)).toBe("owned_inventory");
   });
 
+  it("sold published units stay in owned inventory with Vendido badge", () => {
+    const vehicle = {
+      is_published: true,
+      is_weekly_opportunity: false,
+      status: "sold" as const,
+      opportunity_deadline: null,
+    };
+    expect(isPublicOwnedInventoryVehicle(vehicle)).toBe(true);
+    expect(isPublicAuctionVehicle(vehicle, now)).toBe(false);
+    expect(resolvePublicChannel(vehicle, now)).toBe("owned_inventory");
+  });
+
   it("never allows owned and auction simultaneously", () => {
     const cases = [
       {
