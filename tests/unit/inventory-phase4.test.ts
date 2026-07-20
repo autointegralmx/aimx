@@ -8,7 +8,16 @@ import {
   buildVehicleStorageObjectPath,
   MAX_VEHICLE_IMAGES,
 } from "@/modules/inventory/domain/vehicle-media-rules";
-import { formatPublicPrice } from "@/modules/inventory/domain/vehicle-display";
+import {
+  briefConditionNote,
+  buildInfoFacts,
+  buildObjectiveBadges,
+  buildPublicHeadline,
+  buildStructuredPublicDescription,
+  formatDamageTagLabel,
+  formatDetailPrice,
+  formatPublicPrice,
+} from "@/modules/inventory/domain/vehicle-display";
 import {
   vehicleUpdateSchema,
   vehicleWriteSchema,
@@ -107,6 +116,65 @@ describe("public price formatting", () => {
     ).toBe("Solicita información");
     expect(formatPublicPrice({ price_amount: 0 })).toBeNull();
     expect(formatPublicPrice({ price_amount: 185000 })).toMatch(/185/);
+    expect(formatDetailPrice({ price_amount: 0 })).toBe("Precio por confirmar");
+  });
+});
+
+describe("public vehicle display helpers", () => {
+  it("builds a short headline from make and model", () => {
+    expect(
+      buildPublicHeadline({
+        make: "MAZDA",
+        model: "MX-5",
+        public_title:
+          "MAZDA MX-5 MIATA CONVERTIBLE ESTÁNDAR | FACTURA DE ASEGURADORA",
+      }),
+    ).toBe("Mazda MX-5");
+  });
+
+  it("uses objective badges and ignores marketing tags", () => {
+    expect(
+      buildObjectiveBadges({
+        category: "accidentado",
+        transmission: "Manual",
+        fuel_type: "Gasolina",
+        body_type: "Convertible",
+        status: "available",
+      }),
+    ).toEqual([
+      "Factura de aseguradora",
+      "Vehículo legal",
+    ]);
+  });
+
+  it("builds info facts and damage labels", () => {
+    expect(
+      buildInfoFacts({ category: "accidentado", status: "available" }),
+    ).toContain("Vehículo de aseguradora");
+    expect(formatDamageTagLabel("defensa_trasera")).toBe("Defensa Trasera");
+    expect(
+      briefConditionNote({
+        damage_summary: "DAÑO TRASERO Y SUSPENSION",
+        condition_notes: "DESCONOCIDO",
+      }),
+    ).toBe("DESCONOCIDO");
+  });
+
+  it("builds a compact structured description", () => {
+    const text = buildStructuredPublicDescription({
+      make: "Mazda",
+      model: "MX-5",
+      year: 2025,
+      category: "accidentado",
+      transmission: "Manual",
+      fuel_type: "Gasolina",
+      status: "available",
+      damage_tags: ["defensa_trasera", "cofre"],
+    });
+    expect(text).toMatch(/Mazda MX-5 2025/);
+    expect(text).toMatch(/aseguradora/);
+    expect(text).toMatch(/Defensa Trasera/);
+    expect(text.length).toBeLessThanOrEqual(300);
   });
 });
 

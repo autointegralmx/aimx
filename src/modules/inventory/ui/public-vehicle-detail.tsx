@@ -1,8 +1,15 @@
 import Link from "next/link";
 import {
+  briefConditionNote,
   buildDefaultSeoDescription,
   buildDefaultSeoTitle,
-  formatPublicPrice,
+  buildInfoFacts,
+  buildObjectiveBadges,
+  buildPublicHeadline,
+  buildPublicSpecCards,
+  buildPublicSpecLine,
+  formatDamageTagLabel,
+  formatDetailPrice,
 } from "@/modules/inventory/domain/vehicle-display";
 import { vehicleCategoryLabel } from "@/modules/inventory/domain/vehicle-labels";
 import type { PublicVehicle } from "@/modules/inventory/infrastructure/vehicle-repository";
@@ -14,6 +21,8 @@ import {
 import { getSiteOrigin } from "@/shared/config/site";
 import { SiteFooter } from "@/shared/ui/site-footer";
 import { SiteHeader } from "@/shared/ui/site-header";
+import { PublicVehicleGallery } from "@/modules/inventory/ui/public-vehicle-gallery";
+import { PublicVehicleInfoCard } from "@/modules/inventory/ui/public-vehicle-info-card";
 
 type Props = {
   vehicle: PublicVehicle;
@@ -26,16 +35,53 @@ export function PublicVehicleDetail({
   images,
   preview = false,
 }: Props) {
-  const title =
-    vehicle.public_title?.trim() ||
-    [vehicle.year, vehicle.make, vehicle.model, vehicle.version]
-      .filter(Boolean)
-      .join(" ");
-  const price = formatPublicPrice({
+  const headline = buildPublicHeadline({
+    make: vehicle.make,
+    model: vehicle.model,
+    public_title: vehicle.public_title,
+  });
+  const price = formatDetailPrice({
     price_amount: vehicle.price_amount,
     price_label: vehicle.price_label,
     currency: vehicle.currency,
   });
+  const specLine = buildPublicSpecLine({
+    year: vehicle.year,
+    transmission: vehicle.transmission,
+    body_type: vehicle.body_type,
+    fuel_type: vehicle.fuel_type,
+  });
+  const specCards = buildPublicSpecCards({
+    year: vehicle.year,
+    mileage_km: vehicle.mileage_km,
+    transmission: vehicle.transmission,
+    fuel_type: vehicle.fuel_type,
+    exterior_color: vehicle.exterior_color,
+    body_type: vehicle.body_type,
+    version: vehicle.version,
+    status: vehicle.status,
+  });
+  const badges = buildObjectiveBadges({
+    category: vehicle.category,
+    transmission: vehicle.transmission,
+    fuel_type: vehicle.fuel_type,
+    body_type: vehicle.body_type,
+    status: vehicle.status,
+  });
+  const infoFacts = buildInfoFacts({
+    category: vehicle.category,
+    status: vehicle.status,
+  });
+  const customNote =
+    vehicle.short_description?.trim() ||
+    vehicle.full_description?.trim() ||
+    null;
+  const damageTags = (vehicle.damage_tags ?? []).filter(Boolean);
+  const conditionNote = briefConditionNote({
+    damage_summary: vehicle.damage_summary,
+    condition_notes: vehicle.condition_notes,
+  });
+
   const pageUrl = `${getSiteOrigin()}/vehiculos/${vehicle.slug}`;
   const whatsappUrl = buildSiteWhatsAppUrl(
     buildVehicleWhatsAppMessage({
@@ -46,129 +92,116 @@ export function PublicVehicleDetail({
       pageUrl: preview ? undefined : pageUrl,
     }),
   );
-  const cover = images.find((item) => item.is_cover) ?? images[0];
-  const description =
-    vehicle.full_description?.trim() ||
-    vehicle.short_description?.trim() ||
-    "";
 
   return (
     <div className="min-h-screen bg-page-background text-text-primary">
       {!preview ? <SiteHeader /> : null}
-      <main className="container-site py-10 md:py-14">
+      <main className="container-site py-6 md:py-10">
         {preview ? (
-          <p className="mb-6 rounded-md border border-line bg-surface px-4 py-3 text-sm text-ink-muted">
+          <p className="mb-5 rounded-md border border-line bg-surface px-4 py-3 text-sm text-ink-muted">
             Vista previa protegida — este vehículo no cambia su estado público.
           </p>
         ) : null}
 
-        <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr]">
-          <div>
-            <div className="aspect-[4/3] overflow-hidden bg-surface-secondary">
-              {cover ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={cover.url}
-                  alt={title}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-sm text-text-secondary">
-                  Sin imagen
-                </div>
-              )}
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.75fr)] lg:gap-10 lg:items-start">
+          <PublicVehicleGallery images={images} alt={headline} />
+
+          <aside className="space-y-5 lg:sticky lg:top-24">
+            {vehicle.category ? (
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-red">
+                {vehicleCategoryLabel[vehicle.category]}
+              </p>
+            ) : null}
+
+            <div>
+              <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight text-text-primary sm:text-[2rem]">
+                {headline}
+              </h1>
+              {specLine.length > 0 ? (
+                <p className="mt-2 text-sm text-text-secondary sm:text-[15px]">
+                  {specLine.join(" · ")}
+                </p>
+              ) : null}
             </div>
-            {images.length > 1 ? (
-              <ul className="mt-3 grid grid-cols-4 gap-2 md:grid-cols-6">
-                {images.map((image) => (
+
+            <p className="text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">
+              {price}
+            </p>
+
+            {badges.length > 0 ? (
+              <ul className="flex flex-wrap gap-2" aria-label="Características">
+                {badges.map((badge) => (
                   <li
-                    key={image.media_asset_id}
-                    className="aspect-square overflow-hidden bg-surface-secondary"
+                    key={badge}
+                    className="border border-border-subtle bg-surface-primary px-2.5 py-1 text-xs font-medium text-text-primary"
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={image.url}
-                      alt={image.alt_text || title}
-                      className="h-full w-full object-cover"
-                    />
+                    {badge}
                   </li>
                 ))}
               </ul>
             ) : null}
-          </div>
 
-          <div>
-            {vehicle.category ? (
-              <p className="label-eyebrow">
-                {vehicleCategoryLabel[vehicle.category]}
-              </p>
-            ) : null}
-            <h1 className="mt-3 text-h3 text-text-primary">{title}</h1>
-            {price ? (
-              <p className="mt-4 text-xl font-semibold text-text-primary">
-                {price}
-              </p>
-            ) : null}
-
-            <dl className="mt-8 grid grid-cols-2 gap-4 text-sm">
-              {vehicle.year ? (
-                <div>
-                  <dt className="text-text-secondary">Año</dt>
-                  <dd className="font-medium">{vehicle.year}</dd>
-                </div>
-              ) : null}
-              {vehicle.mileage_km != null ? (
-                <div>
-                  <dt className="text-text-secondary">Kilometraje</dt>
-                  <dd className="font-medium">
-                    {vehicle.mileage_km.toLocaleString("es-MX")} km
-                  </dd>
-                </div>
-              ) : null}
-              {vehicle.transmission ? (
-                <div>
-                  <dt className="text-text-secondary">Transmisión</dt>
-                  <dd className="font-medium">{vehicle.transmission}</dd>
-                </div>
-              ) : null}
-              {vehicle.fuel_type ? (
-                <div>
-                  <dt className="text-text-secondary">Combustible</dt>
-                  <dd className="font-medium">{vehicle.fuel_type}</dd>
-                </div>
-              ) : null}
-              {vehicle.exterior_color ? (
-                <div>
-                  <dt className="text-text-secondary">Color</dt>
-                  <dd className="font-medium">{vehicle.exterior_color}</dd>
-                </div>
-              ) : null}
-              {vehicle.version ? (
-                <div>
-                  <dt className="text-text-secondary">Versión</dt>
-                  <dd className="font-medium">{vehicle.version}</dd>
-                </div>
-              ) : null}
-            </dl>
-
-            {vehicle.public_tags && vehicle.public_tags.length > 0 ? (
-              <div className="mt-6 flex flex-wrap gap-2">
-                {vehicle.public_tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-sm border border-border-subtle px-2 py-1 text-xs uppercase tracking-wide text-text-secondary"
+            {specCards.length > 0 ? (
+              <ul
+                className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+                aria-label="Datos principales"
+              >
+                {specCards.map((card) => (
+                  <li
+                    key={`${card.label}-${card.value}`}
+                    className="border border-border-subtle bg-surface-primary px-3 py-3"
                   >
-                    {tag.replaceAll("_", " ")}
-                  </span>
+                    <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-text-secondary">
+                      {card.label}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-text-primary">
+                      {card.value}
+                    </p>
+                  </li>
                 ))}
-              </div>
+              </ul>
+            ) : null}
+
+            {infoFacts.length > 0 || customNote ? (
+              <PublicVehicleInfoCard
+                facts={infoFacts}
+                customNote={customNote}
+              />
+            ) : null}
+
+            {damageTags.length > 0 || conditionNote ? (
+              <section aria-labelledby="vehicle-damage-heading">
+                <h2
+                  id="vehicle-damage-heading"
+                  className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary"
+                >
+                  Daños registrados
+                </h2>
+                {damageTags.length > 0 ? (
+                  <ul className="mt-3 flex flex-wrap gap-2">
+                    {damageTags.map((tag) => (
+                      <li
+                        key={tag}
+                        className="bg-surface-secondary px-2.5 py-1 text-xs font-medium text-text-primary"
+                      >
+                        {formatDamageTagLabel(tag)}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {conditionNote ? (
+                  <p className="mt-3 line-clamp-2 text-sm text-text-secondary">
+                    {conditionNote}
+                  </p>
+                ) : null}
+              </section>
             ) : null}
 
             <a
               href={whatsappUrl}
               target="_blank"
               rel="noreferrer"
-              className="btn-primary mt-8 inline-flex w-full sm:w-auto"
+              className="btn-primary inline-flex w-full justify-center"
               data-testid="vehicle-whatsapp-cta"
             >
               Quiero más información
@@ -177,54 +210,13 @@ export function PublicVehicleDetail({
             {!preview ? (
               <Link
                 href="/vehiculos"
-                className="mt-4 inline-flex text-sm text-text-secondary hover:text-text-primary"
+                className="inline-flex text-sm text-text-secondary hover:text-text-primary"
               >
                 ← Volver a vehículos
               </Link>
             ) : null}
-          </div>
+          </aside>
         </div>
-
-        {description ? (
-          <section className="mt-12 max-w-3xl">
-            <h2 className="text-xl font-bold uppercase tracking-wide">
-              Descripción
-            </h2>
-            <p className="mt-4 whitespace-pre-wrap text-text-secondary">
-              {description}
-            </p>
-          </section>
-        ) : null}
-
-        {vehicle.damage_summary ||
-        (vehicle.damage_tags && vehicle.damage_tags.length > 0) ||
-        vehicle.condition_notes ? (
-          <section className="mt-12 max-w-3xl">
-            <h2 className="text-xl font-bold uppercase tracking-wide">
-              Condición
-            </h2>
-            {vehicle.damage_summary ? (
-              <p className="mt-4 text-text-secondary">{vehicle.damage_summary}</p>
-            ) : null}
-            {vehicle.condition_notes ? (
-              <p className="mt-3 text-text-secondary">
-                {vehicle.condition_notes}
-              </p>
-            ) : null}
-            {vehicle.damage_tags && vehicle.damage_tags.length > 0 ? (
-              <ul className="mt-4 flex flex-wrap gap-2">
-                {vehicle.damage_tags.map((tag) => (
-                  <li
-                    key={tag}
-                    className="rounded-sm bg-surface-secondary px-2 py-1 text-xs uppercase tracking-wide"
-                  >
-                    {tag.replaceAll("_", " ")}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </section>
-        ) : null}
       </main>
       {!preview ? <SiteFooter /> : null}
     </div>
@@ -247,6 +239,11 @@ export function publicVehicleMetadata(vehicle: PublicVehicle) {
       year: vehicle.year ?? 0,
       make: vehicle.make ?? "",
       model: vehicle.model ?? "",
+      category: vehicle.category,
+      transmission: vehicle.transmission,
+      fuel_type: vehicle.fuel_type,
+      status: vehicle.status,
+      damage_tags: vehicle.damage_tags,
     });
   return { title, description };
 }
