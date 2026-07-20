@@ -445,6 +445,19 @@ export async function deleteVehiclePermanentlyAction(
       if (error.stage === "load_vehicle" && error.message.includes("no existe")) {
         return { ok: false, error: "El vehículo no existe." };
       }
+      if (error.stage === "delete_vehicle") {
+        return {
+          ok: false,
+          error:
+            "No se pudo eliminar el vehículo en la base de datos. Verifica que la política de borrado esté aplicada e intenta nuevamente.",
+        };
+      }
+      if (error.stage === "audit") {
+        return {
+          ok: false,
+          error: "No se pudo registrar la auditoría previa al borrado.",
+        };
+      }
       return {
         ok: false,
         error: "No se pudo eliminar el vehículo. Intenta nuevamente.",

@@ -16,6 +16,7 @@ type TypedConfirmDialogProps = {
   confirmLabel: string;
   busyLabel?: string;
   busy?: boolean;
+  error?: string | null;
   onCancel: () => void;
   onConfirm: () => void;
 };
@@ -33,6 +34,7 @@ export function TypedConfirmDialog({
   confirmLabel,
   busyLabel = "Eliminando…",
   busy = false,
+  error = null,
   onCancel,
   onConfirm,
 }: TypedConfirmDialogProps) {
@@ -122,6 +124,11 @@ export function TypedConfirmDialog({
             {busy ? busyLabel : confirmLabel}
           </button>
         </div>
+        {error ? (
+          <p className="mt-4 text-sm text-danger" role="alert">
+            {error}
+          </p>
+        ) : null}
       </div>
     </div>
   );

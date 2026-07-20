@@ -169,10 +169,11 @@ export async function deleteVehiclePermanently(
     });
   }
 
-  const { error: deleteVehicleError } = await client
+  const { data: deletedRows, error: deleteVehicleError } = await client
     .from("vehicles")
     .delete()
-    .eq("id", vehicleId);
+    .eq("id", vehicleId)
+    .select("id");
 
   if (deleteVehicleError) {
     throw new PermanentDeleteError({
@@ -181,6 +182,18 @@ export async function deleteVehiclePermanently(
       vehicleId,
       supabaseCode: deleteVehicleError.code,
       cause: deleteVehicleError,
+      storagePending: storageTargets,
+    });
+  }
+
+  // RLS without a DELETE policy returns success with 0 rows.
+  if (!deletedRows?.length) {
+    throw new PermanentDeleteError({
+      message:
+        "No se pudo eliminar el vehículo: falta permiso de borrado en la base de datos.",
+      stage: "delete_vehicle",
+      vehicleId,
+      supabaseCode: "42501",
       storagePending: storageTargets,
     });
   }

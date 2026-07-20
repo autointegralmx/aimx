@@ -55,6 +55,7 @@ export function VehicleActionsMenu({ vehicle }: Props) {
     null,
   );
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -139,6 +140,7 @@ export function VehicleActionsMenu({ vehicle }: Props) {
     setMessage(null);
     setOpen(false);
     if (action === "delete_permanently") {
+      setDeleteError(null);
       setDeleteOpen(true);
       return;
     }
@@ -179,6 +181,7 @@ export function VehicleActionsMenu({ vehicle }: Props) {
   function runPermanentDelete() {
     if (busy) return;
     setPendingAction("delete_permanently");
+    setDeleteError(null);
     startTransition(async () => {
       try {
         const result = await deleteVehiclePermanentlyAction({
@@ -186,10 +189,12 @@ export function VehicleActionsMenu({ vehicle }: Props) {
           confirmation: "ELIMINAR",
         });
         if (!result.ok) {
+          setDeleteError(result.error);
           setError(result.error);
           return;
         }
         setDeleteOpen(false);
+        setDeleteError(null);
         setMessage(result.message);
         router.refresh();
       } finally {
@@ -368,8 +373,12 @@ export function VehicleActionsMenu({ vehicle }: Props) {
         confirmLabel="Eliminar definitivamente"
         busyLabel="Eliminando…"
         busy={busy && pendingAction === "delete_permanently"}
+        error={deleteError}
         onCancel={() => {
-          if (!busy) setDeleteOpen(false);
+          if (!busy) {
+            setDeleteOpen(false);
+            setDeleteError(null);
+          }
         }}
         onConfirm={runPermanentDelete}
       />
