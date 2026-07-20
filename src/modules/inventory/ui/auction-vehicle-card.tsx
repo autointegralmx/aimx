@@ -5,16 +5,19 @@ import type { PublicVehicle } from "@/modules/inventory/infrastructure/vehicle-r
 import { VehicleAvailabilityBadge } from "@/modules/inventory/ui/vehicle-availability-badge";
 
 type Variant = "default" | "onDark";
+type Density = "default" | "compact";
 
 export function AuctionVehicleCard({
   vehicle,
   coverUrl,
   variant = "default",
+  density = "default",
   now,
 }: {
   vehicle: PublicVehicle;
   coverUrl?: string | null;
   variant?: Variant;
+  density?: Density;
   now?: Date;
 }) {
   if (!vehicle.id || !vehicle.slug) return null;
@@ -23,6 +26,7 @@ export function AuctionVehicleCard({
   if (!vm.auction.includeInAuctionBoard) return null;
 
   const onDark = variant === "onDark";
+  const compact = density === "compact";
   const titleClass = onDark ? "text-text-on-dark" : "text-text-primary";
   const bodyClass = onDark ? "text-[#E4E6EA]" : "text-text-secondary";
   const emptyClass = onDark ? "text-[#E4E6EA]" : "text-text-secondary";
@@ -95,7 +99,11 @@ export function AuctionVehicleCard({
 
         {/* Desktop */}
         <div className="hidden md:block">
-          <div className={`relative aspect-[4/3] overflow-hidden ${mediaBg}`}>
+          <div
+            className={`relative overflow-hidden ${mediaBg} ${
+              compact ? "aspect-[16/11]" : "aspect-[4/3]"
+            }`}
+          >
             {coverUrl ? (
               <Image
                 src={coverUrl}
@@ -115,19 +123,35 @@ export function AuctionVehicleCard({
             )}
             <VehicleAvailabilityBadge status={vehicle.status} size="card" />
           </div>
-          <div className="space-y-2 p-5">
+          <div className={compact ? "space-y-1 p-3.5" : "space-y-2 p-5"}>
             {vm.categoryLabel ? (
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-red">
+              <p
+                className={`font-semibold uppercase text-brand-red ${
+                  compact
+                    ? "text-[10px] tracking-[0.14em]"
+                    : "text-xs tracking-[0.16em]"
+                }`}
+              >
                 {vm.categoryLabel}
               </p>
             ) : null}
             <h3
-              className={`text-lg font-bold uppercase tracking-wide ${titleClass}`}
+              className={`font-bold uppercase tracking-wide ${titleClass} ${
+                compact ? "text-[15px] leading-snug" : "text-lg"
+              }`}
             >
               {vm.title}
             </h3>
-            {spec ? <p className={`text-sm ${bodyClass}`}>{spec}</p> : null}
-            <p className={`text-sm font-semibold ${titleClass}`}>
+            {spec ? (
+              <p className={`${bodyClass} ${compact ? "text-xs" : "text-sm"}`}>
+                {spec}
+              </p>
+            ) : null}
+            <p
+              className={`font-semibold ${titleClass} ${
+                compact ? "text-sm" : "text-sm"
+              }`}
+            >
               {vm.listPriceLabel ?? "Precio por confirmar"}
             </p>
             {vm.auction.badgeLabel ? (
@@ -136,14 +160,24 @@ export function AuctionVehicleCard({
               </p>
             ) : null}
             {vm.auction.closesLabel ? (
-              <p className={`text-sm ${bodyClass}`}>{vm.auction.closesLabel}</p>
+              <p className={`${bodyClass} ${compact ? "text-xs" : "text-sm"}`}>
+                {vm.auction.closesLabel}
+              </p>
             ) : null}
             {vm.locationLabel ? (
-              <p className={`text-sm font-medium ${titleClass}`}>
+              <p
+                className={`font-medium ${titleClass} ${
+                  compact ? "text-xs" : "text-sm"
+                }`}
+              >
                 Ubicación: {vm.locationLabel}
               </p>
             ) : null}
-            <span className="inline-flex pt-2 text-sm font-semibold uppercase tracking-wide text-brand-red">
+            <span
+              className={`inline-flex font-semibold uppercase tracking-wide text-brand-red ${
+                compact ? "pt-1 text-xs" : "pt-2 text-sm"
+              }`}
+            >
               Ver vehículo →
             </span>
           </div>

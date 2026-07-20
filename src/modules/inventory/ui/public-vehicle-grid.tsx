@@ -16,6 +16,7 @@ type Item = {
  *
  * `listMode="preview"` + `limit` solo recorta en portada. En listados de
  * categoría usar `listMode="all"` (default) para mostrar todo el inventario.
+ * `density="compact"` reduce padding/tipografía (home con hasta 6).
  */
 export function PublicVehicleGrid({
   items,
@@ -23,6 +24,7 @@ export function PublicVehicleGrid({
   mode = "inventory",
   listMode = "all",
   limit,
+  density = "default",
   className = "",
 }: {
   items: Item[];
@@ -31,6 +33,7 @@ export function PublicVehicleGrid({
   listMode?: "all" | "preview";
   /** Solo aplica con `listMode="preview"`. Nunca por defecto en listados completos. */
   limit?: number;
+  density?: "default" | "compact";
   className?: string;
 }) {
   const visibleItems =
@@ -39,6 +42,15 @@ export function PublicVehicleGrid({
       : items;
 
   const useCompactMobile = visibleItems.length > COMPACT_THRESHOLD;
+  const compact = density === "compact";
+
+  const desktopGrid = useCompactMobile
+    ? compact
+      ? "hidden gap-4 md:grid md:grid-cols-2 lg:grid-cols-3"
+      : "hidden gap-8 md:grid md:grid-cols-2 lg:grid-cols-3"
+    : compact
+      ? "grid grid-cols-1 gap-2.5 md:grid-cols-2 md:gap-4 lg:grid-cols-3"
+      : "grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-8 lg:grid-cols-3";
 
   return (
     <div className={className}>
@@ -55,13 +67,7 @@ export function PublicVehicleGrid({
         </div>
       ) : null}
 
-      <div
-        className={
-          useCompactMobile
-            ? "hidden gap-8 md:grid md:grid-cols-2 lg:grid-cols-3"
-            : "grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-8 lg:grid-cols-3"
-        }
-      >
+      <div className={desktopGrid}>
         {visibleItems.map(({ vehicle, coverUrl }) =>
           mode === "auction" ? (
             <AuctionVehicleCard
@@ -69,6 +75,7 @@ export function PublicVehicleGrid({
               vehicle={vehicle}
               coverUrl={coverUrl}
               variant={variant}
+              density={density}
             />
           ) : (
             <VehicleCard
@@ -76,6 +83,7 @@ export function PublicVehicleGrid({
               vehicle={vehicle}
               coverUrl={coverUrl}
               variant={variant}
+              density={density}
             />
           ),
         )}

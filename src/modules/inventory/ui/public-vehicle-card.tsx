@@ -5,6 +5,7 @@ import type { PublicVehicle } from "@/modules/inventory/infrastructure/vehicle-r
 import { VehicleAvailabilityBadge } from "@/modules/inventory/ui/vehicle-availability-badge";
 
 type Variant = "default" | "onDark";
+type Density = "default" | "compact";
 
 /**
  * Desktop: vertical card. Mobile: compact horizontal row (small photo + text).
@@ -14,15 +15,18 @@ export function VehicleCard({
   vehicle,
   coverUrl,
   variant = "default",
+  density = "default",
 }: {
   vehicle: PublicVehicle;
   coverUrl?: string | null;
   variant?: Variant;
+  density?: Density;
 }) {
   if (!vehicle.id || !vehicle.slug) return null;
 
   const vm = buildPublicVehicleViewModel(vehicle);
   const onDark = variant === "onDark";
+  const compact = density === "compact";
   const titleClass = onDark ? "text-text-on-dark" : "text-text-primary";
   const bodyClass = onDark ? "text-[#E4E6EA]" : "text-text-secondary";
   const emptyClass = onDark ? "text-[#E4E6EA]" : "text-text-secondary";
@@ -87,7 +91,11 @@ export function VehicleCard({
 
         {/* Desktop: vertical card */}
         <div className="hidden md:block">
-          <div className={`relative aspect-[4/3] overflow-hidden ${mediaBg}`}>
+          <div
+            className={`relative overflow-hidden ${mediaBg} ${
+              compact ? "aspect-[16/11]" : "aspect-[4/3]"
+            }`}
+          >
             {coverUrl ? (
               <Image
                 src={coverUrl}
@@ -107,27 +115,47 @@ export function VehicleCard({
             )}
             <VehicleAvailabilityBadge status={vehicle.status} size="card" />
           </div>
-          <div className="space-y-2 p-5">
+          <div className={compact ? "space-y-1 p-3.5" : "space-y-2 p-5"}>
             {vm.categoryLabel ? (
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-red">
+              <p
+                className={`font-semibold uppercase text-brand-red ${
+                  compact
+                    ? "text-[10px] tracking-[0.14em]"
+                    : "text-xs tracking-[0.16em]"
+                }`}
+              >
                 {vm.categoryLabel}
               </p>
             ) : null}
             <h3
-              className={`text-lg font-bold uppercase tracking-wide ${titleClass}`}
+              className={`font-bold uppercase tracking-wide ${titleClass} ${
+                compact ? "text-[15px] leading-snug" : "text-lg"
+              }`}
             >
               {vm.title}
             </h3>
-            {spec ? <p className={`text-sm ${bodyClass}`}>{spec}</p> : null}
+            {spec ? (
+              <p className={`${bodyClass} ${compact ? "text-xs" : "text-sm"}`}>
+                {spec}
+              </p>
+            ) : null}
             {vm.auction.badgeLabel ? (
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-red">
                 {vm.auction.badgeLabel}
               </p>
             ) : null}
-            <p className={`pt-1 text-sm font-semibold ${titleClass}`}>
+            <p
+              className={`font-semibold ${titleClass} ${
+                compact ? "pt-0.5 text-sm" : "pt-1 text-sm"
+              }`}
+            >
               {vm.listPriceLabel ?? "Precio por confirmar"}
             </p>
-            <span className="inline-flex pt-2 text-sm font-semibold uppercase tracking-wide text-brand-red">
+            <span
+              className={`inline-flex font-semibold uppercase tracking-wide text-brand-red ${
+                compact ? "pt-1 text-xs" : "pt-2 text-sm"
+              }`}
+            >
               Ver vehículo →
             </span>
           </div>

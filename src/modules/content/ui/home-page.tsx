@@ -159,12 +159,7 @@ export async function HomePage() {
                 En subasta
               </p>
               <h2 className="text-h2 mt-2 text-text-on-dark md:mt-4">
-                <span className="md:hidden">Vehículos en subasta</span>
-                <span className="hidden md:inline">
-                  Vehículos disponibles
-                  <br />
-                  mediante subasta
-                </span>
+                Nuestros vehículos
               </h2>
               <p className="mt-3 max-w-xl text-[16px] leading-relaxed text-text-muted-dark md:mt-5 md:text-lg">
                 Consulta el cierre y solicita información para participar.
@@ -192,7 +187,8 @@ export async function HomePage() {
                 variant="onDark"
                 mode="auction"
                 listMode="preview"
-                limit={3}
+                limit={6}
+                density="compact"
                 className="mt-8 md:mt-12"
               />
             )}
@@ -212,7 +208,7 @@ export async function HomePage() {
             <div className="max-w-2xl">
               <p className="label-eyebrow">Vehículos</p>
               <h2 className="text-h2 mt-2 text-text-primary md:mt-3">
-                Vehículos disponibles
+                Nuestros vehículos
               </h2>
               <p className="mt-3 text-[16px] text-text-secondary md:mt-4 md:text-lg">
                 Explora nuestra selección de vehículos accidentados, recuperados
@@ -226,7 +222,8 @@ export async function HomePage() {
               <PublicVehicleGrid
                 items={featuredItems}
                 listMode="preview"
-                limit={3}
+                limit={6}
+                density="compact"
                 className="mt-5 md:mt-10"
               />
             ) : null}

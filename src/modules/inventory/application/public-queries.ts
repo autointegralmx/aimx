@@ -92,8 +92,8 @@ export async function loadHomeInventoryData(): Promise<HomeInventoryData> {
 
   try {
     const [auctionsResult, featuredResult] = await Promise.allSettled([
-      ctx.repo.listActiveAuctions({ limit: 3 }),
-      ctx.repo.listPublicVehicles({ featured: true, limit: 3 }),
+      ctx.repo.listActiveAuctions({ limit: 6 }),
+      ctx.repo.listPublicVehicles({ featured: true, limit: 6 }),
     ]);
 
     const auctions =
