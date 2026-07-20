@@ -117,14 +117,21 @@ export function PublicVehicleDetail({
 
             <VehicleSoldStatusChip status={vehicle.status} />
 
-            {vm.auction.active && vm.auction.closesLong ? (
+            {vm.auction.active ? (
               <div className="border border-border-subtle bg-surface-secondary px-4 py-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-red">
                   {vm.auction.badgeLabel}
                 </p>
-                <p className="mt-1 text-sm text-text-secondary">
-                  Cierra: {vm.auction.closesLong}
-                </p>
+                {vm.auction.closesLong ? (
+                  <p className="mt-1 text-sm text-text-secondary">
+                    Cierra: {vm.auction.closesLong}
+                  </p>
+                ) : null}
+                {vm.locationLabel ? (
+                  <p className="mt-1 text-sm font-medium text-text-primary">
+                    Ubicación: {vm.locationLabel}
+                  </p>
+                ) : null}
               </div>
             ) : null}
 
@@ -134,25 +141,21 @@ export function PublicVehicleDetail({
               </p>
             ) : null}
 
-            {vm.operationalBadges.length > 0 ? (
-              <ul className="flex flex-wrap gap-2" aria-label="Estado operativo">
-                {vm.operationalBadges.map((badge) => (
+            {vm.operationalBadges.length > 0 ||
+            vm.documentationBadges.length > 0 ||
+            vm.infoFacts.length > 0 ? (
+              <ul
+                className="flex flex-wrap gap-2"
+                aria-label="Características del vehículo"
+              >
+                {[
+                  ...vm.operationalBadges,
+                  ...vm.documentationBadges,
+                  ...vm.infoFacts,
+                ].map((badge) => (
                   <li
                     key={badge}
                     className="border border-border-subtle bg-surface-primary px-2.5 py-1 text-xs font-medium text-text-primary"
-                  >
-                    {badge}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-
-            {vm.documentationBadges.length > 0 ? (
-              <ul className="flex flex-wrap gap-2" aria-label="Documentación">
-                {vm.documentationBadges.map((badge) => (
-                  <li
-                    key={badge}
-                    className="border border-border-subtle bg-surface-secondary px-2.5 py-1 text-xs font-medium text-text-primary"
                   >
                     {badge}
                   </li>
@@ -179,10 +182,6 @@ export function PublicVehicleDetail({
                   </li>
                 ))}
               </ul>
-            ) : null}
-
-            {vm.infoFacts.length > 0 ? (
-              <PublicVehicleInfoCard facts={vm.infoFacts} customNote={null} />
             ) : null}
 
             {vm.damageTagLabels.length > 0 ? (

@@ -90,6 +90,11 @@ export function AuctionVehicleCard({
           {vm.auction.closesLabel ? (
             <p className={`text-sm ${bodyClass}`}>{vm.auction.closesLabel}</p>
           ) : null}
+          {vm.locationLabel ? (
+            <p className={`text-sm font-medium ${titleClass}`}>
+              Ubicación: {vm.locationLabel}
+            </p>
+          ) : null}
           <span className="inline-flex pt-2 text-sm font-semibold uppercase tracking-wide text-brand-red">
             Ver vehículo →
           </span>
