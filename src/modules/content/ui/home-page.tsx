@@ -112,12 +112,12 @@ export async function HomePage() {
               <p className="mt-3 text-[18px] font-bold uppercase tracking-wide text-text-primary md:mt-5 md:text-2xl">
                 Nosotros lo encontramos por ti.
               </p>
-              <p className="mt-4 max-w-xl text-[16px] leading-relaxed text-text-secondary md:mt-6 md:text-lg">
+              <p className="mt-4 max-w-xl text-[16px] leading-relaxed text-text-primary md:mt-6 md:text-lg">
                 Tenemos acceso a la subastadora de vehículos de aseguradora más
                 grande del país, donde cada semana se publican cientos de
                 unidades.
               </p>
-              <p className="mt-3 hidden max-w-xl text-base leading-relaxed text-text-secondary sm:block sm:text-lg md:mt-4">
+              <p className="mt-3 hidden max-w-xl text-base leading-relaxed text-text-primary sm:block sm:text-lg md:mt-4">
                 Cuéntanos qué vehículo estás buscando y nosotros localizamos las
                 mejores oportunidades, te brindamos información clara y te
                 acompañamos durante todo el proceso.
