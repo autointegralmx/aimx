@@ -16,9 +16,7 @@ import {
   IconWhatsApp,
 } from "@/shared/ui/icons";
 import {
-  getInventoryServerContext,
-  loadCoverUrlsForVehicles,
-  withCovers,
+  loadHomeInventoryData,
 } from "@/modules/inventory/application/public-queries";
 import { VehicleCard } from "@/modules/inventory/ui/public-vehicle-card";
 
@@ -75,18 +73,8 @@ const trustItems = [
 ];
 
 export async function HomePage() {
-  const { repo } = await getInventoryServerContext();
-  const [opportunities, featured] = await Promise.all([
-    repo.listActiveOpportunities({ limit: 3 }),
-    repo.listPublicVehicles({ featured: true, limit: 3 }),
-  ]);
-  const coverIds = [
-    ...opportunities.map((item) => item.id),
-    ...featured.map((item) => item.id),
-  ].filter((id): id is string => Boolean(id));
-  const covers = await loadCoverUrlsForVehicles(coverIds);
-  const opportunityItems = withCovers(opportunities, covers);
-  const featuredItems = withCovers(featured, covers);
+  const { opportunities: opportunityItems, featured: featuredItems } =
+    await loadHomeInventoryData();
 
   return (
     <div className="min-h-screen bg-page-background text-text-primary">

@@ -27,10 +27,14 @@ describe("env and seed safety", () => {
       join(root, "src/shared/lib/supabase/server.ts"),
       "utf8",
     );
-    for (const source of [browser, middleware, server]) {
+    const env = readFileSync(join(root, "src/shared/lib/supabase/env.ts"), "utf8");
+    for (const source of [browser, middleware, server, env]) {
       expect(source).not.toMatch(/SERVICE_ROLE/);
-      expect(source).toMatch(/NEXT_PUBLIC_SUPABASE_ANON_KEY/);
     }
+    expect(env).toMatch(/NEXT_PUBLIC_SUPABASE_ANON_KEY/);
+    expect(env).toMatch(/NEXT_PUBLIC_SUPABASE_URL/);
+    expect(browser).toMatch(/requirePublicSupabaseEnv/);
+    expect(server).toMatch(/requirePublicSupabaseEnv/);
   });
 
   it("keeps local seed users out of migrations", () => {

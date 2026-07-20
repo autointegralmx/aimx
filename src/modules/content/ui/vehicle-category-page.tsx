@@ -2,11 +2,7 @@ import Link from "next/link";
 import { PublicShell } from "@/shared/ui/public-shell";
 import { WhatsAppCta } from "@/shared/ui/whatsapp-cta";
 import { whatsappMessages } from "@/modules/leads/domain/whatsapp";
-import {
-  getInventoryServerContext,
-  loadCoverUrlsForVehicles,
-  withCovers,
-} from "@/modules/inventory/application/public-queries";
+import { loadPublicVehicleList } from "@/modules/inventory/application/public-queries";
 import { VehicleCard } from "@/modules/inventory/ui/public-vehicle-card";
 import type { VehicleCategory } from "@/modules/inventory/domain/vehicle-schema";
 
@@ -26,14 +22,9 @@ export async function CategoryPage({ category }: { category: string }) {
   const message =
     messageByCategory[category] ?? whatsappMessages.vehicles;
   const dbCategory = categoryMap[category];
-  const { repo } = await getInventoryServerContext();
-  const vehicles = dbCategory
-    ? await repo.listPublicVehicles({ category: dbCategory, limit: 48 })
-    : [];
-  const covers = await loadCoverUrlsForVehicles(
-    vehicles.map((item) => item.id).filter((id): id is string => Boolean(id)),
-  );
-  const items = withCovers(vehicles, covers);
+  const { items } = dbCategory
+    ? await loadPublicVehicleList({ category: dbCategory, limit: 48 })
+    : { items: [] };
 
   return (
     <PublicShell

@@ -1,11 +1,7 @@
 import { PublicShell } from "@/shared/ui/public-shell";
 import { WhatsAppCta } from "@/shared/ui/whatsapp-cta";
 import { whatsappMessages } from "@/modules/leads/domain/whatsapp";
-import {
-  getInventoryServerContext,
-  loadCoverUrlsForVehicles,
-  withCovers,
-} from "@/modules/inventory/application/public-queries";
+import { loadPublicOpportunities } from "@/modules/inventory/application/public-queries";
 import { VehicleCard } from "@/modules/inventory/ui/public-vehicle-card";
 
 export const dynamic = "force-dynamic";
@@ -17,12 +13,7 @@ export const metadata = {
 };
 
 export default async function OportunidadesPage() {
-  const { repo } = await getInventoryServerContext();
-  const vehicles = await repo.listActiveOpportunities({ limit: 24 });
-  const covers = await loadCoverUrlsForVehicles(
-    vehicles.map((item) => item.id).filter((id): id is string => Boolean(id)),
-  );
-  const items = withCovers(vehicles, covers);
+  const { items } = await loadPublicOpportunities(24);
 
   return (
     <PublicShell
