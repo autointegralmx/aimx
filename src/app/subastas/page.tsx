@@ -12,7 +12,7 @@ export const metadata = {
 };
 
 export default async function SubastasPage() {
-  const { items, degraded } = await loadPublicAuctions(24);
+  const { items, degraded } = await loadPublicAuctions();
 
   return (
     <PublicShell
@@ -49,6 +49,7 @@ export default async function SubastasPage() {
         <PublicVehicleGrid
           items={items}
           mode="auction"
+          listMode="all"
           className="mt-5 md:mt-10"
         />
       )}

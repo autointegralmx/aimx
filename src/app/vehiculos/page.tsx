@@ -15,7 +15,7 @@ export const metadata = {
 };
 
 export default async function VehiculosPage() {
-  const { items } = await loadPublicVehicleList({ limit: 48 });
+  const { items } = await loadPublicVehicleList({ mode: "all" });
 
   return (
     <PublicShell
@@ -49,7 +49,11 @@ export default async function VehiculosPage() {
           />
         </div>
       ) : (
-        <PublicVehicleGrid items={items} className="mt-5 md:mt-10" />
+        <PublicVehicleGrid
+          items={items}
+          listMode="all"
+          className="mt-5 md:mt-10"
+        />
       )}
     </PublicShell>
   );

@@ -162,7 +162,7 @@ describe("VehicleActionsMenu", () => {
       screen.getByRole("menuitem", { name: /marcar como vendido/i }),
     );
     expect(
-      screen.getByText(/dejará de mostrarse públicamente/i),
+      screen.getByText(/seguirá visible en el catálogo público con el letrero vendido/i),
     ).toBeInTheDocument();
 
     const confirm = screen.getByRole("button", { name: /marcar vendido/i });

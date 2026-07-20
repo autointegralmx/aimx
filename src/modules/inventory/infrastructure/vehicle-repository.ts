@@ -135,6 +135,7 @@ export type ListAdminVehiclesResult = {
 export type ListPublicVehiclesInput = {
   category?: VehicleCategory;
   featured?: boolean;
+  /** Solo para previews (p. ej. home). Omitir en listados completos de categoría. */
   limit?: number;
   offset?: number;
 };
@@ -492,15 +493,19 @@ export function createVehicleRepository(
     async listPublicVehicles(
       input: ListPublicVehiclesInput = {},
     ): Promise<PublicVehicle[]> {
-      const limit = input.limit ?? 24;
       const offset = input.offset ?? 0;
+      const hasLimit = typeof input.limit === "number" && input.limit > 0;
 
       async function runSelect(columns: string) {
         let query = client
           .from("vehicles_public")
           .select(columns)
-          .order("published_at", { ascending: false, nullsFirst: false })
-          .range(offset, offset + limit - 1);
+          .order("published_at", { ascending: false, nullsFirst: false });
+        // Solo aplicar rango cuando el caller pide preview/paginación explícita.
+        // Listados de categoría deben omitir `limit` y recibir la colección completa.
+        if (hasLimit) {
+          query = query.range(offset, offset + input.limit! - 1);
+        }
         if (input.category) query = query.eq("category", input.category);
         if (input.featured !== undefined) {
           query = query.eq("is_featured", input.featured);
@@ -556,33 +561,37 @@ export function createVehicleRepository(
     },
 
     async listActiveAuctions(input?: {
+      /** Solo para previews (p. ej. home). Omitir en /subastas completo. */
       limit?: number;
       now?: Date;
     }): Promise<PublicVehicle[]> {
       const now = input?.now ?? new Date();
-      const limit = input?.limit ?? 24;
+      const hasLimit = typeof input?.limit === "number" && input.limit > 0;
       const nowIso = now.toISOString();
 
-      let { data, error } = await client
-        .from("vehicles_public")
-        .select(PUBLIC_VEHICLE_COLUMNS.join(", "))
-        .eq("is_weekly_opportunity", true)
-        .eq("status", "available")
-        .gt("opportunity_deadline", nowIso)
-        .order("opportunity_deadline", { ascending: true, nullsFirst: false })
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .limit(limit);
-
-      if (error && isMissingColumnError(error.message)) {
-        ({ data, error } = await client
+      async function runAuctionSelect(columns: string) {
+        let query = client
           .from("vehicles_public")
-          .select(PUBLIC_VEHICLE_BASE_COLUMNS.join(", "))
+          .select(columns)
           .eq("is_weekly_opportunity", true)
           .eq("status", "available")
           .gt("opportunity_deadline", nowIso)
           .order("opportunity_deadline", { ascending: true, nullsFirst: false })
-          .order("published_at", { ascending: false, nullsFirst: false })
-          .limit(limit));
+          .order("published_at", { ascending: false, nullsFirst: false });
+        if (hasLimit) {
+          query = query.limit(input!.limit!);
+        }
+        return query;
+      }
+
+      let { data, error } = await runAuctionSelect(
+        PUBLIC_VEHICLE_COLUMNS.join(", "),
+      );
+
+      if (error && isMissingColumnError(error.message)) {
+        ({ data, error } = await runAuctionSelect(
+          PUBLIC_VEHICLE_BASE_COLUMNS.join(", "),
+        ));
       }
 
       if (error) {

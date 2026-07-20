@@ -24,7 +24,7 @@ export async function CategoryPage({ category }: { category: string }) {
     messageByCategory[category] ?? whatsappMessages.vehicles;
   const dbCategory = categoryMap[category];
   const { items } = dbCategory
-    ? await loadPublicVehicleList({ category: dbCategory, limit: 48 })
+    ? await loadPublicVehicleList({ category: dbCategory, mode: "all" })
     : { items: [] };
 
   return (
@@ -48,7 +48,11 @@ export async function CategoryPage({ category }: { category: string }) {
         </div>
       ) : (
         <>
-          <PublicVehicleGrid items={items} className="mt-5 md:mt-10" />
+          <PublicVehicleGrid
+            items={items}
+            listMode="all"
+            className="mt-5 md:mt-10"
+          />
           <div className="mt-8 md:mt-10">
             <WhatsAppCta message={message} />
           </div>

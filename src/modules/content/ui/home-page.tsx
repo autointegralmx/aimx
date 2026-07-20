@@ -191,6 +191,8 @@ export async function HomePage() {
                 items={auctionItems}
                 variant="onDark"
                 mode="auction"
+                listMode="preview"
+                limit={3}
                 className="mt-8 md:mt-12"
               />
             )}
@@ -223,6 +225,8 @@ export async function HomePage() {
             {featuredItems.length > 0 ? (
               <PublicVehicleGrid
                 items={featuredItems}
+                listMode="preview"
+                limit={3}
                 className="mt-5 md:mt-10"
               />
             ) : null}

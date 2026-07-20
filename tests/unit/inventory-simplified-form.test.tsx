@@ -117,7 +117,9 @@ describe("simplified VehicleForm", () => {
 
   it("keeps observations as the only open free-text field", () => {
     render(<VehicleForm vehicle={sampleVehicle()} images={[]} />);
-    expect(screen.getByPlaceholderText(/motor desmontado/i)).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/excelente oportunidad/i),
+    ).toBeInTheDocument();
     expect(
       screen.queryByLabelText(/fecha límite oportunidad/i),
     ).not.toBeInTheDocument();

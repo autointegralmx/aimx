@@ -133,19 +133,32 @@ export async function loadHomeInventoryData(): Promise<HomeInventoryData> {
   }
 }
 
+/**
+ * Listado público de inventario propio.
+ * - `mode: "all"` (default): colección completa publicada de la categoría/filtro.
+ * - `mode: "preview"`: requiere `limit` explícito (p. ej. home con 3).
+ */
 export async function loadPublicVehicleList(input: {
   category?: VehicleCategory;
-  limit?: number;
   featured?: boolean;
+  mode?: "all" | "preview";
+  /** Solo aplica con `mode: "preview"`. Nunca se usa por defecto en listados completos. */
+  limit?: number;
 }): Promise<{ items: ReturnType<typeof withCovers>; degraded: boolean }> {
   const ctx = await getInventoryServerContextOrNull();
   if (!ctx) return { items: [], degraded: true };
 
+  const mode = input.mode ?? "all";
+  const previewLimit =
+    mode === "preview" && typeof input.limit === "number" && input.limit > 0
+      ? input.limit
+      : undefined;
+
   try {
     const vehicles = await ctx.repo.listPublicVehicles({
       category: input.category,
-      limit: input.limit ?? 24,
       featured: input.featured,
+      ...(previewLimit !== undefined ? { limit: previewLimit } : {}),
     });
     const covers = await loadCoverUrlsForVehicles(
       vehicles.map((item) => item.id).filter((id): id is string => Boolean(id)),
@@ -160,7 +173,11 @@ export async function loadPublicVehicleList(input: {
   }
 }
 
-export async function loadPublicAuctions(limit = 24): Promise<{
+/**
+ * Subastas públicas.
+ * Sin `limit` → listado completo (/subastas). Con `limit` → preview (home).
+ */
+export async function loadPublicAuctions(limit?: number): Promise<{
   items: ReturnType<typeof withCovers>;
   degraded: boolean;
 }> {
@@ -168,7 +185,9 @@ export async function loadPublicAuctions(limit = 24): Promise<{
   if (!ctx) return { items: [], degraded: true };
 
   try {
-    const vehicles = await ctx.repo.listActiveAuctions({ limit });
+    const vehicles = await ctx.repo.listActiveAuctions(
+      typeof limit === "number" && limit > 0 ? { limit } : {},
+    );
     const covers = await loadCoverUrlsForVehicles(
       vehicles.map((item) => item.id).filter((id): id is string => Boolean(id)),
     );
@@ -182,6 +201,6 @@ export async function loadPublicAuctions(limit = 24): Promise<{
 }
 
 /** @deprecated use loadPublicAuctions */
-export async function loadPublicOpportunities(limit = 24) {
+export async function loadPublicOpportunities(limit?: number) {
   return loadPublicAuctions(limit);
 }

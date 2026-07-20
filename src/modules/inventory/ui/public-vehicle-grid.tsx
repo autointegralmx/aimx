@@ -13,25 +13,38 @@ type Item = {
 /**
  * Mobile density: cards by default; compact rows when inventory is large.
  * Desktop (≥md) always uses full cards.
+ *
+ * `listMode="preview"` + `limit` solo recorta en portada. En listados de
+ * categoría usar `listMode="all"` (default) para mostrar todo el inventario.
  */
 export function PublicVehicleGrid({
   items,
   variant = "default",
   mode = "inventory",
+  listMode = "all",
+  limit,
   className = "",
 }: {
   items: Item[];
   variant?: "default" | "onDark";
   mode?: "inventory" | "auction";
+  listMode?: "all" | "preview";
+  /** Solo aplica con `listMode="preview"`. Nunca por defecto en listados completos. */
+  limit?: number;
   className?: string;
 }) {
-  const useCompactMobile = items.length > COMPACT_THRESHOLD;
+  const visibleItems =
+    listMode === "preview" && typeof limit === "number" && limit > 0
+      ? items.slice(0, limit)
+      : items;
+
+  const useCompactMobile = visibleItems.length > COMPACT_THRESHOLD;
 
   return (
     <div className={className}>
       {useCompactMobile ? (
         <div className="grid gap-2 md:hidden">
-          {items.map(({ vehicle, coverUrl }) => (
+          {visibleItems.map(({ vehicle, coverUrl }) => (
             <CompactVehicleRow
               key={vehicle.id}
               vehicle={vehicle}
@@ -49,7 +62,7 @@ export function PublicVehicleGrid({
             : "grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-8 lg:grid-cols-3"
         }
       >
-        {items.map(({ vehicle, coverUrl }) =>
+        {visibleItems.map(({ vehicle, coverUrl }) =>
           mode === "auction" ? (
             <AuctionVehicleCard
               key={vehicle.id}
