@@ -98,6 +98,7 @@ export async function moveVehicleCatalogOrderAction(
     .object({
       vehicleId: z.string().uuid(),
       direction: z.enum(["up", "down"]),
+      mode: z.enum(["catalog", "featured"]).optional().default("catalog"),
     })
     .safeParse(input);
   if (!parsed.success) {
@@ -114,7 +115,10 @@ export async function moveVehicleCatalogOrderAction(
     });
     return {
       ok: true,
-      message: "Orden actualizado.",
+      message:
+        parsed.data.mode === "featured"
+          ? "Orden de destacados actualizado."
+          : "Orden actualizado.",
       vehicleId: parsed.data.vehicleId,
     };
   } catch (error) {

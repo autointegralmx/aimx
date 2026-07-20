@@ -57,8 +57,10 @@ function formatUpdatedAt(value: string): string {
 
 export function VehiclesDesktopTable({
   items,
+  orderMode = "catalog",
 }: {
   items: AdminVehicleListItem[];
+  orderMode?: "catalog" | "featured";
 }) {
   return (
     <div className="hidden rounded-md border border-line bg-paper-elevated md:block">
@@ -66,7 +68,9 @@ export function VehiclesDesktopTable({
         <table className="min-w-full text-left text-sm">
         <thead className="border-b border-line bg-surface text-xs uppercase tracking-wide text-ink-muted">
           <tr>
-            <th className="px-4 py-3 font-medium">Orden</th>
+            <th className="px-4 py-3 font-medium">
+              {orderMode === "featured" ? "Orden portada" : "Orden"}
+            </th>
             <th className="px-4 py-3 font-medium">Portada</th>
             <th className="px-4 py-3 font-medium">Vehículo</th>
             <th className="px-4 py-3 font-medium">Categoría</th>
@@ -88,12 +92,16 @@ export function VehiclesDesktopTable({
                 <td className="px-4 py-3">
                   <div className="flex flex-col items-start gap-1">
                     <span className="text-xs tabular-nums text-ink-muted">
-                      #{vehicle.catalog_order}
+                      #
+                      {orderMode === "featured"
+                        ? (vehicle.featured_order ?? "—")
+                        : vehicle.catalog_order}
                     </span>
                     <VehicleCatalogOrderControls
                       vehicleId={vehicle.id}
                       canMoveUp
                       canMoveDown
+                      mode={orderMode}
                     />
                   </div>
                 </td>
@@ -155,8 +163,10 @@ export function VehiclesDesktopTable({
 
 export function VehiclesMobileList({
   items,
+  orderMode = "catalog",
 }: {
   items: AdminVehicleListItem[];
+  orderMode?: "catalog" | "featured";
 }) {
   return (
     <ul className="space-y-3 md:hidden">
@@ -174,7 +184,9 @@ export function VehiclesMobileList({
                 <p className="mt-1 text-xs text-ink-muted">
                   {vehicleCategoryLabel[vehicle.category]}
                   {vehicle.stock_code ? ` · Folio ${vehicle.stock_code}` : ""}
-                  {` · Orden #${vehicle.catalog_order}`}
+                  {orderMode === "featured"
+                    ? ` · Portada #${vehicle.featured_order ?? "—"}`
+                    : ` · Orden #${vehicle.catalog_order}`}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <StatusBadge tone={statusBadgeTone(vehicle.status)}>
@@ -198,6 +210,7 @@ export function VehiclesMobileList({
                 vehicleId={vehicle.id}
                 canMoveUp
                 canMoveDown
+                mode={orderMode}
               />
               <VehicleActionsMenu vehicle={vehicle} />
             </div>

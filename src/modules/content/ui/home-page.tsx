@@ -159,7 +159,12 @@ export async function HomePage() {
                 En subasta
               </p>
               <h2 className="text-h2 mt-2 text-text-on-dark md:mt-4">
-                Nuestros vehículos
+                <span className="md:hidden">Vehículos en subasta</span>
+                <span className="hidden md:inline">
+                  Vehículos disponibles
+                  <br />
+                  mediante subasta
+                </span>
               </h2>
               <p className="mt-3 max-w-xl text-[16px] leading-relaxed text-text-muted-dark md:mt-5 md:text-lg">
                 Consulta el cierre y solicita información para participar.

@@ -95,24 +95,39 @@ export async function listAdminVehiclesUseCase(
 
 export async function moveVehicleCatalogOrderUseCase(
   ctx: StaffContext,
-  input: { vehicleId: string; direction: "up" | "down" },
+  input: {
+    vehicleId: string;
+    direction: "up" | "down";
+    mode?: "catalog" | "featured";
+  },
 ) {
   const profile = assertStaffCanManageVehicles({
     supabaseConfigured: true,
     hasSession: true,
     profile: ctx.profile,
   });
-  await ctx.repo.moveCatalogOrder({
-    vehicleId: input.vehicleId,
-    direction: input.direction,
-    actorId: profile.id,
-  });
+  if (input.mode === "featured") {
+    await ctx.repo.moveFeaturedOrder({
+      vehicleId: input.vehicleId,
+      direction: input.direction,
+      actorId: profile.id,
+    });
+  } else {
+    await ctx.repo.moveCatalogOrder({
+      vehicleId: input.vehicleId,
+      direction: input.direction,
+      actorId: profile.id,
+    });
+  }
   await writeAuditEvent(ctx.client, {
     actorId: profile.id,
-    action: "move_vehicle_catalog_order",
+    action:
+      input.mode === "featured"
+        ? "move_vehicle_featured_order"
+        : "move_vehicle_catalog_order",
     entityType: "vehicle",
     entityId: input.vehicleId,
-    metadata: { direction: input.direction },
+    metadata: { direction: input.direction, mode: input.mode ?? "catalog" },
   });
 }
 
@@ -204,6 +219,12 @@ export async function updateVehicleUseCase(
   // only surface them when is_published (and not expired) is true.
 
   const vehicle = await ctx.repo.updateVehicle(id, payload, profile.id);
+  if (vehicle.is_featured) {
+    await ctx.repo.ensureFeaturedOrderOnFeature({
+      vehicleId: vehicle.id,
+      actorId: profile.id,
+    });
+  }
   await writeAuditEvent(ctx.client, {
     actorId: profile.id,
     action: "update_vehicle",

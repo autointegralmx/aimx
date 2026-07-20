@@ -43,6 +43,7 @@ export const ADMIN_VEHICLE_LIST_COLUMNS = [
   "is_weekly_opportunity",
   "opportunity_deadline",
   "catalog_order",
+  "featured_order",
   "public_title",
   "updated_at",
   "created_at",
@@ -291,11 +292,19 @@ export function createVehicleRepository(
         );
       }
 
-      query = query
-        .order("catalog_order", { ascending: true })
-        .order("updated_at", { ascending: false })
-        .order("created_at", { ascending: false })
-        .range(from, to);
+      // Destacados (portada): orden propio. Resto: orden de catálogo.
+      if (featured === true) {
+        query = query
+          .order("featured_order", { ascending: true, nullsFirst: false })
+          .order("catalog_order", { ascending: true })
+          .order("updated_at", { ascending: false });
+      } else {
+        query = query
+          .order("catalog_order", { ascending: true })
+          .order("updated_at", { ascending: false })
+          .order("created_at", { ascending: false });
+      }
+      query = query.range(from, to);
 
       const { data, error, count } = await query;
       if (error) {
@@ -528,11 +537,18 @@ export function createVehicleRepository(
       const hasLimit = typeof input.limit === "number" && input.limit > 0;
 
       async function runSelect(columns: string) {
-        let query = client
-          .from("vehicles_public")
-          .select(columns)
-          .order("catalog_order", { ascending: true })
-          .order("published_at", { ascending: false, nullsFirst: false });
+        let query = client.from("vehicles_public").select(columns);
+        if (input.featured === true) {
+          // Portada: orden editorial de destacados.
+          query = query
+            .order("featured_order", { ascending: true, nullsFirst: false })
+            .order("catalog_order", { ascending: true })
+            .order("published_at", { ascending: false, nullsFirst: false });
+        } else {
+          query = query
+            .order("catalog_order", { ascending: true })
+            .order("published_at", { ascending: false, nullsFirst: false });
+        }
         // Solo aplicar rango cuando el caller pide preview/paginación explícita.
         // Listados de categoría deben omitir `limit` y recibir la colección completa.
         if (hasLimit) {
@@ -675,6 +691,161 @@ export function createVehicleRepository(
         .is("deleted_at", null);
       if (aError) {
         throw new Error(`No se pudo guardar el orden: ${aError.message}`);
+      }
+    },
+
+    /**
+     * Swap featured_order among home “Destacados” (is_featured, not auction).
+     * This controls order on the homepage inventory section.
+     */
+    async moveFeaturedOrder(input: {
+      vehicleId: string;
+      direction: "up" | "down";
+      actorId: string;
+    }): Promise<void> {
+      const vehicle = await this.getAdminVehicleById(input.vehicleId);
+      if (!vehicle) {
+        throw new Error("Vehículo no encontrado.");
+      }
+      if (!vehicle.is_featured) {
+        throw new Error("Solo puedes reordenar vehículos destacados.");
+      }
+
+      const { data, error } = await client
+        .from("vehicles")
+        .select("id, featured_order")
+        .is("deleted_at", null)
+        .eq("is_featured", true)
+        .eq("is_weekly_opportunity", false)
+        .order("featured_order", { ascending: true, nullsFirst: false })
+        .order("catalog_order", { ascending: true })
+        .order("id", { ascending: true });
+
+      if (error) {
+        throw new Error(`No se pudo cargar el orden de destacados: ${error.message}`);
+      }
+
+      const raw = (data ?? []) as Array<{
+        id: string;
+        featured_order: number | null;
+      }>;
+
+      // Normalize nulls so swaps always work.
+      const rows = raw.map((row, index) => ({
+        id: row.id,
+        catalog_order:
+          typeof row.featured_order === "number" && Number.isFinite(row.featured_order)
+            ? row.featured_order
+            : index + 1,
+      }));
+
+      for (let i = 0; i < rows.length; i += 1) {
+        const row = rows[i];
+        const original = raw[i];
+        if (!row || !original) continue;
+        if (original.featured_order !== row.catalog_order) {
+          const { error: normError } = await client
+            .from("vehicles")
+            .update({
+              featured_order: row.catalog_order,
+              updated_by: input.actorId,
+            })
+            .eq("id", row.id)
+            .is("deleted_at", null);
+          if (normError) {
+            throw new Error(
+              `No se pudo normalizar el orden de destacados: ${normError.message}`,
+            );
+          }
+        }
+      }
+
+      const swap = swapCatalogOrderWithNeighbor(
+        rows,
+        input.vehicleId,
+        input.direction,
+      );
+      if (!swap) {
+        throw new Error(
+          input.direction === "up"
+            ? "Ya está en la primera posición de destacados."
+            : "Ya está en la última posición de destacados.",
+        );
+      }
+
+      const temp =
+        Math.max(swap.a.catalog_order, swap.b.catalog_order) + 10_000;
+      const { error: tempError } = await client
+        .from("vehicles")
+        .update({ featured_order: temp, updated_by: input.actorId })
+        .eq("id", swap.a.id)
+        .is("deleted_at", null);
+      if (tempError) {
+        throw new Error(`No se pudo guardar el orden: ${tempError.message}`);
+      }
+
+      const { error: bError } = await client
+        .from("vehicles")
+        .update({
+          featured_order: swap.b.catalog_order,
+          updated_by: input.actorId,
+        })
+        .eq("id", swap.b.id)
+        .is("deleted_at", null);
+      if (bError) {
+        throw new Error(`No se pudo guardar el orden: ${bError.message}`);
+      }
+
+      const { error: aError } = await client
+        .from("vehicles")
+        .update({
+          featured_order: swap.a.catalog_order,
+          updated_by: input.actorId,
+        })
+        .eq("id", swap.a.id)
+        .is("deleted_at", null);
+      if (aError) {
+        throw new Error(`No se pudo guardar el orden: ${aError.message}`);
+      }
+    },
+
+    async ensureFeaturedOrderOnFeature(input: {
+      vehicleId: string;
+      actorId: string;
+    }): Promise<void> {
+      const vehicle = await this.getAdminVehicleById(input.vehicleId);
+      if (!vehicle?.is_featured) return;
+      if (
+        typeof vehicle.featured_order === "number" &&
+        Number.isFinite(vehicle.featured_order)
+      ) {
+        return;
+      }
+
+      const { data: maxRow } = await client
+        .from("vehicles")
+        .select("featured_order")
+        .is("deleted_at", null)
+        .eq("is_featured", true)
+        .not("featured_order", "is", null)
+        .order("featured_order", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const next = nextCatalogOrderAfterMax(
+        (maxRow as { featured_order?: number | null } | null)?.featured_order ??
+          null,
+      );
+
+      const { error } = await client
+        .from("vehicles")
+        .update({ featured_order: next, updated_by: input.actorId })
+        .eq("id", input.vehicleId)
+        .is("deleted_at", null);
+      if (error) {
+        throw new Error(
+          `No se pudo asignar orden de destacado: ${error.message}`,
+        );
       }
     },
 

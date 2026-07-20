@@ -41,8 +41,8 @@ export function VehiclesAdminChannelChips({
         })}
       </nav>
       <p className="text-xs text-ink-muted">
-        Usa ↑ ↓ en la lista para definir el orden en el sitio (menor número =
-        aparece primero).
+        Usa ↑ ↓ para el orden del sitio. En el chip Destacados, las flechas
+        definen el orden en la portada.
       </p>
     </div>
   );

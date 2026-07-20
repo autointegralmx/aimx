@@ -64,6 +64,7 @@ function sampleVehicle(
     is_weekly_opportunity: false,
     opportunity_deadline: null,
     catalog_order: 1,
+    featured_order: null,
     public_title: "Toyota Corolla",
     updated_at: "2026-07-19T12:00:00Z",
     created_at: "2026-07-18T12:00:00Z",

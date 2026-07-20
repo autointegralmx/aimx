@@ -115,7 +115,8 @@ export type AdminQuickChannel =
   | "accidentado"
   | "recuperado"
   | "seminuevo"
-  | "auction";
+  | "auction"
+  | "featured";
 
 export const ADMIN_QUICK_CHANNELS: Array<{
   id: AdminQuickChannel;
@@ -126,11 +127,13 @@ export const ADMIN_QUICK_CHANNELS: Array<{
   { id: "recuperado", label: "Recuperados" },
   { id: "seminuevo", label: "Seminuevos" },
   { id: "auction", label: "En subasta" },
+  { id: "featured", label: "Destacados" },
 ];
 
 export function resolveAdminQuickChannel(
   filters: AdminVehicleListFilters,
 ): AdminQuickChannel {
+  if (filters.featured === "yes" && filters.auction !== "yes") return "featured";
   if (filters.auction === "yes") return "auction";
   if (filters.category === "accidentado") return "accidentado";
   if (filters.category === "recuperado") return "recuperado";
@@ -147,7 +150,6 @@ export function buildAdminQuickChannelHref(
     q: filters.q,
     status: filters.status,
     published: filters.published,
-    featured: filters.featured,
     page: 1,
   };
 
@@ -156,6 +158,7 @@ export function buildAdminQuickChannelHref(
       ...base,
       category: "all",
       auction: "all",
+      featured: "all",
     });
   }
   if (channel === "auction") {
@@ -163,12 +166,22 @@ export function buildAdminQuickChannelHref(
       ...base,
       category: "all",
       auction: "yes",
+      featured: "all",
+    });
+  }
+  if (channel === "featured") {
+    return buildAdminVehiclesHref({
+      ...base,
+      category: "all",
+      auction: "all",
+      featured: "yes",
     });
   }
   return buildAdminVehiclesHref({
     ...base,
     category: channel,
     auction: "all",
+    featured: "all",
   });
 }
 
