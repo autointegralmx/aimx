@@ -1,15 +1,22 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/shared/lib/database.types";
 import { readPublicSupabaseEnv } from "@/shared/lib/supabase/env";
+import { readCloudinaryEnv } from "@/shared/lib/cloudinary/env";
+import { destroyCloudinaryAsset } from "@/shared/lib/cloudinary/destroy";
+import { logCloudinaryServerError } from "@/shared/lib/cloudinary/server";
+import {
+  isExpectedCloudinaryVehiclePublicId,
+} from "@/modules/inventory/domain/cloudinary-vehicle-paths";
+import { resolveVehicleImageUrl } from "@/modules/inventory/domain/resolve-vehicle-image-url";
 import {
   buildVehicleStorageObjectPath,
   isAllowedVehicleImageMime,
   isExpectedVehicleStorageObjectPath,
-  publicStorageUrl,
   validateVehicleImageFile,
   VEHICLE_IMAGE_BUCKET,
   type AllowedVehicleImageMime,
 } from "@/modules/inventory/domain/vehicle-media-rules";
+import { validateMediaAssetProviderFields } from "@/modules/inventory/domain/media-asset-provider";
 
 export type MediaSupabase = SupabaseClient<Database>;
 
@@ -18,8 +25,13 @@ export type VehicleMediaItem = {
   vehicle_id: string;
   position: number;
   is_cover: boolean;
-  bucket: string;
-  object_path: string;
+  provider: "supabase" | "cloudinary";
+  bucket: string | null;
+  object_path: string | null;
+  public_id: string | null;
+  resource_type: string | null;
+  version: number | null;
+  format: string | null;
   original_filename: string;
   mime_type: string;
   byte_size: number;
@@ -29,51 +41,88 @@ export type VehicleMediaItem = {
   url: string;
 };
 
+type MediaAssetJoin = {
+  provider: string | null;
+  bucket: string | null;
+  object_path: string | null;
+  public_id: string | null;
+  resource_type: string | null;
+  version: number | null;
+  format: string | null;
+  secure_url: string | null;
+  original_filename: string;
+  mime_type: string;
+  byte_size: number;
+  width: number | null;
+  height: number | null;
+  alt_text: string | null;
+  deleted_at: string | null;
+};
+
+const MEDIA_SELECT =
+  "media_asset_id, vehicle_id, position, is_cover, media_assets ( provider, bucket, object_path, public_id, resource_type, version, format, secure_url, original_filename, mime_type, byte_size, width, height, alt_text, deleted_at )";
+
 export function createVehicleMediaRepository(
   client: MediaSupabase,
-  options?: { supabaseUrl?: string },
+  options?: { supabaseUrl?: string; cloudName?: string },
 ) {
   const supabaseUrl =
     options?.supabaseUrl ?? readPublicSupabaseEnv().url ?? "";
+  const cloudinaryEnv = readCloudinaryEnv();
+  const cloudName =
+    options?.cloudName ||
+    (cloudinaryEnv.configured ? cloudinaryEnv.env.cloudName : "") ||
+    process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ||
+    "";
 
   function toItem(row: {
     media_asset_id: string;
     vehicle_id: string;
     position: number;
     is_cover: boolean;
-    media_assets:
-      | {
-          bucket: string | null;
-          object_path: string | null;
-          original_filename: string;
-          mime_type: string;
-          byte_size: number;
-          width: number | null;
-          height: number | null;
-          alt_text: string | null;
-          deleted_at: string | null;
-        }
-      | null
-      | Array<unknown>;
+    media_assets: MediaAssetJoin | null | Array<unknown>;
   }): VehicleMediaItem | null {
     const asset = row.media_assets;
     if (!asset || Array.isArray(asset) || asset.deleted_at) return null;
-    // Phase 1: display path still Supabase Storage only.
-    if (!asset.bucket || !asset.object_path) return null;
+
+    const providerRaw = (asset.provider ?? "supabase").toLowerCase();
+    const provider =
+      providerRaw === "cloudinary" ? "cloudinary" : "supabase";
+
+    const url = resolveVehicleImageUrl(
+      {
+        provider,
+        public_id: asset.public_id,
+        version: asset.version,
+        format: asset.format,
+        secure_url: asset.secure_url,
+        bucket: asset.bucket,
+        object_path: asset.object_path,
+      },
+      "card",
+      { cloudName, supabaseUrl },
+    );
+    if (!url) return null;
+
     return {
       media_asset_id: row.media_asset_id,
       vehicle_id: row.vehicle_id,
       position: row.position,
       is_cover: row.is_cover,
+      provider,
       bucket: asset.bucket,
       object_path: asset.object_path,
+      public_id: asset.public_id,
+      resource_type: asset.resource_type,
+      version: asset.version,
+      format: asset.format,
       original_filename: asset.original_filename,
       mime_type: asset.mime_type,
       byte_size: asset.byte_size,
       width: asset.width,
       height: asset.height,
       alt_text: asset.alt_text,
-      url: publicStorageUrl(supabaseUrl, asset.bucket, asset.object_path),
+      url,
     };
   }
 
@@ -81,9 +130,7 @@ export function createVehicleMediaRepository(
     async listVehicleMedia(vehicleId: string): Promise<VehicleMediaItem[]> {
       const { data, error } = await client
         .from("vehicle_media")
-        .select(
-          "media_asset_id, vehicle_id, position, is_cover, media_assets ( bucket, object_path, original_filename, mime_type, byte_size, width, height, alt_text, deleted_at )",
-        )
+        .select(MEDIA_SELECT)
         .eq("vehicle_id", vehicleId)
         .order("position", { ascending: true });
 
@@ -106,6 +153,17 @@ export function createVehicleMediaRepository(
         throw new Error(`No se pudo contar imágenes: ${error.message}`);
       }
       return count ?? 0;
+    },
+
+    async getMediaAssetForVehicle(input: {
+      vehicleId: string;
+      mediaAssetId: string;
+    }): Promise<VehicleMediaItem | null> {
+      const items = await this.listVehicleMedia(input.vehicleId);
+      return (
+        items.find((item) => item.media_asset_id === input.mediaAssetId) ??
+        null
+      );
     },
 
     async uploadVehicleImage(input: {
@@ -169,8 +227,7 @@ export function createVehicleMediaRepository(
     },
 
     /**
-     * Registers DB rows after a browser-side Storage upload.
-     * Avoids sending image bytes through Next.js/Vercel (413 Payload Too Large).
+     * Registers DB rows after a browser-side Storage upload (legacy).
      */
     async attachUploadedVehicleImage(input: {
       vehicleId: string;
@@ -235,6 +292,7 @@ export function createVehicleMediaRepository(
         .from("media_assets")
         .insert({
           id: input.assetId,
+          provider: "supabase",
           bucket: VEHICLE_IMAGE_BUCKET,
           object_path: input.objectPath,
           original_filename: input.fileName.slice(0, 240),
@@ -271,6 +329,137 @@ export function createVehicleMediaRepository(
         (item) => item.media_asset_id === input.assetId,
       );
       if (!created) {
+        throw new Error("La imagen se subió pero no se pudo leer.");
+      }
+      return created;
+    },
+
+    /**
+     * Registers Cloudinary upload metadata after browser → Cloudinary success.
+     * Uses RPC for atomic media_assets + vehicle_media; destroys Cloudinary on DB failure.
+     */
+    async attachCloudinaryVehicleImage(input: {
+      vehicleId: string;
+      actorId: string;
+      assetId: string;
+      publicId: string;
+      secureUrl: string | null;
+      resourceType: string;
+      version: number | null;
+      format: string | null;
+      width: number | null;
+      height: number | null;
+      byteSize: number;
+      fileName: string;
+      mimeType: string;
+      makeCoverIfEmpty?: boolean;
+    }): Promise<VehicleMediaItem> {
+      if (
+        !isExpectedCloudinaryVehiclePublicId({
+          vehicleId: input.vehicleId,
+          assetId: input.assetId,
+          publicId: input.publicId,
+        })
+      ) {
+        throw new Error("public_id no pertenece a este vehículo.");
+      }
+
+      const currentCount = await this.countVehicleMedia(input.vehicleId);
+      const validation = validateVehicleImageFile({
+        mimeType: input.mimeType,
+        byteSize: input.byteSize,
+        currentCount,
+      });
+      if (!validation.ok) {
+        throw new Error(validation.error);
+      }
+
+      const fieldCheck = validateMediaAssetProviderFields({
+        provider: "cloudinary",
+        public_id: input.publicId,
+        resource_type: input.resourceType,
+        version: input.version,
+        secure_url: input.secureUrl,
+        format: input.format,
+        width: input.width,
+        height: input.height,
+        byte_size: input.byteSize,
+      });
+      if (!fieldCheck.ok) {
+        throw new Error(fieldCheck.error);
+      }
+
+      if (
+        input.width != null &&
+        (input.width < 1 || input.width > 12000)
+      ) {
+        throw new Error("Ancho de imagen inválido.");
+      }
+      if (
+        input.height != null &&
+        (input.height < 1 || input.height > 12000)
+      ) {
+        throw new Error("Alto de imagen inválido.");
+      }
+
+      const makeCover =
+        input.makeCoverIfEmpty !== false ? currentCount === 0 : false;
+
+      const { data: rpcData, error: rpcError } = await client.rpc(
+        "register_cloudinary_vehicle_media",
+        {
+          p_asset_id: input.assetId,
+          p_vehicle_id: input.vehicleId,
+          p_actor_id: input.actorId,
+          p_public_id: input.publicId,
+          p_secure_url: input.secureUrl ?? "",
+          p_resource_type: input.resourceType || "image",
+          p_version: input.version,
+          p_format: input.format ?? "",
+          p_width: input.width,
+          p_height: input.height,
+          p_byte_size: input.byteSize,
+          p_original_filename: input.fileName.slice(0, 240),
+          p_mime_type: input.mimeType,
+          p_make_cover: makeCover,
+        },
+      );
+
+      if (rpcError) {
+        const destroy = await destroyCloudinaryAsset({
+          publicId: input.publicId,
+          resourceType: input.resourceType || "image",
+        });
+        if (!destroy.ok) {
+          logCloudinaryServerError(
+            "cloudinary.orphan_after_db_failure",
+            new Error(destroy.error),
+            { publicId: input.publicId, vehicleId: input.vehicleId },
+          );
+        }
+        throw new Error(
+          `No se pudo registrar en la base de datos: ${rpcError.message}`,
+        );
+      }
+
+      void rpcData;
+
+      const items = await this.listVehicleMedia(input.vehicleId);
+      const created = items.find(
+        (item) => item.media_asset_id === input.assetId,
+      );
+      if (!created) {
+        const destroy = await destroyCloudinaryAsset({
+          publicId: input.publicId,
+          resourceType: input.resourceType || "image",
+        });
+        if (!destroy.ok) {
+          logCloudinaryServerError(
+            "cloudinary.orphan_after_read_failure",
+            new Error(destroy.error),
+            { publicId: input.publicId },
+          );
+        }
         throw new Error("La imagen se subió pero no se pudo leer.");
       }
       return created;
@@ -355,6 +544,22 @@ export function createVehicleMediaRepository(
         );
       }
 
+      // Cloudinary: destroy first; never drop DB refs if destroy fails.
+      if (target.provider === "cloudinary") {
+        if (!target.public_id) {
+          throw new Error("El asset Cloudinary no tiene public_id.");
+        }
+        const destroyed = await destroyCloudinaryAsset({
+          publicId: target.public_id,
+          resourceType: target.resource_type || "image",
+        });
+        if (!destroyed.ok) {
+          throw new Error(
+            `No se pudo eliminar en Cloudinary: ${destroyed.error}. La referencia en la base de datos se conserva.`,
+          );
+        }
+      }
+
       const { error: unlinkError } = await client
         .from("vehicle_media")
         .delete()
@@ -376,14 +581,20 @@ export function createVehicleMediaRepository(
           .update({ deleted_at: new Date().toISOString() })
           .eq("id", input.mediaAssetId);
 
-        const { error: storageError } = await client.storage
-          .from(target.bucket)
-          .remove([target.object_path]);
+        if (
+          target.provider === "supabase" &&
+          target.bucket &&
+          target.object_path
+        ) {
+          const { error: storageError } = await client.storage
+            .from(target.bucket)
+            .remove([target.object_path]);
 
-        if (storageError) {
-          throw new Error(
-            `Imagen desvinculada, pero Storage falló: ${storageError.message}. Requiere limpieza pendiente.`,
-          );
+          if (storageError) {
+            throw new Error(
+              `Imagen desvinculada, pero Storage falló: ${storageError.message}. Requiere limpieza pendiente.`,
+            );
+          }
         }
       }
 
@@ -400,7 +611,6 @@ export function createVehicleMediaRepository(
         }
       }
 
-      // Normalize positions
       await this.reorderMedia({
         vehicleId: input.vehicleId,
         orderedMediaAssetIds: remaining.map((item) => item.media_asset_id),

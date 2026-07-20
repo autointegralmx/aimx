@@ -343,6 +343,7 @@ export type Database = {
       }
       vehicles: {
         Row: {
+          airbags_status: string
           body_type: string | null
           category: Database["public"]["Enums"]["vehicle_category"]
           condition_notes: string | null
@@ -352,12 +353,16 @@ export type Database = {
           damage_summary: string | null
           damage_tags: string[]
           deleted_at: string | null
+          drives_status: string
           exterior_color: string | null
           featured_order: number | null
           fuel_type: string | null
           full_description: string | null
+          has_keys_status: string
           id: string
           internal_price: number | null
+          invoice_entity: string | null
+          invoice_type: string
           is_featured: boolean
           is_published: boolean
           is_weekly_opportunity: boolean
@@ -365,11 +370,6 @@ export type Database = {
           make: string
           mileage_km: number | null
           model: string
-          airbags_status: string
-          drives_status: string
-          has_keys_status: string
-          invoice_entity: string | null
-          invoice_type: string
           opportunity_deadline: string | null
           price_amount: number | null
           price_label: string | null
@@ -572,6 +572,7 @@ export type Database = {
           year: number | null
         }
         Insert: {
+          airbags_status?: string | null
           body_type?: string | null
           category?: Database["public"]["Enums"]["vehicle_category"] | null
           condition_notes?: string | null
@@ -579,11 +580,15 @@ export type Database = {
           currency?: string | null
           damage_summary?: string | null
           damage_tags?: string[] | null
+          drives_status?: string | null
           exterior_color?: string | null
           featured_order?: number | null
           fuel_type?: string | null
           full_description?: never
+          has_keys_status?: string | null
           id?: string | null
+          invoice_entity?: string | null
+          invoice_type?: string | null
           is_featured?: boolean | null
           is_weekly_opportunity?: boolean | null
           location_label?: string | null
@@ -595,17 +600,23 @@ export type Database = {
           price_label?: string | null
           public_tags?: string[] | null
           public_title?: string | null
+          publish_observations?: boolean | null
           published_at?: string | null
           seo_description?: string | null
           seo_title?: string | null
           short_description?: string | null
           slug?: string | null
+          starts_status?: string | null
           status?: Database["public"]["Enums"]["vehicle_status"] | null
+          tenencias_label?: string | null
           transmission?: string | null
+          use_manual_public_copy?: boolean | null
+          verification_status?: string | null
           version?: string | null
           year?: number | null
         }
         Update: {
+          airbags_status?: string | null
           body_type?: string | null
           category?: Database["public"]["Enums"]["vehicle_category"] | null
           condition_notes?: string | null
@@ -613,11 +624,15 @@ export type Database = {
           currency?: string | null
           damage_summary?: string | null
           damage_tags?: string[] | null
+          drives_status?: string | null
           exterior_color?: string | null
           featured_order?: number | null
           fuel_type?: string | null
           full_description?: never
+          has_keys_status?: string | null
           id?: string | null
+          invoice_entity?: string | null
+          invoice_type?: string | null
           is_featured?: boolean | null
           is_weekly_opportunity?: boolean | null
           location_label?: string | null
@@ -629,13 +644,18 @@ export type Database = {
           price_label?: string | null
           public_tags?: string[] | null
           public_title?: string | null
+          publish_observations?: boolean | null
           published_at?: string | null
           seo_description?: string | null
           seo_title?: string | null
           short_description?: string | null
           slug?: string | null
+          starts_status?: string | null
           status?: Database["public"]["Enums"]["vehicle_status"] | null
+          tenencias_label?: string | null
           transmission?: string | null
+          use_manual_public_copy?: boolean | null
+          verification_status?: string | null
           version?: string | null
           year?: number | null
         }
@@ -664,6 +684,25 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
+      register_cloudinary_vehicle_media: {
+        Args: {
+          p_asset_id: string
+          p_vehicle_id: string
+          p_actor_id: string
+          p_public_id: string
+          p_secure_url: string
+          p_resource_type: string
+          p_version: number | null
+          p_format: string
+          p_width: number | null
+          p_height: number | null
+          p_byte_size: number
+          p_original_filename: string
+          p_mime_type: string
+          p_make_cover?: boolean
+        }
+        Returns: Json
+      }
     }
     Enums: {
       admin_role: "admin" | "editor"

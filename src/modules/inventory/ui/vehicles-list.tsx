@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { AdminVehicleListItem } from "@/modules/inventory/infrastructure/vehicle-repository";
 import {
   formatVehicleTitle,
@@ -26,10 +27,18 @@ function CoverThumb({
     );
   }
 
+  const unoptimized = url.includes("/storage/v1/object/public/");
+
   return (
     <div className="relative h-14 w-20 overflow-hidden rounded-sm bg-surface">
-      {/* eslint-disable-next-line @next/next/no-img-element -- remote storage URLs vary in local */}
-      <img src={url} alt={alt} className="h-full w-full object-cover" />
+      <Image
+        src={url}
+        alt={alt}
+        fill
+        sizes="80px"
+        className="object-cover"
+        unoptimized={unoptimized}
+      />
     </div>
   );
 }

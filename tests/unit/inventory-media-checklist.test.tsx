@@ -31,16 +31,21 @@ vi.mock("@/modules/inventory/application/upload-vehicle-image-client", () => ({
     vehicle_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
     position: 0,
     is_cover: true,
-    bucket: "vehicle-images",
-    object_path:
-      "vehicles/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1.jpg",
+    provider: "cloudinary",
+    bucket: null,
+    object_path: null,
+    public_id:
+      "CarrosAutointegral/vehicles/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1",
+    resource_type: "image",
+    version: 1,
+    format: "jpg",
     original_filename: "a.jpg",
     mime_type: "image/jpeg",
     byte_size: 1200,
     width: null,
     height: null,
     alt_text: null,
-    url: "http://127.0.0.1:54321/storage/v1/object/public/vehicle-images/demo.jpg",
+    url: "https://res.cloudinary.com/cniopmlz/image/upload/c_fill,w_720,h_540,g_auto,f_auto,q_auto/v1/CarrosAutointegral/vehicles/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1",
   } satisfies VehicleMediaItem)),
 }));
 

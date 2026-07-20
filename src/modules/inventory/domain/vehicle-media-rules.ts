@@ -6,6 +6,7 @@ export const ALLOWED_VEHICLE_IMAGE_MIME_TYPES = [
   "image/jpeg",
   "image/png",
   "image/webp",
+  "image/avif",
 ] as const;
 
 export type AllowedVehicleImageMime =
@@ -15,6 +16,7 @@ const mimeToExt: Record<AllowedVehicleImageMime, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
+  "image/avif": "avif",
 };
 
 export function isAllowedVehicleImageMime(
@@ -38,7 +40,7 @@ export function validateVehicleImageFile(input: {
   if (!isAllowedVehicleImageMime(input.mimeType)) {
     return {
       ok: false,
-      error: "Formato no permitido. Usa JPEG, PNG o WebP.",
+      error: "Formato no permitido. Usa JPEG, PNG, WebP o AVIF.",
     };
   }
   if (input.byteSize <= 0) {

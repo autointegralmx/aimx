@@ -122,6 +122,66 @@ export async function registerUploadedVehicleImageUseCase(
       failed_count: 0,
       media_asset_id: input.assetId,
       via: "direct_storage",
+      provider: "supabase",
+    },
+  });
+
+  return item;
+}
+
+export async function registerCloudinaryVehicleImageUseCase(
+  ctx: MediaStaffContext,
+  input: {
+    vehicleId: string;
+    assetId: string;
+    publicId: string;
+    secureUrl: string | null;
+    resourceType: string;
+    version: number | null;
+    format: string | null;
+    width: number | null;
+    height: number | null;
+    byteSize: number;
+    fileName: string;
+    mimeType: string;
+  },
+) {
+  const profile = assertStaffCanManageVehicles({
+    supabaseConfigured: true,
+    hasSession: true,
+    profile: ctx.profile,
+  });
+  const vehicle = await ctx.repo.getAdminVehicleById(input.vehicleId);
+  if (!vehicle) throw new Error("Vehículo no encontrado.");
+
+  const item = await ctx.mediaRepo.attachCloudinaryVehicleImage({
+    vehicleId: input.vehicleId,
+    actorId: profile.id,
+    assetId: input.assetId,
+    publicId: input.publicId,
+    secureUrl: input.secureUrl,
+    resourceType: input.resourceType,
+    version: input.version,
+    format: input.format,
+    width: input.width,
+    height: input.height,
+    byteSize: input.byteSize,
+    fileName: input.fileName,
+    mimeType: input.mimeType,
+  });
+
+  await writeAuditEvent(ctx.client, {
+    actorId: profile.id,
+    action: "upload_vehicle_images",
+    entityType: "vehicle",
+    entityId: input.vehicleId,
+    metadata: {
+      uploaded_count: 1,
+      failed_count: 0,
+      media_asset_id: input.assetId,
+      via: "direct_cloudinary",
+      provider: "cloudinary",
+      public_id: input.publicId,
     },
   });
 

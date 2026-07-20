@@ -25,6 +25,7 @@ import {
 } from "@/modules/inventory/domain/vehicle-schema";
 import {
   deleteVehicleImageUseCase,
+  registerCloudinaryVehicleImageUseCase,
   registerUploadedVehicleImageUseCase,
   reorderVehicleImagesUseCase,
   setVehicleCoverUseCase,
@@ -151,6 +152,77 @@ export async function registerUploadedVehicleImageAction(
       ok: false,
       error:
         error instanceof Error ? error.message : "No se pudo registrar la imagen.",
+    };
+  }
+}
+
+export async function registerCloudinaryVehicleImageAction(
+  input: unknown,
+): Promise<
+  | {
+      ok: true;
+      message: string;
+      uploaded: Awaited<
+        ReturnType<typeof registerCloudinaryVehicleImageUseCase>
+      >;
+    }
+  | { ok: false; error: string }
+> {
+  const parsed = z
+    .object({
+      vehicleId: z.string().uuid(),
+      assetId: z.string().uuid(),
+      publicId: z.string().min(8).max(500),
+      secureUrl: z.string().url().nullable().optional(),
+      resourceType: z.string().min(3).max(40),
+      version: z.number().int().positive().nullable().optional(),
+      format: z.string().min(1).max(20).nullable().optional(),
+      width: z.number().int().positive().max(12000).nullable().optional(),
+      height: z.number().int().positive().max(12000).nullable().optional(),
+      byteSize: z.number().int().positive().max(10 * 1024 * 1024),
+      fileName: z.string().min(1).max(240),
+      mimeType: z.string().min(3).max(80),
+    })
+    .safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Datos de imagen Cloudinary inválidos." };
+  }
+
+  try {
+    const profile = await requireStaffProfile();
+    const client = await createSupabaseServerClient();
+    const repo = createVehicleRepository(client);
+    const mediaRepo = createVehicleMediaRepository(client);
+    const uploaded = await registerCloudinaryVehicleImageUseCase(
+      { profile, client, repo, mediaRepo },
+      {
+        vehicleId: parsed.data.vehicleId,
+        assetId: parsed.data.assetId,
+        publicId: parsed.data.publicId,
+        secureUrl: parsed.data.secureUrl ?? null,
+        resourceType: parsed.data.resourceType,
+        version: parsed.data.version ?? null,
+        format: parsed.data.format ?? null,
+        width: parsed.data.width ?? null,
+        height: parsed.data.height ?? null,
+        byteSize: parsed.data.byteSize,
+        fileName: parsed.data.fileName,
+        mimeType: parsed.data.mimeType,
+      },
+    );
+    const vehicle = await repo.getAdminVehicleById(parsed.data.vehicleId);
+    revalidateVehicleSurfaces({
+      slug: vehicle?.slug,
+      vehicleId: parsed.data.vehicleId,
+    });
+    return { ok: true, message: "Imagen subida.", uploaded };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "No se pudo registrar la imagen Cloudinary.",
     };
   }
 }
@@ -403,12 +475,17 @@ export async function deleteVehiclePermanentlyAction(
       category: result.category,
     });
 
-    if (result.storageError || result.storagePending.length > 0) {
-      console.error("[delete_vehicle_permanently] storage_partial", {
+    if (
+      result.storageError ||
+      result.storagePending.length > 0 ||
+      result.cloudinaryPending.length > 0
+    ) {
+      console.error("[delete_vehicle_permanently] media_cleanup_partial", {
         vehicleId: result.vehicleId,
         stage: "delete_storage",
         message: result.storageError,
         storagePending: result.storagePending,
+        cloudinaryPending: result.cloudinaryPending.map((item) => item.public_id),
       });
       return {
         ok: true,

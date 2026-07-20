@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 import type { VehicleMediaItem } from "@/modules/inventory/infrastructure/vehicle-media-repository";
 
 type Props = {
@@ -42,12 +43,15 @@ export function PublicVehicleGallery({ images, alt }: Props) {
   return (
     <div className="space-y-3">
       <div className="relative overflow-hidden bg-surface-secondary">
-        <div className="aspect-[4/3] md:aspect-[16/10]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+        <div className="relative aspect-[4/3] md:aspect-[16/10]">
+          <Image
             src={active.url}
             alt={active.alt_text || alt}
-            className="h-full w-full object-cover"
+            fill
+            priority
+            sizes="(max-width: 768px) 100vw, 70vw"
+            className="object-cover"
+            unoptimized={active.provider === "supabase"}
           />
         </div>
         {total > 1 ? (
@@ -85,18 +89,21 @@ export function PublicVehicleGallery({ images, alt }: Props) {
                   type="button"
                   aria-label={`Ver fotografía ${i + 1}`}
                   aria-current={selected ? "true" : undefined}
-                  className={`aspect-square w-full overflow-hidden bg-surface-secondary transition ${
+                  className={`relative aspect-square w-full overflow-hidden bg-surface-secondary transition ${
                     selected
                       ? "ring-2 ring-brand-red ring-offset-1 ring-offset-page-background"
                       : "opacity-70 hover:opacity-100"
                   }`}
                   onClick={() => setIndex(i)}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Image
                     src={image.url}
                     alt=""
-                    className="h-full w-full object-cover"
+                    fill
+                    loading="lazy"
+                    sizes="96px"
+                    className="object-cover"
+                    unoptimized={image.provider === "supabase"}
                   />
                 </button>
               </li>

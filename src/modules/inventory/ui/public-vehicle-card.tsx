@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { buildPublicVehicleViewModel } from "@/modules/inventory/domain/public-vehicle-view-model";
 import type { PublicVehicle } from "@/modules/inventory/infrastructure/vehicle-repository";
 
@@ -23,6 +24,9 @@ export function VehicleCard({
   const spec = [vm.year, vehicle.transmission]
     .filter(Boolean)
     .join(" · ");
+  const unoptimized = Boolean(
+    coverUrl?.includes("/storage/v1/object/public/"),
+  );
 
   return (
     <article
@@ -34,16 +38,19 @@ export function VehicleCard({
     >
       <Link href={`/vehiculos/${vm.slug}`} className="block">
         <div
-          className={`aspect-[4/3] overflow-hidden ${
+          className={`relative aspect-[4/3] overflow-hidden ${
             onDark ? "bg-[#1a1d22]" : "bg-surface-secondary"
           }`}
         >
           {coverUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={coverUrl}
               alt={vm.title}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+              fill
+              loading="lazy"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+              unoptimized={unoptimized}
             />
           ) : (
             <div

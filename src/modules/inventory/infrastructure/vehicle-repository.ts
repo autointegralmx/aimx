@@ -13,7 +13,9 @@ import {
 import { buildVehicleSlug } from "@/modules/inventory/domain/slug";
 import type { VehicleLifecyclePatch } from "@/modules/inventory/domain/vehicle-lifecycle";
 import { isAuctionActive, isPublicOwnedInventoryVehicle } from "@/modules/inventory/domain/vehicle-auction";
+import { resolveVehicleImageUrl } from "@/modules/inventory/domain/resolve-vehicle-image-url";
 import { readPublicSupabaseEnv } from "@/shared/lib/supabase/env";
+import { readCloudinaryEnv } from "@/shared/lib/cloudinary/env";
 
 export type InventorySupabase = SupabaseClient<Database>;
 
@@ -160,13 +162,28 @@ function normalizePublicVehicle(
   } as PublicVehicle;
 }
 
-function publicStorageUrl(
-  supabaseUrl: string,
-  bucket: string,
-  objectPath: string,
-): string {
-  const base = supabaseUrl.replace(/\/$/, "");
-  return `${base}/storage/v1/object/public/${bucket}/${objectPath}`;
+function resolveCoverUrl(input: {
+  supabaseUrl: string;
+  cloudName: string;
+  provider: string | null;
+  bucket: string | null;
+  object_path: string | null;
+  public_id: string | null;
+  version: number | null;
+  format: string | null;
+}): string | null {
+  return resolveVehicleImageUrl(
+    {
+      provider: input.provider ?? "supabase",
+      bucket: input.bucket,
+      object_path: input.object_path,
+      public_id: input.public_id,
+      version: input.version,
+      format: input.format,
+    },
+    "card",
+    { supabaseUrl: input.supabaseUrl, cloudName: input.cloudName },
+  );
 }
 
 function escapeIlike(term: string): string {
@@ -175,21 +192,28 @@ function escapeIlike(term: string): string {
 
 export function createVehicleRepository(
   client: InventorySupabase,
-  options?: { supabaseUrl?: string },
+  options?: { supabaseUrl?: string; cloudName?: string },
 ) {
   const supabaseUrl =
     options?.supabaseUrl ?? readPublicSupabaseEnv().url ?? "";
+  const cloudinaryEnv = readCloudinaryEnv();
+  const cloudName =
+    options?.cloudName ||
+    (cloudinaryEnv.configured ? cloudinaryEnv.env.cloudName : "") ||
+    process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ||
+    "";
 
   async function loadCoverMap(
     vehicleIds: string[],
   ): Promise<Map<string, string>> {
     const map = new Map<string, string>();
-    if (vehicleIds.length === 0 || !supabaseUrl) return map;
+    if (vehicleIds.length === 0) return map;
+    if (!supabaseUrl && !cloudName) return map;
 
     const { data, error } = await client
       .from("vehicle_media")
       .select(
-        "vehicle_id, is_cover, media_assets ( bucket, object_path, deleted_at )",
+        "vehicle_id, is_cover, media_assets ( provider, bucket, object_path, public_id, version, format, deleted_at )",
       )
       .in("vehicle_id", vehicleIds)
       .eq("is_cover", true);
@@ -200,11 +224,17 @@ export function createVehicleRepository(
       const asset = row.media_assets;
       if (!asset || Array.isArray(asset)) continue;
       if (asset.deleted_at) continue;
-      if (!asset.bucket || !asset.object_path) continue;
-      map.set(
-        row.vehicle_id,
-        publicStorageUrl(supabaseUrl, asset.bucket, asset.object_path),
-      );
+      const url = resolveCoverUrl({
+        supabaseUrl,
+        cloudName,
+        provider: asset.provider,
+        bucket: asset.bucket,
+        object_path: asset.object_path,
+        public_id: asset.public_id,
+        version: asset.version,
+        format: asset.format,
+      });
+      if (url) map.set(row.vehicle_id, url);
     }
 
     return map;

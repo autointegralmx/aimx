@@ -3,12 +3,19 @@ import type { Database } from "@/shared/lib/database.types";
 import type { VehicleCategory } from "@/modules/inventory/domain/vehicle-schema";
 import { VEHICLE_IMAGE_BUCKET } from "@/modules/inventory/domain/vehicle-media-rules";
 import { writeAuditEvent } from "@/modules/inventory/infrastructure/audit";
+import { destroyCloudinaryAsset } from "@/shared/lib/cloudinary/destroy";
+import { logCloudinaryServerError } from "@/shared/lib/cloudinary/server";
 
 export type InventoryDeleteClient = SupabaseClient<Database>;
 
 export type StorageObjectRef = {
   bucket: string;
   object_path: string;
+};
+
+export type CloudinaryObjectRef = {
+  public_id: string;
+  resource_type: string;
 };
 
 export type PermanentVehicleDeleteResult = {
@@ -22,6 +29,8 @@ export type PermanentVehicleDeleteResult = {
   mediaAssetCount: number;
   storageRemoved: StorageObjectRef[];
   storagePending: StorageObjectRef[];
+  cloudinaryRemoved: CloudinaryObjectRef[];
+  cloudinaryPending: CloudinaryObjectRef[];
   storageError: string | null;
 };
 
@@ -33,6 +42,7 @@ export type PermanentDeleteStage =
   | "delete_vehicle"
   | "delete_media_assets"
   | "delete_storage"
+  | "delete_cloudinary"
   | "verify";
 
 export class PermanentDeleteError extends Error {
@@ -109,7 +119,7 @@ export async function deleteVehiclePermanently(
   const { data: mediaRows, error: mediaError } = await client
     .from("vehicle_media")
     .select(
-      "media_asset_id, media_assets ( id, bucket, object_path, deleted_at )",
+      "media_asset_id, media_assets ( id, provider, bucket, object_path, public_id, resource_type, deleted_at )",
     )
     .eq("vehicle_id", vehicleId);
 
@@ -125,12 +135,24 @@ export async function deleteVehiclePermanently(
 
   const mediaAssetIds: string[] = [];
   const storageTargets: StorageObjectRef[] = [];
+  const cloudinaryTargets: CloudinaryObjectRef[] = [];
   const seenPaths = new Set<string>();
+  const seenPublicIds = new Set<string>();
 
   for (const row of mediaRows ?? []) {
     mediaAssetIds.push(row.media_asset_id);
     const asset = row.media_assets;
     if (!asset || Array.isArray(asset)) continue;
+    const provider = (asset.provider ?? "supabase").toLowerCase();
+    if (provider === "cloudinary" && asset.public_id) {
+      if (seenPublicIds.has(asset.public_id)) continue;
+      seenPublicIds.add(asset.public_id);
+      cloudinaryTargets.push({
+        public_id: asset.public_id,
+        resource_type: asset.resource_type || "image",
+      });
+      continue;
+    }
     if (!asset.bucket || !asset.object_path) continue;
     const key = `${asset.bucket}:${asset.object_path}`;
     if (seenPaths.has(key)) continue;
@@ -159,6 +181,8 @@ export async function deleteVehiclePermanently(
         is_weekly_opportunity: vehicle.is_weekly_opportunity,
         media_asset_count: mediaAssetIds.length,
         storage_path_count: storageTargets.length,
+        cloudinary_count: cloudinaryTargets.length,
+        cloudinary_public_ids: cloudinaryTargets.map((item) => item.public_id),
       },
     });
   } catch (error) {
@@ -168,6 +192,26 @@ export async function deleteVehiclePermanently(
       vehicleId,
       cause: error,
     });
+  }
+
+  // Destroy Cloudinary before dropping DB rows so public_ids stay recoverable in audit.
+  const cloudinaryRemoved: CloudinaryObjectRef[] = [];
+  const cloudinaryPending: CloudinaryObjectRef[] = [];
+  for (const target of cloudinaryTargets) {
+    const destroyed = await destroyCloudinaryAsset({
+      publicId: target.public_id,
+      resourceType: target.resource_type,
+    });
+    if (destroyed.ok) {
+      cloudinaryRemoved.push(target);
+    } else {
+      cloudinaryPending.push(target);
+      logCloudinaryServerError(
+        "delete_vehicle_permanently.cloudinary",
+        new Error(destroyed.error),
+        { publicId: target.public_id, vehicleId },
+      );
+    }
   }
 
   const { data: deletedRows, error: deleteVehicleError } = await client
@@ -237,6 +281,11 @@ export async function deleteVehiclePermanently(
   const storageRemoved: StorageObjectRef[] = [];
   const storagePending: StorageObjectRef[] = [];
   let storageError: string | null = mediaAssetsError;
+  if (cloudinaryPending.length > 0) {
+    storageError =
+      storageError ??
+      `Cloudinary: ${cloudinaryPending.length} recurso(s) pendientes de limpieza.`;
+  }
 
   const byBucket = new Map<string, string[]>();
   for (const target of storageTargets) {
@@ -305,6 +354,8 @@ export async function deleteVehiclePermanently(
     mediaAssetCount: mediaAssetIds.length,
     storageRemoved,
     storagePending,
+    cloudinaryRemoved,
+    cloudinaryPending,
     storageError,
   };
 }
