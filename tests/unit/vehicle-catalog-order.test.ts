@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   nextCatalogOrderAfterMax,
+  sortPublicVehiclesAvailabilityFirst,
   swapCatalogOrderWithNeighbor,
 } from "@/modules/inventory/domain/vehicle-catalog-order";
 
@@ -35,5 +36,22 @@ describe("vehicle-catalog-order", () => {
   it("nextCatalogOrderAfterMax increments", () => {
     expect(nextCatalogOrderAfterMax(null)).toBe(1000);
     expect(nextCatalogOrderAfterMax(5)).toBe(6);
+  });
+});
+
+describe("sortPublicVehiclesAvailabilityFirst", () => {
+  it("puts available before sold regardless of catalog_order", () => {
+    const sorted = sortPublicVehiclesAvailabilityFirst([
+      { status: "sold", catalog_order: 1, published_at: "2026-07-01" },
+      { status: "available", catalog_order: 9, published_at: "2026-07-01" },
+      { status: "sold", catalog_order: 2, published_at: "2026-07-01" },
+      { status: "reserved", catalog_order: 5, published_at: "2026-07-01" },
+    ]);
+    expect(sorted.map((row) => row.status)).toEqual([
+      "available",
+      "reserved",
+      "sold",
+      "sold",
+    ]);
   });
 });

@@ -15,6 +15,7 @@ import type { VehicleLifecyclePatch } from "@/modules/inventory/domain/vehicle-l
 import { isAuctionActive, isPublicOwnedInventoryVehicle } from "@/modules/inventory/domain/vehicle-auction";
 import {
   nextCatalogOrderAfterMax,
+  sortPublicVehiclesAvailabilityFirst,
   swapCatalogOrderWithNeighbor,
 } from "@/modules/inventory/domain/vehicle-catalog-order";
 import { resolveVehicleImageUrl } from "@/modules/inventory/domain/resolve-vehicle-image-url";
@@ -538,8 +539,8 @@ export function createVehicleRepository(
 
       async function runSelect(columns: string) {
         let query = client.from("vehicles_public").select(columns);
+        // Orden base en DB; luego reordenamos en memoria: disponibles primero.
         if (input.featured === true) {
-          // Portada: orden editorial de destacados.
           query = query
             .order("featured_order", { ascending: true, nullsFirst: false })
             .order("catalog_order", { ascending: true })
@@ -548,11 +549,6 @@ export function createVehicleRepository(
           query = query
             .order("catalog_order", { ascending: true })
             .order("published_at", { ascending: false, nullsFirst: false });
-        }
-        // Solo aplicar rango cuando el caller pide preview/paginación explícita.
-        // Listados de categoría deben omitir `limit` y recibir la colección completa.
-        if (hasLimit) {
-          query = query.range(offset, offset + input.limit! - 1);
         }
         if (input.category) query = query.eq("category", input.category);
         if (input.featured !== undefined) {
@@ -573,7 +569,7 @@ export function createVehicleRepository(
       if (error) {
         throw new Error(`No se pudo listar vehículos públicos: ${error.message}`);
       }
-      return ((data as unknown as PublicVehicle[]) ?? [])
+      const rows = ((data as unknown as PublicVehicle[]) ?? [])
         .map((row) => normalizePublicVehicle(row))
         .filter((row): row is PublicVehicle => row != null)
         .filter((row) =>
@@ -583,6 +579,15 @@ export function createVehicleRepository(
             status: (row.status ?? "draft") as VehicleStatus,
           }),
         );
+
+      const sorted = sortPublicVehiclesAvailabilityFirst(rows, {
+        preferFeaturedOrder: input.featured === true,
+      });
+
+      if (hasLimit) {
+        return sorted.slice(offset, offset + input.limit!);
+      }
+      return sorted;
     },
 
     async getPublicVehicleBySlug(
