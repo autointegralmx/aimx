@@ -30,13 +30,6 @@ export const metadata: Metadata = {
     "CDMX",
   ],
   alternates: { canonical: "/" },
-  icons: {
-    icon: [
-      { url: "/icon", type: "image/png", sizes: "512x512" },
-      { url: "/brand/logo-autointegral.png", type: "image/png" },
-    ],
-    apple: [{ url: "/brand/logo-autointegral.png", type: "image/png", sizes: "180x180" }],
-  },
   openGraph: {
     title,
     description,
