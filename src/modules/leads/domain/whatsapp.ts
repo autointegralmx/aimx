@@ -2,7 +2,7 @@
  * WhatsApp contact helpers — number from env/settings only, never from free client input.
  */
 
-const FALLBACK_WHATSAPP_DIGITS = "520000000000";
+const FALLBACK_WHATSAPP_DIGITS = "525514745677";
 
 export function normalizeWhatsAppDigits(input: string): string {
   return input.replace(/\D/g, "");

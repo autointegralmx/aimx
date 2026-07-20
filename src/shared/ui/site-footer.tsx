@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { BrandLogo } from "@/shared/ui/brand-logo";
 import { WhatsAppCta } from "@/shared/ui/whatsapp-cta";
-import { whatsappMessages } from "@/modules/leads/domain/whatsapp";
+import { SocialIconLinks } from "@/shared/ui/social-icon-links";
+import { whatsappMessages, buildSiteWhatsAppUrl } from "@/modules/leads/domain/whatsapp";
+import { siteContact } from "@/shared/config/site-contact";
 
 export function SiteFooter() {
+  const whatsappHref = buildSiteWhatsAppUrl(whatsappMessages.finalCta);
+
   return (
     <footer className="bg-surface-dark text-text-on-dark">
       <div className="container-site grid gap-12 py-16 md:grid-cols-2 lg:grid-cols-6 lg:gap-8 lg:py-20">
@@ -18,6 +22,7 @@ export function SiteFooter() {
             variant="onDark"
             className="mt-6"
           />
+          <SocialIconLinks variant="onDark" className="mt-5" />
         </div>
 
         <div>
@@ -84,9 +89,26 @@ export function SiteFooter() {
               Contacto
             </p>
             <ul className="mt-4 space-y-2.5 text-sm text-text-muted-dark">
-              <li>WhatsApp disponible</li>
-              <li>CDMX y Área Metropolitana</li>
-              <li>Lun–Sáb · 10:00–19:00</li>
+              <li>
+                <a
+                  href={whatsappHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-text-on-dark"
+                >
+                  WhatsApp {siteContact.whatsappDisplay}
+                </a>
+              </li>
+              <li>
+                <a
+                  href={`mailto:${siteContact.email}`}
+                  className="hover:text-text-on-dark"
+                >
+                  {siteContact.email}
+                </a>
+              </li>
+              <li>{siteContact.location}</li>
+              <li>{siteContact.hours}</li>
             </ul>
           </div>
           <div>
