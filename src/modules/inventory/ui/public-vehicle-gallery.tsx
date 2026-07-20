@@ -3,13 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import type { VehicleMediaItem } from "@/modules/inventory/infrastructure/vehicle-media-repository";
+import { VehicleAvailabilityBadge } from "@/modules/inventory/ui/vehicle-availability-badge";
+import type { VehicleStatus } from "@/modules/inventory/domain/vehicle-schema";
 
 type Props = {
   images: VehicleMediaItem[];
   alt: string;
+  status?: VehicleStatus | string | null;
 };
 
-export function PublicVehicleGallery({ images, alt }: Props) {
+export function PublicVehicleGallery({ images, alt, status }: Props) {
   const [index, setIndex] = useState(0);
   const total = images.length;
   const active = images[index] ?? images[0];
@@ -34,8 +37,9 @@ export function PublicVehicleGallery({ images, alt }: Props) {
 
   if (!active) {
     return (
-      <div className="flex aspect-[4/3] items-center justify-center bg-surface-secondary text-sm text-text-secondary">
+      <div className="relative flex aspect-[4/3] items-center justify-center bg-surface-secondary text-sm text-text-secondary">
         Sin imagen
+        <VehicleAvailabilityBadge status={status} size="detail" />
       </div>
     );
   }
@@ -53,13 +57,14 @@ export function PublicVehicleGallery({ images, alt }: Props) {
             className="object-cover"
             unoptimized={active.provider === "supabase"}
           />
+          <VehicleAvailabilityBadge status={status} size="detail" />
         </div>
         {total > 1 ? (
           <>
             <button
               type="button"
               aria-label="Fotografía anterior"
-              className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-white/40 bg-black/35 text-white backdrop-blur-sm transition hover:bg-black/50"
+              className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-white/40 bg-black/35 text-white backdrop-blur-sm transition hover:bg-black/50"
               onClick={() => go(index - 1)}
             >
               ‹
@@ -67,12 +72,12 @@ export function PublicVehicleGallery({ images, alt }: Props) {
             <button
               type="button"
               aria-label="Fotografía siguiente"
-              className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-white/40 bg-black/35 text-white backdrop-blur-sm transition hover:bg-black/50"
+              className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-white/40 bg-black/35 text-white backdrop-blur-sm transition hover:bg-black/50"
               onClick={() => go(index + 1)}
             >
               ›
             </button>
-            <p className="absolute bottom-3 right-3 rounded-sm bg-black/50 px-2 py-1 text-xs text-white">
+            <p className="absolute bottom-12 right-3 z-20 rounded-sm bg-black/50 px-2 py-1 text-xs text-white sm:bottom-14">
               {index + 1} / {total}
             </p>
           </>

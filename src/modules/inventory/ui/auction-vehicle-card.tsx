@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { buildPublicVehicleViewModel } from "@/modules/inventory/domain/public-vehicle-view-model";
 import type { PublicVehicle } from "@/modules/inventory/infrastructure/vehicle-repository";
+import { VehicleAvailabilityBadge } from "@/modules/inventory/ui/vehicle-availability-badge";
 
 type Variant = "default" | "onDark";
 
@@ -63,6 +64,7 @@ export function AuctionVehicleCard({
               Sin imagen
             </div>
           )}
+          <VehicleAvailabilityBadge status={vehicle.status} size="card" />
         </div>
         <div className="space-y-2 p-5">
           {vm.categoryLabel ? (

@@ -55,7 +55,11 @@ export function PublicVehicleDetail({
         ) : null}
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.75fr)] lg:gap-10 lg:items-start">
-          <PublicVehicleGallery images={images} alt={vm.title} />
+          <PublicVehicleGallery
+            images={images}
+            alt={vm.title}
+            status={vehicle.status}
+          />
 
           <aside className="space-y-5 lg:sticky lg:top-24">
             {!preview && vm.breadcrumbs.length > 0 ? (
