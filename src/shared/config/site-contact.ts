@@ -19,7 +19,7 @@ export const siteSocial = [
   {
     id: "instagram",
     label: "Instagram",
-    href: "https://www.instagram.com/autoimx",
+    href: "https://www.instagram.com/autointmx",
   },
   {
     id: "facebook",
