@@ -8,7 +8,7 @@ export default function sitemap() {
     "/vehiculos/accidentados",
     "/vehiculos/recuperados",
     "/vehiculos/seminuevos",
-    "/oportunidades",
+    "/subastas",
     "/servicios",
     "/como-comprar",
     "/nosotros",

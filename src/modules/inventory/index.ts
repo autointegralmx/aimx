@@ -25,6 +25,12 @@ export {
 } from "@/modules/inventory/domain/vehicle-status";
 
 export {
+  isPublicAuctionVehicle,
+  formatAuctionClosesLabel,
+  BUSINESS_TIMEZONE,
+} from "@/modules/inventory/domain/vehicle-auction";
+
+export {
   parseAdminVehicleListParams,
   hasActiveAdminVehicleFilters,
   buildAdminVehiclesHref,

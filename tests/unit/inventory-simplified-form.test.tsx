@@ -106,6 +106,8 @@ describe("simplified VehicleForm", () => {
       .getByText(/personalización avanzada/i)
       .closest("details");
     expect(advanced?.open).toBe(false);
+    expect(screen.getByText("Destacar vehículo")).toBeInTheDocument();
+    expect(screen.getByText("En subasta")).toBeInTheDocument();
     expect(
       screen.queryByLabelText(/fecha límite oportunidad/i),
     ).not.toBeInTheDocument();

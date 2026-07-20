@@ -3,24 +3,40 @@ import {
   buildPublicHeadline,
   formatPublicPrice,
 } from "@/modules/inventory/domain/vehicle-display";
-import { isPublicAuctionVehicle } from "@/modules/inventory/domain/vehicle-auction";
+import {
+  formatAuctionClosesLabel,
+  isPublicAuctionVehicle,
+} from "@/modules/inventory/domain/vehicle-auction";
 import { vehicleCategoryLabel } from "@/modules/inventory/domain/vehicle-labels";
 import type { PublicVehicle } from "@/modules/inventory/infrastructure/vehicle-repository";
 
 type Variant = "default" | "onDark";
 
-export function VehicleCard({
+export function AuctionVehicleCard({
   vehicle,
   coverUrl,
   variant = "default",
+  now,
 }: {
   vehicle: PublicVehicle;
   coverUrl?: string | null;
   variant?: Variant;
+  now?: Date;
 }) {
   if (!vehicle.id || !vehicle.slug) return null;
 
-  const title = buildPublicHeadline({
+  const active = isPublicAuctionVehicle(
+    {
+      is_published: true,
+      is_weekly_opportunity: vehicle.is_weekly_opportunity,
+      status: vehicle.status,
+      opportunity_deadline: vehicle.opportunity_deadline,
+    },
+    now,
+  );
+  if (!active) return null;
+
+  const headline = buildPublicHeadline({
     make: vehicle.make,
     model: vehicle.model,
     public_title: vehicle.public_title,
@@ -30,19 +46,17 @@ export function VehicleCard({
     price_label: vehicle.price_label,
     currency: vehicle.currency,
   });
-  const inAuction = isPublicAuctionVehicle({
-    is_published: true,
-    is_weekly_opportunity: vehicle.is_weekly_opportunity,
-    status: vehicle.status,
-    opportunity_deadline: vehicle.opportunity_deadline,
-  });
+  const spec = [vehicle.year, vehicle.transmission]
+    .filter(Boolean)
+    .join(" · ");
+  const closes = vehicle.opportunity_deadline
+    ? formatAuctionClosesLabel(vehicle.opportunity_deadline, now)
+    : null;
+
   const onDark = variant === "onDark";
   const titleClass = onDark ? "text-text-on-dark" : "text-text-primary";
   const bodyClass = onDark ? "text-[#E4E6EA]" : "text-text-secondary";
   const emptyClass = onDark ? "text-[#E4E6EA]" : "text-text-secondary";
-  const spec = [vehicle.year, vehicle.transmission]
-    .filter(Boolean)
-    .join(" · ");
 
   return (
     <article
@@ -62,7 +76,7 @@ export function VehicleCard({
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={coverUrl}
-              alt={title}
+              alt={headline}
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
             />
           ) : (
@@ -82,19 +96,20 @@ export function VehicleCard({
           <h3
             className={`text-lg font-bold uppercase tracking-wide ${titleClass}`}
           >
-            {title}
+            {headline}
           </h3>
           {spec ? <p className={`text-sm ${bodyClass}`}>{spec}</p> : null}
-          {inAuction ? (
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-red">
-              En subasta
-            </p>
-          ) : null}
           {price ? (
-            <p className={`pt-1 text-sm font-semibold ${titleClass}`}>{price}</p>
+            <p className={`text-sm font-semibold ${titleClass}`}>{price}</p>
+          ) : null}
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-red">
+            En subasta
+          </p>
+          {closes ? (
+            <p className={`text-sm ${bodyClass}`}>{closes}</p>
           ) : null}
           <span className="inline-flex pt-2 text-sm font-semibold uppercase tracking-wide text-brand-red">
-            Ver ficha →
+            Ver vehículo →
           </span>
         </div>
       </Link>

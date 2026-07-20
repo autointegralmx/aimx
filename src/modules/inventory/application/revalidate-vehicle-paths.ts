@@ -6,6 +6,7 @@ export function revalidateVehicleSurfaces(input?: {
 }): void {
   revalidatePath("/admin/vehiculos");
   revalidatePath("/vehiculos");
+  revalidatePath("/subastas");
   revalidatePath("/oportunidades");
   revalidatePath("/");
   if (input?.slug) {

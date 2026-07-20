@@ -12,10 +12,16 @@ import {
   formatDamageTagLabel,
   formatDetailPrice,
 } from "@/modules/inventory/domain/vehicle-display";
+import {
+  formatAuctionClosesLong,
+  isAuctionEnded,
+  isPublicAuctionVehicle,
+} from "@/modules/inventory/domain/vehicle-auction";
 import { vehicleCategoryLabel } from "@/modules/inventory/domain/vehicle-labels";
 import type { PublicVehicle } from "@/modules/inventory/infrastructure/vehicle-repository";
 import type { VehicleMediaItem } from "@/modules/inventory/infrastructure/vehicle-media-repository";
 import {
+  buildAuctionVehicleWhatsAppMessage,
   buildSiteWhatsAppUrl,
   buildVehicleWhatsAppMessage,
 } from "@/modules/leads/domain/whatsapp";
@@ -91,16 +97,35 @@ export function PublicVehicleDetail({
     publish_observations: vehicle.publish_observations,
   });
   const damageTags = (vehicle.damage_tags ?? []).filter(Boolean);
+  const auctionActive = isPublicAuctionVehicle({
+    is_published: true,
+    is_weekly_opportunity: vehicle.is_weekly_opportunity,
+    status: vehicle.status,
+    opportunity_deadline: vehicle.opportunity_deadline,
+  });
+  const auctionFinished =
+    Boolean(vehicle.is_weekly_opportunity) &&
+    isAuctionEnded({
+      opportunity_deadline: vehicle.opportunity_deadline,
+    });
 
   const pageUrl = `${getSiteOrigin()}/vehiculos/${vehicle.slug}`;
   const whatsappUrl = buildSiteWhatsAppUrl(
-    buildVehicleWhatsAppMessage({
-      year: vehicle.year ?? "",
-      make: vehicle.make ?? "",
-      model: vehicle.model ?? "",
-      version: vehicle.version,
-      pageUrl: preview ? undefined : pageUrl,
-    }),
+    auctionActive
+      ? buildAuctionVehicleWhatsAppMessage({
+          year: vehicle.year ?? "",
+          make: vehicle.make ?? "",
+          model: vehicle.model ?? "",
+          version: vehicle.version,
+          pageUrl: preview ? undefined : pageUrl,
+        })
+      : buildVehicleWhatsAppMessage({
+          year: vehicle.year ?? "",
+          make: vehicle.make ?? "",
+          model: vehicle.model ?? "",
+          version: vehicle.version,
+          pageUrl: preview ? undefined : pageUrl,
+        }),
   );
 
   return (
@@ -137,6 +162,23 @@ export function PublicVehicleDetail({
             <p className="text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">
               {price}
             </p>
+
+            {auctionActive && vehicle.opportunity_deadline ? (
+              <div className="border border-border-subtle bg-surface-secondary px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-red">
+                  En subasta
+                </p>
+                <p className="mt-1 text-sm text-text-secondary">
+                  Cierra: {formatAuctionClosesLong(vehicle.opportunity_deadline)}
+                </p>
+              </div>
+            ) : null}
+
+            {!auctionActive && auctionFinished ? (
+              <p className="text-sm font-medium text-text-secondary">
+                Subasta finalizada
+              </p>
+            ) : null}
 
             {operationalBadges.length > 0 ? (
               <ul className="flex flex-wrap gap-2" aria-label="Estado operativo">
@@ -233,7 +275,9 @@ export function PublicVehicleDetail({
               className="btn-primary inline-flex w-full justify-center"
               data-testid="vehicle-whatsapp-cta"
             >
-              Contactar por WhatsApp
+              {auctionActive
+                ? "Solicitar información para participar"
+                : "Contactar por WhatsApp"}
             </a>
 
             {!preview ? (

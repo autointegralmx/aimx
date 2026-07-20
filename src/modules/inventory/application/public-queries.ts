@@ -72,6 +72,8 @@ export function withCovers(
 }
 
 export type HomeInventoryData = {
+  auctions: ReturnType<typeof withCovers>;
+  /** @deprecated use auctions */
   opportunities: ReturnType<typeof withCovers>;
   featured: ReturnType<typeof withCovers>;
   degraded: boolean;
@@ -79,6 +81,7 @@ export type HomeInventoryData = {
 
 export async function loadHomeInventoryData(): Promise<HomeInventoryData> {
   const empty: HomeInventoryData = {
+    auctions: [],
     opportunities: [],
     featured: [],
     degraded: true,
@@ -88,21 +91,19 @@ export async function loadHomeInventoryData(): Promise<HomeInventoryData> {
   if (!ctx) return empty;
 
   try {
-    const [opportunitiesResult, featuredResult] = await Promise.allSettled([
-      ctx.repo.listActiveOpportunities({ limit: 3 }),
+    const [auctionsResult, featuredResult] = await Promise.allSettled([
+      ctx.repo.listActiveAuctions({ limit: 3 }),
       ctx.repo.listPublicVehicles({ featured: true, limit: 3 }),
     ]);
 
-    const opportunities =
-      opportunitiesResult.status === "fulfilled"
-        ? opportunitiesResult.value
-        : [];
+    const auctions =
+      auctionsResult.status === "fulfilled" ? auctionsResult.value : [];
     const featured =
       featuredResult.status === "fulfilled" ? featuredResult.value : [];
 
-    if (opportunitiesResult.status === "rejected") {
-      logServerError("public-home", opportunitiesResult.reason, {
-        operation: "listActiveOpportunities",
+    if (auctionsResult.status === "rejected") {
+      logServerError("public-home", auctionsResult.reason, {
+        operation: "listActiveAuctions",
       });
     }
     if (featuredResult.status === "rejected") {
@@ -112,16 +113,18 @@ export async function loadHomeInventoryData(): Promise<HomeInventoryData> {
     }
 
     const coverIds = [
-      ...opportunities.map((item) => item.id),
+      ...auctions.map((item) => item.id),
       ...featured.map((item) => item.id),
     ].filter((id): id is string => Boolean(id));
     const covers = await loadCoverUrlsForVehicles(coverIds);
+    const auctionsWithCovers = withCovers(auctions, covers);
 
     return {
-      opportunities: withCovers(opportunities, covers),
+      auctions: auctionsWithCovers,
+      opportunities: auctionsWithCovers,
       featured: withCovers(featured, covers),
       degraded:
-        opportunitiesResult.status === "rejected" ||
+        auctionsResult.status === "rejected" ||
         featuredResult.status === "rejected",
     };
   } catch (error) {
@@ -157,7 +160,7 @@ export async function loadPublicVehicleList(input: {
   }
 }
 
-export async function loadPublicOpportunities(limit = 24): Promise<{
+export async function loadPublicAuctions(limit = 24): Promise<{
   items: ReturnType<typeof withCovers>;
   degraded: boolean;
 }> {
@@ -165,15 +168,20 @@ export async function loadPublicOpportunities(limit = 24): Promise<{
   if (!ctx) return { items: [], degraded: true };
 
   try {
-    const vehicles = await ctx.repo.listActiveOpportunities({ limit });
+    const vehicles = await ctx.repo.listActiveAuctions({ limit });
     const covers = await loadCoverUrlsForVehicles(
       vehicles.map((item) => item.id).filter((id): id is string => Boolean(id)),
     );
     return { items: withCovers(vehicles, covers), degraded: false };
   } catch (error) {
-    logServerError("public-opportunities", error, {
-      operation: "loadPublicOpportunities",
+    logServerError("public-auctions", error, {
+      operation: "loadPublicAuctions",
     });
     return { items: [], degraded: true };
   }
+}
+
+/** @deprecated use loadPublicAuctions */
+export async function loadPublicOpportunities(limit = 24) {
+  return loadPublicAuctions(limit);
 }

@@ -178,6 +178,7 @@ function refineVehicleWrite(
     status?: z.infer<typeof vehicleStatusSchema>;
     is_published?: boolean;
     is_weekly_opportunity?: boolean;
+    opportunity_deadline?: string | null;
   },
   ctx: z.RefinementCtx,
 ) {
@@ -199,13 +200,38 @@ function refineVehicleWrite(
     }
   }
 
-  if (value.is_weekly_opportunity && value.is_published) {
-    if (value.status !== "available" && value.status !== "reserved") {
+  if (value.is_weekly_opportunity) {
+    if (value.is_published) {
+      if (value.status !== "available" && value.status !== "reserved") {
+        ctx.addIssue({
+          code: "custom",
+          path: ["is_weekly_opportunity"],
+          message: "En subasta solo con status available o reserved.",
+        });
+      }
+    }
+    const deadline = value.opportunity_deadline?.trim();
+    if (!deadline) {
       ctx.addIssue({
         code: "custom",
-        path: ["is_weekly_opportunity"],
-        message: "Oportunidad solo con status available o reserved.",
+        path: ["opportunity_deadline"],
+        message: "Define la fecha de cierre para publicarlo en subasta.",
       });
+    } else {
+      const endMs = Date.parse(deadline);
+      if (Number.isNaN(endMs)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["opportunity_deadline"],
+          message: "Fecha de cierre de subasta inválida.",
+        });
+      } else if (endMs <= Date.now()) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["opportunity_deadline"],
+          message: "La fecha de cierre debe ser futura.",
+        });
+      }
     }
   }
 }

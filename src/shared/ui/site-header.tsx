@@ -34,7 +34,7 @@ type NavItem = {
 const nav: NavItem[] = [
   { href: "/", label: "Inicio" },
   { href: "/vehiculos", label: "Vehículos", kind: "vehicles" },
-  { href: "/oportunidades", label: "Oportunidades" },
+  { href: "/subastas", label: "En subasta" },
   { href: "/servicios", label: "Servicios", kind: "services" },
   { href: "/como-comprar", label: "Cómo Comprar" },
   { href: "/nosotros", label: "Nosotros" },

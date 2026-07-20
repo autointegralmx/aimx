@@ -2,7 +2,16 @@
 
 **Última actualización:** 2026-07-19
 
-## Formulario admin simplificado (captura rápida)
+## En subasta (ex Oportunidades)
+
+- [x] Dominio `isPublicAuctionVehicle` (publicado + available + flag + fecha futura)
+- [x] Reutiliza `is_weekly_opportunity` / `opportunity_deadline` (sin migración nueva)
+- [x] Ruta canónica `/subastas`; `/oportunidades` → 308 a `/subastas`
+- [x] Formulario: Destacar ≠ En subasta; cierre obligatorio al activar
+- [x] Badge EN SUBASTA en listados; ficha con cierre y CTA de participación
+- [x] typecheck + 101 tests + build + smoke rutas OK
+- [ ] Quitar del remoto vehículos demo con flag de subasta (p. ej. `toyota-corolla-2019-demo`) si no deben verse
+
 
 - [x] Flujo principal: vehículo · estado operativo · daños · fotos · precio · observaciones
 - [x] Un solo textarea visible (`Observaciones`); avanzado / internos colapsados

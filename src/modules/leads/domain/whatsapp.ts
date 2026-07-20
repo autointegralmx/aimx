@@ -50,7 +50,9 @@ export const whatsappMessages = {
   seminuevos:
     "Hola, quiero recibir más información sobre los vehículos seminuevos disponibles.",
   opportunities:
-    "Hola, quiero recibir más información sobre las oportunidades de vehículos seleccionadas esta semana.",
+    "Hola, quiero recibir más información sobre los vehículos en subasta disponibles.",
+  auctions:
+    "Hola, quiero recibir más información sobre los vehículos en subasta disponibles.",
   autopartes:
     "Hola, vi su página de Auto Integral y quiero cotizar una autoparte. ¿Me pueden ayudar a encontrarla?",
   services:
@@ -75,7 +77,7 @@ export function buildVehicleWhatsAppMessage(input: {
   return `Hola, quiero recibir más información sobre este vehículo: ${label}.`;
 }
 
-export function buildOpportunityWhatsAppMessage(input: {
+export function buildAuctionVehicleWhatsAppMessage(input: {
   year: string | number;
   make: string;
   model: string;
@@ -85,13 +87,21 @@ export function buildOpportunityWhatsAppMessage(input: {
   const label = [input.year, input.make, input.model, input.version]
     .filter(Boolean)
     .join(" ");
-  const lines = [
-    `Hola, quiero recibir más información sobre esta oportunidad: ${label}.`,
-  ];
   if (input.pageUrl) {
-    lines.push(`Ficha: ${input.pageUrl}`);
+    return `Hola, quiero solicitar información para participar en la subasta de este vehículo: ${label}. ${input.pageUrl}`;
   }
-  return lines.join(" ");
+  return `Hola, quiero solicitar información para participar en la subasta de este vehículo: ${label}.`;
+}
+
+/** @deprecated use buildAuctionVehicleWhatsAppMessage */
+export function buildOpportunityWhatsAppMessage(input: {
+  year: string | number;
+  make: string;
+  model: string;
+  version?: string | null;
+  pageUrl?: string | null;
+}): string {
+  return buildAuctionVehicleWhatsAppMessage(input);
 }
 
 export function buildServiceWhatsAppMessage(serviceName: string): string {

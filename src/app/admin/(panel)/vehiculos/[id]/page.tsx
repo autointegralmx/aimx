@@ -95,8 +95,8 @@ export default async function AdminVehicleDetailPage({
             />
             <FlagBadge
               active={vehicle.is_weekly_opportunity}
-              activeLabel="Oportunidad"
-              inactiveLabel="Sin oportunidad"
+              activeLabel="En subasta"
+              inactiveLabel="Sin subasta"
             />
           </div>
 

@@ -16,6 +16,8 @@ export const adminVehicleListParamsSchema = z.object({
   status: vehicleStatusSchema.or(z.literal("all")).default("all"),
   published: triStateSchema,
   featured: triStateSchema,
+  auction: triStateSchema,
+  /** @deprecated alias for auction */
   opportunity: triStateSchema,
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce
@@ -47,7 +49,8 @@ export function parseAdminVehicleListParams(
     status: pick("status") ?? "all",
     published: pick("published") ?? "all",
     featured: pick("featured") ?? "all",
-    opportunity: pick("opportunity") ?? "all",
+    auction: pick("auction") ?? pick("opportunity") ?? "all",
+    opportunity: pick("opportunity") ?? pick("auction") ?? "all",
     page: pick("page") ?? "1",
     pageSize: pick("pageSize") ?? String(ADMIN_VEHICLES_PAGE_SIZE),
   });
@@ -68,6 +71,7 @@ export function hasActiveAdminVehicleFilters(
       filters.status !== "all" ||
       filters.published !== "all" ||
       filters.featured !== "all" ||
+      filters.auction !== "all" ||
       filters.opportunity !== "all",
   );
 }
@@ -90,8 +94,9 @@ export function buildAdminVehiclesHref(
   if (filters.featured && filters.featured !== "all") {
     params.set("featured", filters.featured);
   }
-  if (filters.opportunity && filters.opportunity !== "all") {
-    params.set("opportunity", filters.opportunity);
+  const auctionFilter = filters.auction ?? filters.opportunity;
+  if (auctionFilter && auctionFilter !== "all") {
+    params.set("auction", auctionFilter);
   }
   if (filters.page && filters.page > 1) {
     params.set("page", String(filters.page));

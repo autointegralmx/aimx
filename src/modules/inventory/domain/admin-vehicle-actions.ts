@@ -84,19 +84,19 @@ export function adminActionConfirmationCopy(
     case "mark_sold":
       return {
         title: "Marcar como vendido",
-        body: "Este vehículo dejará de mostrarse públicamente y se retirará de Oportunidades. ¿Deseas continuar?",
+        body: "Este vehículo dejará de mostrarse públicamente y se retirará de En subasta. ¿Deseas continuar?",
         confirmLabel: "Marcar vendido",
       };
     case "archive":
       return {
         title: "Archivar vehículo",
-        body: "El vehículo se archivará, dejará de publicarse y no aparecerá en listados públicos ni en Oportunidades.",
+        body: "El vehículo se archivará, dejará de publicarse y no aparecerá en listados públicos ni en En subasta.",
         confirmLabel: "Archivar",
       };
     case "unpublish":
       return {
         title: "Despublicar vehículo",
-        body: "El vehículo dejará de verse en el sitio público y se retirará de Oportunidades. Los datos e imágenes se conservan.",
+        body: "El vehículo dejará de verse en el sitio público y se retirará de En subasta. Los datos e imágenes se conservan.",
         confirmLabel: "Despublicar",
       };
     case "duplicate":

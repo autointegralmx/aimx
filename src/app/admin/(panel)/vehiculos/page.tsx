@@ -78,7 +78,7 @@ export default async function AdminVehiclesPage({
             Vehículos
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-ink-muted">
-            Administra los vehículos publicados, borradores y oportunidades.
+            Administra los vehículos publicados, borradores y subastas.
           </p>
         </div>
         <Link

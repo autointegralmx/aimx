@@ -28,7 +28,7 @@ export function SiteFooter() {
             {[
               ["/", "Inicio"],
               ["/vehiculos", "Vehículos"],
-              ["/oportunidades", "Oportunidades"],
+              ["/subastas", "En subasta"],
               ["/como-comprar", "Cómo Comprar"],
               ["/nosotros", "Nosotros"],
             ].map(([href, label]) => (

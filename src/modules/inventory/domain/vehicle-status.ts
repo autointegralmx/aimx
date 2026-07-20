@@ -1,4 +1,5 @@
 import type { VehicleStatus } from "@/modules/inventory/domain/vehicle-schema";
+import { isPublicAuctionVehicle } from "@/modules/inventory/domain/vehicle-auction";
 
 const transitions: Record<VehicleStatus, readonly VehicleStatus[]> = {
   draft: ["available", "archived"],
@@ -127,16 +128,7 @@ export function isActiveOpportunity(input: {
   opportunity_deadline?: string | null;
   now?: Date;
 }): boolean {
-  if (input.deleted_at) return false;
-  if (!input.is_published || !input.is_weekly_opportunity) return false;
-  if (input.status !== "available" && input.status !== "reserved") return false;
-  if (input.opportunity_deadline) {
-    const now = input.now ?? new Date();
-    if (new Date(input.opportunity_deadline).getTime() <= now.getTime()) {
-      return false;
-    }
-  }
-  return true;
+  return isPublicAuctionVehicle(input, input.now);
 }
 
 /** UX labels for admin (Spanish). */

@@ -12,7 +12,7 @@ import {
 } from "@/modules/inventory/domain/admin-list-filters";
 import { buildVehicleSlug } from "@/modules/inventory/domain/slug";
 import type { VehicleLifecyclePatch } from "@/modules/inventory/domain/vehicle-lifecycle";
-import { isActiveOpportunity } from "@/modules/inventory/domain/vehicle-status";
+import { isPublicAuctionVehicle } from "@/modules/inventory/domain/vehicle-auction";
 import { readPublicSupabaseEnv } from "@/shared/lib/supabase/env";
 
 export type InventorySupabase = SupabaseClient<Database>;
@@ -249,9 +249,11 @@ export function createVehicleRepository(
       if (featured !== undefined) {
         query = query.eq("is_featured", featured);
       }
-      const opportunity = triStateToBoolean(filters.opportunity);
-      if (opportunity !== undefined) {
-        query = query.eq("is_weekly_opportunity", opportunity);
+      const auction = triStateToBoolean(
+        filters.auction !== "all" ? filters.auction : filters.opportunity,
+      );
+      if (auction !== undefined) {
+        query = query.eq("is_weekly_opportunity", auction);
       }
 
       const q = filters.q.trim();
@@ -541,7 +543,7 @@ export function createVehicleRepository(
       return normalizePublicVehicle(data as unknown as PublicVehicle | null);
     },
 
-    async listActiveOpportunities(input?: {
+    async listActiveAuctions(input?: {
       limit?: number;
       now?: Date;
     }): Promise<PublicVehicle[]> {
@@ -553,8 +555,8 @@ export function createVehicleRepository(
         .from("vehicles_public")
         .select(PUBLIC_VEHICLE_COLUMNS.join(", "))
         .eq("is_weekly_opportunity", true)
-        .or(`opportunity_deadline.is.null,opportunity_deadline.gt.${nowIso}`)
-        .order("featured_order", { ascending: true, nullsFirst: false })
+        .eq("status", "available")
+        .gt("opportunity_deadline", nowIso)
         .order("opportunity_deadline", { ascending: true, nullsFirst: false })
         .order("published_at", { ascending: false, nullsFirst: false })
         .limit(limit);
@@ -564,24 +566,23 @@ export function createVehicleRepository(
           .from("vehicles_public")
           .select(PUBLIC_VEHICLE_BASE_COLUMNS.join(", "))
           .eq("is_weekly_opportunity", true)
-          .or(`opportunity_deadline.is.null,opportunity_deadline.gt.${nowIso}`)
-          .order("featured_order", { ascending: true, nullsFirst: false })
+          .eq("status", "available")
+          .gt("opportunity_deadline", nowIso)
           .order("opportunity_deadline", { ascending: true, nullsFirst: false })
           .order("published_at", { ascending: false, nullsFirst: false })
           .limit(limit));
       }
 
       if (error) {
-        throw new Error(
-          `No se pudieron listar oportunidades: ${error.message}`,
-        );
+        throw new Error(`No se pudieron listar subastas: ${error.message}`);
       }
 
       const rows = ((data as unknown as PublicVehicle[]) ?? [])
         .map((row) => normalizePublicVehicle(row))
         .filter((row): row is PublicVehicle => row != null);
+
       return rows.filter((row) =>
-        isActiveOpportunity({
+        isPublicAuctionVehicle({
           is_published: true,
           is_weekly_opportunity: Boolean(row.is_weekly_opportunity),
           status: (row.status ?? "draft") as VehicleStatus,
@@ -589,6 +590,14 @@ export function createVehicleRepository(
           now,
         }),
       );
+    },
+
+    /** @deprecated use listActiveAuctions */
+    async listActiveOpportunities(input?: {
+      limit?: number;
+      now?: Date;
+    }): Promise<PublicVehicle[]> {
+      return this.listActiveAuctions(input);
     },
   };
 }

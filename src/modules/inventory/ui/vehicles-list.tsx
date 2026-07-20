@@ -62,7 +62,7 @@ export function VehiclesDesktopTable({
             <th className="px-4 py-3 font-medium">Estado</th>
             <th className="px-4 py-3 font-medium">Publicado</th>
             <th className="px-4 py-3 font-medium">Destacado</th>
-            <th className="px-4 py-3 font-medium">Oportunidad</th>
+            <th className="px-4 py-3 font-medium">En subasta</th>
             <th className="px-4 py-3 font-medium">Actualizado</th>
             <th className="sticky right-0 bg-surface px-4 py-3 font-medium">
               Acciones
@@ -110,8 +110,8 @@ export function VehiclesDesktopTable({
                 <td className="px-4 py-3">
                   <FlagBadge
                     active={vehicle.is_weekly_opportunity}
-                    activeLabel="Sí"
-                    inactiveLabel="No"
+                    activeLabel="En subasta"
+                    inactiveLabel="—"
                   />
                 </td>
                 <td className="px-4 py-3 text-ink-muted">
@@ -163,8 +163,8 @@ export function VehiclesMobileList({
                   />
                   <FlagBadge
                     active={vehicle.is_weekly_opportunity}
-                    activeLabel="Oportunidad"
-                    inactiveLabel="Sin oportunidad"
+                    activeLabel="En subasta"
+                    inactiveLabel="—"
                   />
                 </div>
               </div>

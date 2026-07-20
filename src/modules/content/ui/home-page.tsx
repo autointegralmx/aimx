@@ -18,6 +18,7 @@ import {
 import {
   loadHomeInventoryData,
 } from "@/modules/inventory/application/public-queries";
+import { AuctionVehicleCard } from "@/modules/inventory/ui/auction-vehicle-card";
 import { VehicleCard } from "@/modules/inventory/ui/public-vehicle-card";
 
 const impactItems = [
@@ -73,7 +74,7 @@ const trustItems = [
 ];
 
 export async function HomePage() {
-  const { opportunities: opportunityItems, featured: featuredItems } =
+  const { auctions: auctionItems, featured: featuredItems } =
     await loadHomeInventoryData();
 
   return (
@@ -122,8 +123,8 @@ export async function HomePage() {
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <WhatsAppCta message={whatsappMessages.hero} />
-                <Link href="/oportunidades" className="btn-secondary">
-                  Ver oportunidades de esta semana
+                <Link href="/subastas" className="btn-secondary">
+                  Ver vehículos en subasta
                 </Link>
               </div>
               <p className="mt-8 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
@@ -149,42 +150,42 @@ export async function HomePage() {
           </div>
         </section>
 
-        {/* 3. Opportunities */}
+        {/* 3. Auctions */}
         <section className="bg-surface-dark section-pad">
           <div className="container-site">
             <div className="max-w-2xl">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-red">
-                Oportunidades
+                En subasta
               </p>
               <h2 className="text-h2 mt-4 text-text-on-dark">
-                Vehículos seleccionados
+                Vehículos disponibles
                 <br />
-                de esta semana
+                mediante subasta
               </h2>
               <p className="mt-5 max-w-xl text-base leading-relaxed text-text-muted-dark sm:text-lg">
-                Una selección curada con información clara y acompañamiento
-                directo para quienes buscan una oportunidad de compra.
+                Consulta el cierre y solicita información para participar.
               </p>
             </div>
 
-            {opportunityItems.length === 0 ? (
+            {auctionItems.length === 0 ? (
               <div className="mt-12 rounded-[12px] border border-dashed border-border-dark px-6 py-14 text-center">
                 <h3 className="text-xl font-bold uppercase tracking-wide text-text-on-dark">
-                  Sin oportunidades activas
+                  Sin vehículos en subasta
                 </h3>
                 <p className="mt-3 text-text-muted-dark">
-                  Escríbenos y te avisamos cuando haya una selección nueva.
+                  No hay unidades en subasta en este momento.
                 </p>
-                <WhatsAppCta
-                  message={whatsappMessages.opportunities}
-                  variant="onDark"
-                  className="mt-6"
-                />
+                <Link
+                  href="/vehiculos"
+                  className="mt-6 inline-flex text-sm font-semibold uppercase tracking-wide text-brand-red"
+                >
+                  Ver todos los vehículos
+                </Link>
               </div>
             ) : (
               <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                {opportunityItems.map(({ vehicle, coverUrl }) => (
-                  <VehicleCard
+                {auctionItems.map(({ vehicle, coverUrl }) => (
+                  <AuctionVehicleCard
                     key={vehicle.id}
                     vehicle={vehicle}
                     coverUrl={coverUrl}
@@ -195,10 +196,10 @@ export async function HomePage() {
             )}
 
             <Link
-              href="/oportunidades"
+              href="/subastas"
               className="mt-8 inline-flex text-[15px] font-semibold uppercase tracking-wide text-brand-red"
             >
-              Ver oportunidades →
+              Ver en subasta →
             </Link>
           </div>
         </section>

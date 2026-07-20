@@ -5,7 +5,7 @@ import { whatsappMessages } from "@/modules/leads/domain/whatsapp";
 export const metadata = {
   title: "Contacto",
   description:
-    "Solicita información por WhatsApp sobre vehículos de aseguradora, oportunidades o servicios Auto Integral.",
+    "Solicita información por WhatsApp sobre vehículos de aseguradora, subastas o servicios Auto Integral.",
   alternates: { canonical: "/contacto" },
 };
 
@@ -18,8 +18,8 @@ export default async function ContactoPage({
   const message =
     origen === "servicios"
       ? whatsappMessages.services
-      : origen === "oportunidades"
-        ? whatsappMessages.opportunities
+      : origen === "subastas" || origen === "oportunidades"
+        ? whatsappMessages.auctions
         : origen === "vehiculos"
           ? whatsappMessages.vehicles
           : whatsappMessages.hero;
@@ -30,8 +30,8 @@ export default async function ContactoPage({
       title="Hablemos de lo que necesitas"
       description={
         origen
-          ? `Cuéntanos más sobre tu interés en ${origen}. Te orientamos de forma directa por WhatsApp.`
-          : "Cuéntanos si buscas un vehículo de aseguradora, una oportunidad o un servicio automotriz. Te orientamos de forma directa por WhatsApp."
+          ? `Cuéntanos más sobre tu interés en ${origen === "oportunidades" ? "subastas" : origen}. Te orientamos de forma directa por WhatsApp.`
+          : "Cuéntanos si buscas un vehículo de aseguradora, una unidad en subasta o un servicio automotriz. Te orientamos de forma directa por WhatsApp."
       }
     >
       <WhatsAppCta message={message} className="mt-10" />

@@ -27,6 +27,10 @@ import {
   formatPublishBlockersMessage,
   getPublishBlockers,
 } from "@/modules/inventory/domain/publish-readiness";
+import {
+  isoToMexicoCityDatetimeLocal,
+  mexicoCityDatetimeLocalToIso,
+} from "@/modules/inventory/domain/vehicle-auction";
 import { buildVehicleSlug } from "@/modules/inventory/domain/slug";
 import { formatDamageTagLabel } from "@/modules/inventory/domain/vehicle-display";
 import { VehicleImageGallery } from "@/modules/inventory/ui/vehicle-image-gallery";
@@ -238,6 +242,12 @@ export function VehicleForm({ vehicle, images }: Props) {
     vehicle.location_label ?? "",
   );
   const [isFeatured, setIsFeatured] = useState(vehicle.is_featured);
+  const [isInAuction, setIsInAuction] = useState(
+    vehicle.is_weekly_opportunity,
+  );
+  const [auctionEndsLocal, setAuctionEndsLocal] = useState(
+    isoToMexicoCityDatetimeLocal(vehicle.opportunity_deadline),
+  );
   const [status, setStatus] = useState(vehicle.status);
 
   const [vin, setVin] = useState(vehicle.vin ?? "");
@@ -352,6 +362,10 @@ export function VehicleForm({ vehicle, images }: Props) {
       location_label: locationLabel.trim() || null,
       public_tags: publicTags,
       is_featured: isFeatured,
+      is_weekly_opportunity: isInAuction,
+      opportunity_deadline: isInAuction
+        ? mexicoCityDatetimeLocalToIso(auctionEndsLocal)
+        : vehicle.opportunity_deadline,
       seo_title: seoTitle.trim() || null,
       seo_description: seoDescription.trim() || null,
       vin: vin.trim() || null,
@@ -897,6 +911,44 @@ export function VehicleForm({ vehicle, images }: Props) {
           />
           Destacar vehículo
         </label>
+        <label className="mt-2 flex items-center gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            checked={isInAuction}
+            onChange={(e) => {
+              markDirty();
+              setIsInAuction(e.target.checked);
+            }}
+          />
+          En subasta
+        </label>
+        {isInAuction ? (
+          <div className="max-w-md">
+            <label className={labelClass} htmlFor="auctionEnds">
+              Cierre de subasta *
+            </label>
+            <input
+              id="auctionEnds"
+              type="datetime-local"
+              className={fieldClass}
+              value={auctionEndsLocal}
+              onChange={(e) => {
+                markDirty();
+                setAuctionEndsLocal(e.target.value);
+              }}
+            />
+            {fieldErrors.opportunity_deadline ? (
+              <p className="mt-1 text-xs text-brand-red">
+                {fieldErrors.opportunity_deadline}
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-ink-muted">
+                Zona horaria: Ciudad de México. Obligatoria para aparecer en En
+                subasta.
+              </p>
+            )}
+          </div>
+        ) : null}
         <p className="text-xs text-ink-muted">
           Estado actual:{" "}
           {vehicle.is_published

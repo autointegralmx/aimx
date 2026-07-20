@@ -97,16 +97,18 @@ export function VehiclesFilters({
 
         <label className="block text-sm text-ink">
           <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-ink-muted">
-            Oportunidad
+            En subasta
           </span>
           <select
-            name="opportunity"
-            defaultValue={filters.opportunity}
+            name="auction"
+            defaultValue={
+              filters.auction !== "all" ? filters.auction : filters.opportunity
+            }
             className={selectClass}
           >
             <option value="all">Todos</option>
-            <option value="yes">Oportunidades</option>
-            <option value="no">No oportunidades</option>
+            <option value="yes">En subasta</option>
+            <option value="no">Sin subasta</option>
           </select>
         </label>
       </div>
