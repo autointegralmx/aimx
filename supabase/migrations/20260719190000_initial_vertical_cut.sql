@@ -68,14 +68,20 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.admin_profiles (id, email, full_name, role)
-  values (
-    new.id,
-    new.email,
-    coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
-    coalesce((new.raw_user_meta_data->>'role')::public.admin_role, 'editor')
-  )
-  on conflict (id) do nothing;
+  -- Do not auto-grant panel access on every Auth signup.
+  -- Staff rows must be inserted explicitly (see docs/SUPABASE-REMOTE-SETUP.md)
+  -- or via local seed.sql. Optional escape hatch for scripted provisioning:
+  if coalesce(new.raw_user_meta_data->>'provision_staff', 'false') = 'true' then
+    insert into public.admin_profiles (id, email, full_name, role, is_active)
+    values (
+      new.id,
+      new.email,
+      coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
+      coalesce((new.raw_user_meta_data->>'role')::public.admin_role, 'editor'),
+      true
+    )
+    on conflict (id) do nothing;
+  end if;
   return new;
 end;
 $$;

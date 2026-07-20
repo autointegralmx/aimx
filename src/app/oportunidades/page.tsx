@@ -1,41 +1,67 @@
-import Link from "next/link";
 import { PublicShell } from "@/shared/ui/public-shell";
 import { WhatsAppCta } from "@/shared/ui/whatsapp-cta";
 import { whatsappMessages } from "@/modules/leads/domain/whatsapp";
+import {
+  getInventoryServerContext,
+  loadCoverUrlsForVehicles,
+  withCovers,
+} from "@/modules/inventory/application/public-queries";
+import { VehicleCard } from "@/modules/inventory/ui/public-vehicle-card";
 
 export const metadata = {
   title: "Oportunidades",
   description:
-    "Vehículos seleccionados de esta semana disponibles en la subastadora, con información clara y acompañamiento directo por WhatsApp.",
-  alternates: { canonical: "/oportunidades" },
+    "Selección semanal de vehículos con acompañamiento Auto Integral.",
 };
 
-export default function OportunidadesPage() {
+export default async function OportunidadesPage() {
+  const { repo } = await getInventoryServerContext();
+  const vehicles = await repo.listActiveOpportunities({ limit: 24 });
+  const covers = await loadCoverUrlsForVehicles(
+    vehicles.map((item) => item.id).filter((id): id is string => Boolean(id)),
+  );
+  const items = withCovers(vehicles, covers);
+
   return (
     <PublicShell
-      eyebrow="Oportunidades"
-      title="Vehículos seleccionados de esta semana"
-      description="Seleccionamos vehículos disponibles en la subastadora para quienes buscan una oportunidad de compra con información clara y acompañamiento directo. Sin pujas públicas ni compra en línea."
+      eyebrow="Selección semanal"
+      title="Oportunidades"
+      description="Vehículos seleccionados con información clara. Auto Integral acompaña el proceso; no somos la casa de subastas."
     >
-      <div className="mt-10 rounded-[12px] border border-dashed border-border-subtle bg-surface-secondary px-6 py-14 text-center">
-        <h2 className="text-xl font-bold uppercase tracking-wide text-text-primary">
-          Próximamente
-        </h2>
-        <p className="mt-3 text-text-secondary">
-          Estamos preparando la selección de esta semana.
-        </p>
-        <WhatsAppCta
-          message={whatsappMessages.opportunities}
-          className="mt-6 inline-flex"
-        />
+      {items.length === 0 ? (
+        <div className="mt-10 rounded-[12px] border border-dashed border-border-subtle bg-surface-secondary px-6 py-14 text-center">
+          <p className="text-text-secondary">
+            No hay oportunidades activas en este momento.
+          </p>
+          <WhatsAppCta
+            message={whatsappMessages.opportunities}
+            className="mt-6 inline-flex"
+          />
+        </div>
+      ) : (
+        <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {items.map(({ vehicle, coverUrl }) => {
+            const deadline = vehicle.opportunity_deadline
+              ? new Intl.DateTimeFormat("es-MX", {
+                  dateStyle: "medium",
+                }).format(new Date(vehicle.opportunity_deadline))
+              : null;
+            return (
+              <div key={vehicle.id} className="space-y-2">
+                <VehicleCard vehicle={vehicle} coverUrl={coverUrl} />
+                {deadline ? (
+                  <p className="px-1 text-xs text-text-secondary">
+                    Vigencia: {deadline}
+                  </p>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div className="mt-10">
+        <WhatsAppCta message={whatsappMessages.opportunities} />
       </div>
-      <p className="mt-8 text-sm text-text-secondary">
-        También puedes{" "}
-        <Link href="/vehiculos" className="font-medium text-brand-red">
-          explorar vehículos disponibles
-        </Link>
-        .
-      </p>
     </PublicShell>
   );
 }

@@ -10,8 +10,8 @@ export function SiteFooter() {
         <div className="lg:col-span-2">
           <BrandLogo variant="footer" href="/" />
           <p className="mt-5 max-w-sm text-sm leading-relaxed text-text-muted-dark">
-            Vehículos de aseguradora, oportunidades seleccionadas y servicios
-            automotrices con asesoría y acompañamiento directo.
+            Vehículos de aseguradora, autopartes y servicios automotrices con
+            asesoría y acompañamiento directo.
           </p>
           <WhatsAppCta
             message={whatsappMessages.finalCta}
@@ -68,6 +68,11 @@ export function SiteFooter() {
             <li>
               <Link href="/servicios" className="hover:text-text-on-dark">
                 Servicios automotrices
+              </Link>
+            </li>
+            <li>
+              <Link href="/#autopartes" className="hover:text-text-on-dark">
+                Autopartes
               </Link>
             </li>
           </ul>

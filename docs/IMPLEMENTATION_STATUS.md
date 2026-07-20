@@ -2,22 +2,42 @@
 
 **Última actualización:** 2026-07-19
 
-## Fase 2 (en curso) — vehículos V1 dominio + gate
+## Fase 4 — alta, edición, imágenes y publicación
 
-- [x] Decisiones A1 / oportunidades-on-vehicles documentadas
-- [x] Migración incremental `20260719220000_vehicles_v1_extensions.sql`
-- [x] Schemas Zod + reglas de publicación
-- [x] Gate admin (sesión + admin_profiles activo)
-- [x] Pruebas unitarias de gate y reglas
-- [ ] Validar migración/RLS/Storage con Docker + `supabase start`
-- [ ] Formulario admin / upload / CRUD real
-- [ ] Conexión pública Home / ficha
+- [x] Crear borrador (`/admin/vehiculos/nuevo`) → redirige a edición
+- [x] Formulario completo `/admin/vehiculos/[id]/editar` (9 secciones en acordeón)
+- [x] Galería: upload múltiple, orden, portada, eliminar (máx. 30, 10 MB, JPEG/PNG/WebP)
+- [x] Storage path `vehicles/{vehicle_id}/{uuid}.{ext}` vía `media_assets` + `vehicle_media` + bucket `vehicle-images`
+- [x] Publicar / despublicar con checklist de requisitos
+- [x] Checklist / Publicar se actualizan tras upload sin reload manual
+- [x] Vista previa protegida `/admin/vehiculos/[id]/preview`
+- [x] Detalle admin `/admin/vehiculos/[id]`
+- [x] Conexión pública: Home, `/vehiculos`, categorías, `/oportunidades`, ficha
+- [x] WhatsApp contextual en ficha pública
+- [x] Cierre técnico + prep remoto: `docs/PHASE4_CLOSURE.md`, `docs/SUPABASE-REMOTE-SETUP.md`, `docs/LOCAL-DEVELOPMENT.md`
+- [x] Validación: lint, typecheck, 75 tests, build, `db reset` local
+- [x] Supabase remoto conectado (`bxhfwnmebjfpunesukhx`): migraciones aplicadas, sin seed
+- [x] Primer admin remoto (Auth user + `admin_profiles`) — ver `docs/SUPABASE-REMOTE-SETUP.md`
+- [ ] Pulir UX drag-and-drop táctil / teclado avanzado (hay ↑↓ + drag básico + Guardar orden)
+- [ ] Autosave (omitido a propósito por complejidad)
 
-## Público (previo)
+## Fase 3 — listado admin + data layer
 
-- [x] CTA WhatsApp directo
-- [x] Home reordenada / servicios unificados
+- [x] Repositorio / casos de uso / server actions de ciclo de vida
+- [x] Listado `/admin/vehiculos` con filtros URL y paginación
+- [x] Seed local + grants API (`20260719230000_api_role_grants.sql`)
 
-## Bloqueador
+## Seed local
 
-Docker Desktop no instalado → no declarar migración/RLS/CRUD como validados en runtime.
+```bash
+npx supabase@latest db reset
+```
+
+- `admin@autointegral.local` / `AdminLocal123!`
+- `editor@autointegral.local` / `EditorLocal123!`
+
+## Capturas
+
+- Fase 3: `docs/visual-review/admin-vehiculos/`
+- Fase 4: `docs/visual-review/admin-phase4/` (01–21)
+- Cierre Fase 4: `docs/visual-review/phase4-closure/` (01–13) + `docs/PHASE4_CLOSURE.md`

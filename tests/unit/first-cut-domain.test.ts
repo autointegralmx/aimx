@@ -322,6 +322,10 @@ describe("whatsapp helpers", () => {
     expect(buildSiteWhatsAppUrl(whatsappMessages.hero)).toMatch(
       /^https:\/\/wa\.me\/\d+\?text=/,
     );
+    expect(whatsappMessages.autopartes).toMatch(/cotizar una autoparte/i);
+    expect(whatsappMessages.finalCta).toBe(
+      "Hola, vi la página de Auto Integral y quiero recibir más información.",
+    );
     expect(
       buildVehicleWhatsAppMessage({
         year: 2021,

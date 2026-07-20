@@ -1,8 +1,11 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { PublicShell } from "@/shared/ui/public-shell";
-import { WhatsAppCta } from "@/shared/ui/whatsapp-cta";
-import { whatsappMessages } from "@/modules/leads/domain/whatsapp";
+import {
+  getInventoryServerContext,
+} from "@/modules/inventory/application/public-queries";
+import {
+  PublicVehicleDetail,
+  publicVehicleMetadata,
+} from "@/modules/inventory/ui/public-vehicle-detail";
 
 const reserved = new Set(["accidentados", "recuperados", "seminuevos"]);
 
@@ -12,8 +15,16 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  if (reserved.has(slug)) return { title: "Vehículo" };
+  const { repo } = await getInventoryServerContext();
+  const vehicle = await repo.getPublicVehicleBySlug(slug);
+  if (!vehicle) {
+    return { title: "Vehículo no disponible" };
+  }
+  const meta = publicVehicleMetadata(vehicle);
   return {
-    title: "Vehículo",
+    title: meta.title,
+    description: meta.description,
     alternates: { canonical: `/vehiculos/${slug}` },
   };
 }
@@ -26,18 +37,11 @@ export default async function VehiculoDetallePage({
   const { slug } = await params;
   if (reserved.has(slug)) notFound();
 
-  return (
-    <PublicShell
-      eyebrow="Vehículos"
-      title="Vehículo no disponible"
-      description="Esta ficha aún no está publicada o el enlace no es válido."
-    >
-      <div className="mt-8 flex flex-wrap gap-3">
-        <WhatsAppCta message={whatsappMessages.vehicles} />
-        <Link href="/vehiculos" className="btn-secondary">
-          Ver vehículos
-        </Link>
-      </div>
-    </PublicShell>
-  );
+  const { repo, mediaRepo } = await getInventoryServerContext();
+  const vehicle = await repo.getPublicVehicleBySlug(slug);
+  if (!vehicle?.id) notFound();
+
+  const images = await mediaRepo.listVehicleMedia(vehicle.id);
+
+  return <PublicVehicleDetail vehicle={vehicle} images={images} />;
 }

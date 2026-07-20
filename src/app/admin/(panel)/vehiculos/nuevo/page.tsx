@@ -1,3 +1,7 @@
+import Link from "next/link";
+import { AdminShell } from "@/modules/admin/ui/admin-shell";
+import { CreateDraftForm } from "@/modules/inventory/ui/create-draft-form";
+
 export const metadata = {
   title: "Admin | Nuevo vehículo",
   robots: { index: false, follow: false },
@@ -5,12 +9,22 @@ export const metadata = {
 
 export default function AdminNewVehiclePage() {
   return (
-    <div className="mx-auto max-w-3xl px-5 py-12">
-      <h1 className="font-display text-3xl text-ink">Nuevo vehículo</h1>
-      <p className="mt-3 text-ink-muted">
-        Formulario de alta pendiente de la siguiente etapa. Esquema y
-        validaciones de dominio ya existen.
+    <AdminShell title="Nuevo vehículo">
+      <p className="text-sm text-ink-muted">
+        <Link href="/admin/vehiculos" className="text-accent hover:underline">
+          ← Volver a vehículos
+        </Link>
       </p>
-    </div>
+      <h1 className="mt-4 text-3xl font-semibold tracking-tight text-ink">
+        Nuevo vehículo
+      </h1>
+      <p className="mt-2 max-w-2xl text-sm text-ink-muted">
+        Crea un borrador con los datos mínimos. Después podrás subir fotografías
+        y completar la ficha.
+      </p>
+      <div className="mt-8">
+        <CreateDraftForm />
+      </div>
+    </AdminShell>
   );
 }

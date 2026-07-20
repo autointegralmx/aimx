@@ -202,9 +202,13 @@ create index if not exists vehicles_featured_public_idx
 
 -- ---------------------------------------------------------------------------
 -- Public view (never expose private columns)
+-- DROP + CREATE required: CREATE OR REPLACE cannot reorder/rename view columns
+-- (e.g. inserting body_type before mileage_km). No dependents found in schema.
 -- ---------------------------------------------------------------------------
 
-create or replace view public.vehicles_public
+drop view if exists public.vehicles_public;
+
+create view public.vehicles_public
 with (security_invoker = true)
 as
 select
@@ -247,3 +251,7 @@ where v.is_published = true
 
 comment on view public.vehicles_public is
   'Safe public projection of vehicles. Excludes vin, provider_reference, private_notes, internal_price, stock_code, audit actors.';
+
+-- Recreate privileges lost on DROP (initial migration relied on defaults + RLS;
+-- explicit SELECT for API roles after structural replace)
+grant select on public.vehicles_public to anon, authenticated;

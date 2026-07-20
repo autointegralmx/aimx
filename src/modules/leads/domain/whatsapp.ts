@@ -51,10 +51,12 @@ export const whatsappMessages = {
     "Hola, quiero recibir más información sobre los vehículos seminuevos disponibles.",
   opportunities:
     "Hola, quiero recibir más información sobre las oportunidades de vehículos seleccionadas esta semana.",
+  autopartes:
+    "Hola, vi su página de Auto Integral y quiero cotizar una autoparte. ¿Me pueden ayudar a encontrarla?",
   services:
     "Hola, quiero recibir más información sobre los servicios automotrices de Auto Integral.",
   finalCta:
-    "Hola, vi la página de Auto Integral y quiero recibir más información sobre los vehículos de aseguradora que pueden ayudarme a encontrar.",
+    "Hola, vi la página de Auto Integral y quiero recibir más información.",
 } as const;
 
 export function buildVehicleWhatsAppMessage(input: {
@@ -67,13 +69,10 @@ export function buildVehicleWhatsAppMessage(input: {
   const label = [input.year, input.make, input.model, input.version]
     .filter(Boolean)
     .join(" ");
-  const lines = [
-    `Hola, quiero recibir más información sobre este vehículo: ${label}.`,
-  ];
   if (input.pageUrl) {
-    lines.push(`Ficha: ${input.pageUrl}`);
+    return `Hola, quiero recibir más información sobre este vehículo: ${label}. ${input.pageUrl}`;
   }
-  return lines.join(" ");
+  return `Hola, quiero recibir más información sobre este vehículo: ${label}.`;
 }
 
 export function buildOpportunityWhatsAppMessage(input: {

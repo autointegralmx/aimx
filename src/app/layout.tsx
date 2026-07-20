@@ -4,9 +4,9 @@ import { getSiteOrigin } from "@/shared/config/site";
 import "@/styles/tokens.css";
 
 const title =
-  "Auto Integral | Vehículos de aseguradora y oportunidades seleccionadas";
+  "Auto Integral | Vehículos de aseguradora, autopartes y servicios automotrices";
 const description =
-  "Encuentra vehículos de aseguradora con asesoría personalizada. Tenemos acceso a la subastadora de vehículos de aseguradora más grande del país y te acompañamos durante todo el proceso.";
+  "Encuentra vehículos de aseguradora, autopartes y servicios automotrices con atención personalizada. Contamos con una amplia red de distribuidores en CDMX y Estado de México y realizamos envíos a toda la República Mexicana.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteOrigin()),

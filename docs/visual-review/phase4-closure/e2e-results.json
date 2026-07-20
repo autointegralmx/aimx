@@ -1,0 +1,107 @@
+[
+  {
+    "step": "1.login",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "step": "2.create_draft",
+    "ok": true,
+    "detail": "78828376-e60e-41d7-a5fc-0632df78b091"
+  },
+  {
+    "step": "3.complete_data",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "step": "3b.publish_disabled_without_images",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "step": "4.upload_5",
+    "ok": true,
+    "detail": "imgs=5"
+  },
+  {
+    "step": "5.checklist_without_reload",
+    "ok": true,
+    "detail": "Publicar enabled"
+  },
+  {
+    "step": "6.cover_and_reorder",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "step": "8.preview",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "step": "9.publish",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "step": "slug",
+    "ok": true,
+    "detail": "nissan-sentra-94663-2018"
+  },
+  {
+    "step": "10.home",
+    "ok": true,
+    "detail": "N/A expected: Home only featured/oportunidades; vehicle not featured"
+  },
+  {
+    "step": "11.vehiculos",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "step": "12.accidentados",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "step": "13.oportunidades",
+    "ok": true,
+    "detail": "listing OK; test vehicle was not weekly opportunity"
+  },
+  {
+    "step": "14.ficha",
+    "ok": true,
+    "detail": "confirmed after publish"
+  },
+  {
+    "step": "15.whatsapp",
+    "ok": true,
+    "detail": "wa.me contextual"
+  },
+  {
+    "step": "16.reserve",
+    "ok": true,
+    "detail": "Marcar como reservado"
+  },
+  {
+    "step": "17.available",
+    "ok": true,
+    "detail": "Volver a disponible"
+  },
+  {
+    "step": "18.sold",
+    "ok": true,
+    "detail": "confirm Marcar vendido → sold + unpublished"
+  },
+  {
+    "step": "19.sold_not_public",
+    "ok": true,
+    "detail": "404"
+  },
+  {
+    "step": "20.duplicate",
+    "ok": true,
+    "detail": "1a4f0050-0513-405d-9a01-6bc0e4a1d470 draft 0 images"
+  }
+]
