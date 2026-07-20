@@ -29,10 +29,37 @@ export async function generateMetadata({
       return { title: "Vehículo no disponible" };
     }
     const meta = publicVehicleMetadata(vehicle);
+    const images = vehicle.id
+      ? await ctx.mediaRepo.listVehicleMedia(vehicle.id)
+      : [];
+    const coverUrl = images.find((img) => img.is_cover)?.url ?? images[0]?.url;
+
     return {
       title: meta.title,
       description: meta.description,
       alternates: { canonical: `/vehiculos/${slug}` },
+      openGraph: {
+        title: meta.title,
+        description: meta.description,
+        type: "website",
+        locale: "es_MX",
+        url: `/vehiculos/${slug}`,
+        siteName: "Auto Integral",
+        images: coverUrl
+          ? [
+              {
+                url: coverUrl,
+                alt: meta.title,
+              },
+            ]
+          : undefined,
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: meta.title,
+        description: meta.description,
+        images: coverUrl ? [coverUrl] : undefined,
+      },
     };
   } catch {
     return { title: "Vehículo" };
