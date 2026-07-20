@@ -159,7 +159,14 @@ export async function updateVehicleUseCase(
   if (payload.condition_notes !== undefined) {
     const note = payload.condition_notes?.trim() ?? "";
     payload.condition_notes = note || null;
-    payload.publish_observations = Boolean(note);
+  }
+  if (payload.publish_observations !== undefined) {
+    payload.publish_observations = Boolean(
+      payload.publish_observations && payload.condition_notes,
+    );
+  } else if (payload.condition_notes !== undefined) {
+    // Legacy callers: only publish when there is text.
+    payload.publish_observations = Boolean(payload.condition_notes);
   }
 
   const copy = resolvePublicCopyFields(current, payload);

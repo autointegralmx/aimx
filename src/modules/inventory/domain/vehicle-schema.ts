@@ -174,8 +174,8 @@ export const vehicleWriteObjectSchema = z.object({
   invoice_entity: optionalText(160),
   tenencias_label: optionalText(80),
   verification_status: verificationStatusSchema.default("unknown"),
-  /** Derived: true only when condition_notes is non-empty. */
-  publish_observations: z.boolean().default(true),
+  /** When true and condition_notes is set, show observations on the public detail. */
+  publish_observations: z.boolean().default(false),
   /** Always false in the admin form; kept for DB compatibility. */
   use_manual_public_copy: z.boolean().default(false),
 });

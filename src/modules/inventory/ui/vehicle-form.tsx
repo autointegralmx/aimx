@@ -232,6 +232,9 @@ export function VehicleForm({ vehicle, images }: Props) {
   const [observations, setObservations] = useState(
     vehicle.condition_notes ?? "",
   );
+  const [showObservationsPublic, setShowObservationsPublic] = useState(
+    Boolean(vehicle.publish_observations && vehicle.condition_notes?.trim()),
+  );
 
   const [priceAmount, setPriceAmount] = useState(
     vehicle.price_amount != null ? String(vehicle.price_amount) : "",
@@ -336,7 +339,7 @@ export function VehicleForm({ vehicle, images }: Props) {
       fuel_type: fuel || null,
       damage_tags: damageTags,
       condition_notes: notes || null,
-      publish_observations: Boolean(notes),
+      publish_observations: Boolean(notes) && showObservationsPublic,
       starts_status: startsStatus,
       drives_status: drivesStatus,
       has_keys_status: hasKeysStatus,
@@ -1048,17 +1051,35 @@ export function VehicleForm({ vehicle, images }: Props) {
             rows={2}
             maxLength={OBSERVATIONS_MAX}
             className={`${fieldClass} min-h-[3.5rem] resize-y py-2`}
-            placeholder="Solo lo esencial. Ej. Motor desmontado. Le falta computadora."
+            placeholder="Ej. Excelente oportunidad, no lo dejes ir. O: Motor desmontado."
             value={observations}
             onChange={(e) => {
               markDirty();
               setObservations(e.target.value.slice(0, OBSERVATIONS_MAX));
             }}
           />
-          <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+          <label className="mt-3 flex items-start gap-2 text-sm text-ink">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={showObservationsPublic && observations.trim().length > 0}
+              disabled={observations.trim().length === 0}
+              onChange={(e) => {
+                markDirty();
+                setShowObservationsPublic(e.target.checked);
+              }}
+            />
+            <span>
+              Mostrar en la ficha pública
+              <span className="mt-0.5 block text-xs text-ink-muted">
+                Actívalo solo en algunos autos (ej. “excelente oportunidad”). Si
+                está apagado o vacío, no aparece en el sitio.
+              </span>
+            </span>
+          </label>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-ink-muted">
-              Máximo {OBSERVATIONS_MAX} caracteres. Vacío = no se muestra en la
-              ficha pública.
+              Máximo {OBSERVATIONS_MAX} caracteres.
             </p>
             <span className="text-xs text-ink-muted">
               {obsCount}/{OBSERVATIONS_MAX}

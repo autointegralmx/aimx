@@ -209,8 +209,16 @@ describe("public vehicle display helpers", () => {
         category: "accidentado",
         status: "available",
         invoice_type: "aseguradora",
+        invoice_entity: "si",
       }),
-    ).toContain("Factura: Aseguradora");
+    ).toEqual(["Refacturación: si"]);
+    expect(
+      buildInfoFacts({
+        category: "accidentado",
+        status: "available",
+        invoice_type: "aseguradora",
+      }),
+    ).toEqual([]);
     expect(
       buildInfoFacts({
         category: "accidentado",

@@ -5,7 +5,6 @@ import type {
   VehicleStatus,
   VerificationStatus,
 } from "@/modules/inventory/domain/vehicle-schema";
-import { vehicleStatusLabel } from "@/modules/inventory/domain/vehicle-status";
 import {
   isUnknownMileage,
   isUnknownPublicValue,
@@ -93,6 +92,10 @@ export function buildPublicSpecLine(input: {
 
 export type SpecCard = { label: string; value: string };
 
+/**
+ * Spec grid: only facts not already shown in the summary line, status chip,
+ * or documentation badges (avoids a crowded public detail).
+ */
 export function buildPublicSpecCards(input: {
   year?: number | null;
   mileage_km?: number | null;
@@ -107,7 +110,6 @@ export function buildPublicSpecCards(input: {
   verification_status?: VerificationStatus | string | null;
 }): SpecCard[] {
   const cards: SpecCard[] = [];
-  if (input.year) cards.push({ label: "Año", value: String(input.year) });
 
   // Always surface mileage: confirmed value or “Por confirmar” (never “0 km”).
   cards.push({
@@ -117,14 +119,6 @@ export function buildPublicSpecCards(input: {
       : `${Number(input.mileage_km).toLocaleString("es-MX")} km`,
   });
 
-  const transmission = cleanText(input.transmission);
-  if (transmission) {
-    cards.push({ label: "Transmisión", value: transmission });
-  }
-  const fuel = cleanText(input.fuel_type);
-  if (fuel) {
-    cards.push({ label: "Combustible", value: fuel });
-  }
   const color = cleanText(input.exterior_color);
   if (color) {
     cards.push({
@@ -132,34 +126,7 @@ export function buildPublicSpecCards(input: {
       value: titleCaseWords(color),
     });
   }
-  const body = cleanText(input.body_type);
-  if (body) {
-    cards.push({ label: "Carrocería", value: body });
-  }
-  const version = cleanText(input.version);
-  if (version) {
-    cards.push({ label: "Versión", value: version });
-  }
-  if (
-    input.status === "available" ||
-    input.status === "reserved" ||
-    input.status === "sold"
-  ) {
-    cards.push({
-      label: "Estado",
-      value: vehicleStatusLabel[input.status],
-    });
-  }
-  const invoice = formatInvoiceTypeLabel(input.invoice_type);
-  if (invoice) cards.push({ label: "Facturación", value: invoice });
-  const tenencias = cleanText(input.tenencias_label);
-  if (tenencias) {
-    cards.push({ label: "Tenencias", value: tenencias });
-  }
-  const verification = formatVerificationLabel(input.verification_status);
-  if (verification) {
-    cards.push({ label: "Verificación", value: verification });
-  }
+
   return cards;
 }
 
@@ -219,7 +186,10 @@ export function buildObjectiveBadges(input: {
   return uniquePreserveOrder(badges);
 }
 
-/** Facts for the info card — only confirmed objective data. */
+/**
+ * Info card facts that are NOT already shown as documentation badges / status chip.
+ * Today: only refacturación (invoice_entity), which has no badge counterpart.
+ */
 export function buildInfoFacts(input: {
   status?: VehicleStatus | null;
   invoice_type?: InvoiceType | string | null;
@@ -230,22 +200,10 @@ export function buildInfoFacts(input: {
   category?: unknown;
 }): string[] {
   const facts: string[] = [];
-  const invoice = formatInvoiceTypeLabel(input.invoice_type);
-  if (invoice) {
-    facts.push(`Factura: ${invoice}`);
-  }
   const entity = cleanText(input.invoice_entity);
   if (entity) {
     facts.push(`Refacturación: ${entity}`);
   }
-  const verification = formatVerificationLabel(input.verification_status);
-  if (verification) facts.push(`Verificación: ${verification}`);
-  const tenencias = cleanText(input.tenencias_label);
-  if (tenencias) {
-    facts.push(`Tenencias: ${tenencias}`);
-  }
-  if (input.status === "available") facts.push("Disponible");
-  if (input.status === "reserved") facts.push("Apartado");
   return uniquePreserveOrder(facts);
 }
 
