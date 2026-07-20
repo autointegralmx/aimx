@@ -93,6 +93,29 @@ export async function listAdminVehiclesUseCase(
   return ctx.repo.listAdminVehicles(filters);
 }
 
+export async function moveVehicleCatalogOrderUseCase(
+  ctx: StaffContext,
+  input: { vehicleId: string; direction: "up" | "down" },
+) {
+  const profile = assertStaffCanManageVehicles({
+    supabaseConfigured: true,
+    hasSession: true,
+    profile: ctx.profile,
+  });
+  await ctx.repo.moveCatalogOrder({
+    vehicleId: input.vehicleId,
+    direction: input.direction,
+    actorId: profile.id,
+  });
+  await writeAuditEvent(ctx.client, {
+    actorId: profile.id,
+    action: "move_vehicle_catalog_order",
+    entityType: "vehicle",
+    entityId: input.vehicleId,
+    metadata: { direction: input.direction },
+  });
+}
+
 export async function getAdminVehicleByIdUseCase(
   ctx: StaffContext,
   id: string,

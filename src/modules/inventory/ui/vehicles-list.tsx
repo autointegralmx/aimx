@@ -8,6 +8,7 @@ import {
 } from "@/modules/inventory/domain/vehicle-labels";
 import { FlagBadge, StatusBadge } from "@/modules/inventory/ui/status-badge";
 import { VehicleActionsMenu } from "@/modules/inventory/ui/vehicle-actions-menu";
+import { VehicleCatalogOrderControls } from "@/modules/inventory/ui/vehicle-catalog-order-controls";
 
 function CoverThumb({
   url,
@@ -65,6 +66,7 @@ export function VehiclesDesktopTable({
         <table className="min-w-full text-left text-sm">
         <thead className="border-b border-line bg-surface text-xs uppercase tracking-wide text-ink-muted">
           <tr>
+            <th className="px-4 py-3 font-medium">Orden</th>
             <th className="px-4 py-3 font-medium">Portada</th>
             <th className="px-4 py-3 font-medium">Vehículo</th>
             <th className="px-4 py-3 font-medium">Categoría</th>
@@ -83,6 +85,18 @@ export function VehiclesDesktopTable({
             const title = formatVehicleTitle(vehicle);
             return (
               <tr key={vehicle.id} className="border-b border-line last:border-0">
+                <td className="px-4 py-3">
+                  <div className="flex flex-col items-start gap-1">
+                    <span className="text-xs tabular-nums text-ink-muted">
+                      #{vehicle.catalog_order}
+                    </span>
+                    <VehicleCatalogOrderControls
+                      vehicleId={vehicle.id}
+                      canMoveUp
+                      canMoveDown
+                    />
+                  </div>
+                </td>
                 <td className="px-4 py-3">
                   <CoverThumb url={vehicle.cover_url} alt={title} />
                 </td>
@@ -160,6 +174,7 @@ export function VehiclesMobileList({
                 <p className="mt-1 text-xs text-ink-muted">
                   {vehicleCategoryLabel[vehicle.category]}
                   {vehicle.stock_code ? ` · Folio ${vehicle.stock_code}` : ""}
+                  {` · Orden #${vehicle.catalog_order}`}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <StatusBadge tone={statusBadgeTone(vehicle.status)}>
@@ -178,7 +193,12 @@ export function VehiclesMobileList({
                 </div>
               </div>
             </div>
-            <div className="mt-3 flex justify-end">
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <VehicleCatalogOrderControls
+                vehicleId={vehicle.id}
+                canMoveUp
+                canMoveDown
+              />
               <VehicleActionsMenu vehicle={vehicle} />
             </div>
           </li>

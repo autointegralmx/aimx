@@ -9,6 +9,7 @@ import {
 import { createVehicleRepository } from "@/modules/inventory/infrastructure/vehicle-repository";
 import { listAdminVehiclesUseCase } from "@/modules/inventory/application/vehicle-use-cases";
 import { VehiclesFilters } from "@/modules/inventory/ui/vehicles-filters";
+import { VehiclesAdminChannelChips } from "@/modules/inventory/ui/vehicles-admin-channel-chips";
 import {
   VehiclesDesktopTable,
   VehiclesMobileList,
@@ -98,7 +99,8 @@ export default async function AdminVehiclesPage({
         </p>
       ) : null}
 
-      <div className="mt-6">
+      <div className="mt-6 space-y-4">
+        <VehiclesAdminChannelChips filters={filters} />
         <VehiclesFilters filters={filters} />
       </div>
 

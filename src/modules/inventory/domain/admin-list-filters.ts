@@ -110,6 +110,68 @@ export function triStateToBoolean(value: TriStateFilter): boolean | undefined {
   return value === "yes";
 }
 
+export type AdminQuickChannel =
+  | "all"
+  | "accidentado"
+  | "recuperado"
+  | "seminuevo"
+  | "auction";
+
+export const ADMIN_QUICK_CHANNELS: Array<{
+  id: AdminQuickChannel;
+  label: string;
+}> = [
+  { id: "all", label: "Todos" },
+  { id: "accidentado", label: "Accidentados" },
+  { id: "recuperado", label: "Recuperados" },
+  { id: "seminuevo", label: "Seminuevos" },
+  { id: "auction", label: "En subasta" },
+];
+
+export function resolveAdminQuickChannel(
+  filters: AdminVehicleListFilters,
+): AdminQuickChannel {
+  if (filters.auction === "yes") return "auction";
+  if (filters.category === "accidentado") return "accidentado";
+  if (filters.category === "recuperado") return "recuperado";
+  if (filters.category === "seminuevo") return "seminuevo";
+  return "all";
+}
+
+/** Preserve search/status/etc when switching quick channel chips. */
+export function buildAdminQuickChannelHref(
+  filters: AdminVehicleListFilters,
+  channel: AdminQuickChannel,
+): string {
+  const base: Partial<AdminVehicleListFilters> = {
+    q: filters.q,
+    status: filters.status,
+    published: filters.published,
+    featured: filters.featured,
+    page: 1,
+  };
+
+  if (channel === "all") {
+    return buildAdminVehiclesHref({
+      ...base,
+      category: "all",
+      auction: "all",
+    });
+  }
+  if (channel === "auction") {
+    return buildAdminVehiclesHref({
+      ...base,
+      category: "all",
+      auction: "yes",
+    });
+  }
+  return buildAdminVehiclesHref({
+    ...base,
+    category: channel,
+    auction: "all",
+  });
+}
+
 export type AdminListFilterLabels = {
   category: VehicleCategory | "all";
   status: VehicleStatus | "all";

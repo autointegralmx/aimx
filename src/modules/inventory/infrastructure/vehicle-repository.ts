@@ -13,6 +13,10 @@ import {
 import { buildVehicleSlug } from "@/modules/inventory/domain/slug";
 import type { VehicleLifecyclePatch } from "@/modules/inventory/domain/vehicle-lifecycle";
 import { isAuctionActive, isPublicOwnedInventoryVehicle } from "@/modules/inventory/domain/vehicle-auction";
+import {
+  nextCatalogOrderAfterMax,
+  swapCatalogOrderWithNeighbor,
+} from "@/modules/inventory/domain/vehicle-catalog-order";
 import { resolveVehicleImageUrl } from "@/modules/inventory/domain/resolve-vehicle-image-url";
 import { readPublicSupabaseEnv } from "@/shared/lib/supabase/env";
 import { readCloudinaryEnv } from "@/shared/lib/cloudinary/env";
@@ -38,6 +42,7 @@ export const ADMIN_VEHICLE_LIST_COLUMNS = [
   "is_featured",
   "is_weekly_opportunity",
   "opportunity_deadline",
+  "catalog_order",
   "public_title",
   "updated_at",
   "created_at",
@@ -68,6 +73,7 @@ export const PUBLIC_VEHICLE_BASE_COLUMNS = [
   "is_weekly_opportunity",
   "opportunity_deadline",
   "featured_order",
+  "catalog_order",
   "damage_summary",
   "condition_notes",
   "damage_tags",
@@ -286,6 +292,7 @@ export function createVehicleRepository(
       }
 
       query = query
+        .order("catalog_order", { ascending: true })
         .order("updated_at", { ascending: false })
         .order("created_at", { ascending: false })
         .range(from, to);
@@ -338,6 +345,18 @@ export function createVehicleRepository(
       const baseSlug = buildVehicleSlug(input);
       const slug = await ensureUniqueSlug(client, baseSlug);
 
+      const { data: maxRow } = await client
+        .from("vehicles")
+        .select("catalog_order")
+        .is("deleted_at", null)
+        .order("catalog_order", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const catalogOrder = nextCatalogOrderAfterMax(
+        (maxRow as { catalog_order?: number } | null)?.catalog_order,
+      );
+
       const payload: VehiclesInsert = {
         slug,
         make: input.make,
@@ -348,6 +367,7 @@ export function createVehicleRepository(
         is_published: false,
         is_featured: false,
         is_weekly_opportunity: false,
+        catalog_order: catalogOrder,
         created_by: actorId,
         updated_by: actorId,
       };
@@ -434,6 +454,14 @@ export function createVehicleRepository(
       const baseSlug = `${source.slug}-copia`;
       const slug = await ensureUniqueSlug(client, baseSlug);
 
+      const { data: maxRow } = await client
+        .from("vehicles")
+        .select("catalog_order")
+        .is("deleted_at", null)
+        .order("catalog_order", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
       const payload: VehiclesInsert = {
         slug,
         category: source.category,
@@ -467,6 +495,9 @@ export function createVehicleRepository(
         published_at: null,
         opportunity_deadline: null,
         featured_order: null,
+        catalog_order: nextCatalogOrderAfterMax(
+          (maxRow as { catalog_order?: number } | null)?.catalog_order,
+        ),
         stock_code: null,
         vin: null,
         provider_reference: null,
@@ -500,6 +531,7 @@ export function createVehicleRepository(
         let query = client
           .from("vehicles_public")
           .select(columns)
+          .order("catalog_order", { ascending: true })
           .order("published_at", { ascending: false, nullsFirst: false });
         // Solo aplicar rango cuando el caller pide preview/paginación explícita.
         // Listados de categoría deben omitir `limit` y recibir la colección completa.
@@ -560,6 +592,92 @@ export function createVehicleRepository(
       return normalizePublicVehicle(data as unknown as PublicVehicle | null);
     },
 
+    /**
+     * Swap catalog_order with the previous/next sibling in the same channel bucket:
+     * - auction vehicles: among all is_weekly_opportunity=true
+     * - owned inventory: among same category and is_weekly_opportunity=false
+     */
+    async moveCatalogOrder(input: {
+      vehicleId: string;
+      direction: "up" | "down";
+      actorId: string;
+    }): Promise<void> {
+      const vehicle = await this.getAdminVehicleById(input.vehicleId);
+      if (!vehicle) {
+        throw new Error("Vehículo no encontrado.");
+      }
+
+      let siblingsQuery = client
+        .from("vehicles")
+        .select("id, catalog_order")
+        .is("deleted_at", null)
+        .order("catalog_order", { ascending: true })
+        .order("updated_at", { ascending: false })
+        .order("id", { ascending: true });
+
+      if (vehicle.is_weekly_opportunity) {
+        siblingsQuery = siblingsQuery.eq("is_weekly_opportunity", true);
+      } else {
+        siblingsQuery = siblingsQuery
+          .eq("is_weekly_opportunity", false)
+          .eq("category", vehicle.category);
+      }
+
+      const { data, error } = await siblingsQuery;
+      if (error) {
+        throw new Error(`No se pudo cargar el orden: ${error.message}`);
+      }
+
+      const rows = (data ?? []) as Array<{ id: string; catalog_order: number }>;
+      const swap = swapCatalogOrderWithNeighbor(
+        rows,
+        input.vehicleId,
+        input.direction,
+      );
+      if (!swap) {
+        throw new Error(
+          input.direction === "up"
+            ? "Ya está en la primera posición."
+            : "Ya está en la última posición.",
+        );
+      }
+
+      // Two-phase swap avoids unique-constraint collisions if added later.
+      const temp = Math.max(swap.a.catalog_order, swap.b.catalog_order) + 10_000;
+      const { error: tempError } = await client
+        .from("vehicles")
+        .update({ catalog_order: temp, updated_by: input.actorId })
+        .eq("id", swap.a.id)
+        .is("deleted_at", null);
+      if (tempError) {
+        throw new Error(`No se pudo guardar el orden: ${tempError.message}`);
+      }
+
+      const { error: bError } = await client
+        .from("vehicles")
+        .update({
+          catalog_order: swap.b.catalog_order,
+          updated_by: input.actorId,
+        })
+        .eq("id", swap.b.id)
+        .is("deleted_at", null);
+      if (bError) {
+        throw new Error(`No se pudo guardar el orden: ${bError.message}`);
+      }
+
+      const { error: aError } = await client
+        .from("vehicles")
+        .update({
+          catalog_order: swap.a.catalog_order,
+          updated_by: input.actorId,
+        })
+        .eq("id", swap.a.id)
+        .is("deleted_at", null);
+      if (aError) {
+        throw new Error(`No se pudo guardar el orden: ${aError.message}`);
+      }
+    },
+
     async listActiveAuctions(input?: {
       /** Solo para previews (p. ej. home). Omitir en /subastas completo. */
       limit?: number;
@@ -576,6 +694,7 @@ export function createVehicleRepository(
           .eq("is_weekly_opportunity", true)
           .eq("status", "available")
           .gt("opportunity_deadline", nowIso)
+          .order("catalog_order", { ascending: true })
           .order("opportunity_deadline", { ascending: true, nullsFirst: false })
           .order("published_at", { ascending: false, nullsFirst: false });
         if (hasLimit) {

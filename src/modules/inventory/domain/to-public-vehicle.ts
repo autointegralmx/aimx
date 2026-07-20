@@ -32,6 +32,7 @@ export function toPublicVehicleFromAdmin(
     is_weekly_opportunity: vehicle.is_weekly_opportunity,
     opportunity_deadline: vehicle.opportunity_deadline,
     featured_order: vehicle.featured_order,
+    catalog_order: vehicle.catalog_order,
     damage_summary: vehicle.damage_summary,
     condition_notes: vehicle.condition_notes,
     damage_tags: vehicle.damage_tags,

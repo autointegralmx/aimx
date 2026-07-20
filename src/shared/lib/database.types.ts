@@ -355,6 +355,7 @@ export type Database = {
           deleted_at: string | null
           drives_status: string
           exterior_color: string | null
+          catalog_order: number
           featured_order: number | null
           fuel_type: string | null
           full_description: string | null
@@ -400,6 +401,7 @@ export type Database = {
         Insert: {
           airbags_status?: string
           body_type?: string | null
+          catalog_order?: number
           category: Database["public"]["Enums"]["vehicle_category"]
           condition_notes?: string | null
           created_at?: string
@@ -455,6 +457,7 @@ export type Database = {
         Update: {
           airbags_status?: string
           body_type?: string | null
+          catalog_order?: number
           category?: Database["public"]["Enums"]["vehicle_category"]
           condition_notes?: string | null
           created_at?: string
@@ -539,6 +542,7 @@ export type Database = {
           drives_status: string | null
           exterior_color: string | null
           featured_order: number | null
+          catalog_order: number | null
           fuel_type: string | null
           full_description: string | null
           has_keys_status: string | null
@@ -574,6 +578,7 @@ export type Database = {
         Insert: {
           airbags_status?: string | null
           body_type?: string | null
+          catalog_order?: number | null
           category?: Database["public"]["Enums"]["vehicle_category"] | null
           condition_notes?: string | null
           created_at?: string | null
@@ -618,6 +623,7 @@ export type Database = {
         Update: {
           airbags_status?: string | null
           body_type?: string | null
+          catalog_order?: number | null
           category?: Database["public"]["Enums"]["vehicle_category"] | null
           condition_notes?: string | null
           created_at?: string | null

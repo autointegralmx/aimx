@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   buildAdminVehiclesHref,
+  buildAdminQuickChannelHref,
   hasActiveAdminVehicleFilters,
   parseAdminVehicleListParams,
+  resolveAdminQuickChannel,
 } from "@/modules/inventory/domain/admin-list-filters";
 import {
   adminVehicleMatchesSearch,
@@ -63,6 +65,27 @@ describe("admin list filters", () => {
     expect(hasActiveAdminVehicleFilters(parseAdminVehicleListParams({}))).toBe(
       false,
     );
+  });
+
+  it("resolves quick channel chips and hrefs", () => {
+    const base = parseAdminVehicleListParams({ q: "audi", published: "yes" });
+    expect(resolveAdminQuickChannel(base)).toBe("all");
+    expect(resolveAdminQuickChannel({ ...base, category: "seminuevo" })).toBe(
+      "seminuevo",
+    );
+    expect(resolveAdminQuickChannel({ ...base, auction: "yes" })).toBe(
+      "auction",
+    );
+
+    const auctionHref = buildAdminQuickChannelHref(base, "auction");
+    expect(auctionHref).toContain("auction=yes");
+    expect(auctionHref).toContain("q=audi");
+    expect(auctionHref).toContain("published=yes");
+    expect(auctionHref).not.toContain("category=");
+
+    const semiHref = buildAdminQuickChannelHref(base, "seminuevo");
+    expect(semiHref).toContain("category=seminuevo");
+    expect(semiHref).not.toContain("auction=");
   });
 });
 

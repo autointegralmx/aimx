@@ -12,6 +12,7 @@ import {
   duplicateVehicleUseCase,
   makeVehicleAvailableUseCase,
   markVehicleSoldUseCase,
+  moveVehicleCatalogOrderUseCase,
   publishVehicleUseCase,
   reserveVehicleUseCase,
   unpublishVehicleUseCase,
@@ -84,6 +85,37 @@ export async function createVehicleDraftAction(
       message: "Borrador creado.",
       vehicleId: vehicle.id,
       slug: vehicle.slug,
+    };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+export async function moveVehicleCatalogOrderAction(
+  input: unknown,
+): Promise<VehicleActionResult> {
+  const parsed = z
+    .object({
+      vehicleId: z.string().uuid(),
+      direction: z.enum(["up", "down"]),
+    })
+    .safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Movimiento inválido." };
+  }
+  try {
+    const ctx = await buildStaffContext();
+    await moveVehicleCatalogOrderUseCase(ctx, parsed.data);
+    const vehicle = await ctx.repo.getAdminVehicleById(parsed.data.vehicleId);
+    revalidateVehicleSurfaces({
+      slug: vehicle?.slug,
+      vehicleId: parsed.data.vehicleId,
+      category: vehicle?.category,
+    });
+    return {
+      ok: true,
+      message: "Orden actualizado.",
+      vehicleId: parsed.data.vehicleId,
     };
   } catch (error) {
     return fail(error);

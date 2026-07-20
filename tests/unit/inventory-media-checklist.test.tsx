@@ -82,6 +82,7 @@ function sampleVehicle(overrides: Partial<VehicleRow> = {}): VehicleRow {
     is_weekly_opportunity: false,
     opportunity_deadline: null,
     featured_order: null,
+    catalog_order: 1000,
     damage_summary: null,
     condition_notes: null,
     damage_tags: [],
