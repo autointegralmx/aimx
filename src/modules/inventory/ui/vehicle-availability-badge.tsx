@@ -10,9 +10,16 @@ const labelStyle = {
   fontWeight: 700,
 } as const;
 
+/** Photo label colors: Disponible verde · Apartado amarillo · Vendido rojo. */
+function photoLabelClass(status: "available" | "reserved" | "sold"): string {
+  if (status === "sold") return "bg-brand-red text-white";
+  if (status === "reserved") return "bg-[#E0B400] text-brand-black";
+  return "bg-[#1f6b4a] text-white";
+}
+
 /**
  * Photo overlay for availability — top-left label so it never merges with card copy.
- * Sold: light dim + red label. Available / Apartado: dark label only.
+ * Sold: light dim + red label. Available green / Apartado yellow.
  */
 export function VehicleAvailabilityBadge({
   status,
@@ -37,7 +44,7 @@ export function VehicleAvailabilityBadge({
           style={{ backgroundColor: "rgba(0,0,0,0.28)" }}
         />
         <span
-          className={`absolute left-3 top-3 bg-brand-red font-bold uppercase text-white shadow-sm ${textSize}`}
+          className={`absolute left-3 top-3 font-bold uppercase shadow-sm ${photoLabelClass("sold")} ${textSize}`}
           style={labelStyle}
         >
           Vendido
@@ -55,7 +62,7 @@ export function VehicleAvailabilityBadge({
         aria-label={label}
       >
         <span
-          className={`absolute left-3 top-3 bg-[#1a1d22] font-bold uppercase text-white shadow-sm ${textSize}`}
+          className={`absolute left-3 top-3 font-bold uppercase shadow-sm ${photoLabelClass(status)} ${textSize}`}
           style={labelStyle}
         >
           {label}
@@ -84,9 +91,16 @@ export function VehicleSoldStatusChip({
         ? "Estado: Apartado"
         : "Estado: Disponible";
 
+  const tone =
+    status === "sold"
+      ? "bg-[#f8e8e8] text-brand-red"
+      : status === "reserved"
+        ? "bg-[#f7efcc] text-[#7a6400]"
+        : "bg-[#e6f0eb] text-[#1f6b4a]";
+
   return (
     <span
-      className="mt-1 inline-flex animate-[ai-sold-fade_200ms_ease-out] items-center rounded-md bg-surface-secondary px-2.5 py-1.5 text-xs font-medium text-text-secondary"
+      className={`mt-1 inline-flex animate-[ai-sold-fade_200ms_ease-out] items-center rounded-md px-2.5 py-1.5 text-xs font-medium ${tone}`}
       aria-label={label}
     >
       {label}
