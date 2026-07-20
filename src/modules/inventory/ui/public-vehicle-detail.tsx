@@ -11,7 +11,6 @@ import { getSiteOrigin } from "@/shared/config/site";
 import { SiteFooter } from "@/shared/ui/site-footer";
 import { SiteHeader } from "@/shared/ui/site-header";
 import { PublicVehicleGallery } from "@/modules/inventory/ui/public-vehicle-gallery";
-import { PublicVehicleInfoCard } from "@/modules/inventory/ui/public-vehicle-info-card";
 import { VehicleSoldStatusChip } from "@/modules/inventory/ui/vehicle-availability-badge";
 
 type Props = {
@@ -115,7 +114,9 @@ export function PublicVehicleDetail({
               {vm.priceLabel}
             </p>
 
-            <VehicleSoldStatusChip status={vehicle.status} />
+            <span className="hidden md:inline">
+              <VehicleSoldStatusChip status={vehicle.status} />
+            </span>
 
             {vm.auction.active ? (
               <div className="border border-border-subtle bg-surface-secondary px-4 py-3">
@@ -206,18 +207,19 @@ export function PublicVehicleDetail({
             ) : null}
 
             {vm.observations ? (
-              <section aria-labelledby="vehicle-observations-heading">
-                <h2
-                  id="vehicle-observations-heading"
-                  className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary"
-                >
+              <section
+                aria-labelledby="vehicle-observations-heading"
+                className="border border-brand-red/25 bg-[#fdf2f2] px-4 py-4 sm:px-5"
+              >
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-brand-red">
                   Observaciones
-                </h2>
-                <PublicVehicleInfoCard
-                  facts={[]}
-                  customNote={vm.observations}
-                  hideHeading
-                />
+                </p>
+                <p
+                  id="vehicle-observations-heading"
+                  className="mt-2 text-[16px] font-semibold leading-snug text-text-primary md:text-[17px]"
+                >
+                  {vm.observations}
+                </p>
               </section>
             ) : null}
 

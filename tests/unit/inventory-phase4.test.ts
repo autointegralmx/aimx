@@ -177,6 +177,14 @@ describe("public vehicle display helpers", () => {
     ).toEqual(["Arranca", "No camina", "Bolsas íntegras"]);
     expect(
       buildOperationalBadges({
+        starts_status: "yes",
+        drives_status: "yes",
+        has_keys_status: "yes",
+        airbags_status: "repaired",
+      }),
+    ).toEqual(["Arranca", "Camina", "Con llaves", "Bolsas reparadas"]);
+    expect(
+      buildOperationalBadges({
         starts_status: "unknown",
         drives_status: "unknown",
         has_keys_status: "unknown",

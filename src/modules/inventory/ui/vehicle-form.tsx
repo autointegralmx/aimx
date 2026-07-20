@@ -135,6 +135,7 @@ const TRI_OPTIONS: Array<{ value: TriState; label: string }> = [
 const AIRBAG_OPTIONS: Array<{ value: AirbagsStatus; label: string }> = [
   { value: "intact", label: "Íntegras" },
   { value: "deployed", label: "Activadas" },
+  { value: "repaired", label: "Reparadas" },
   { value: "unknown", label: "Por confirmar" },
 ];
 
@@ -144,7 +145,13 @@ function asTriState(value: string | null | undefined): TriState {
 }
 
 function asAirbags(value: string | null | undefined): AirbagsStatus {
-  if (value === "intact" || value === "deployed") return value;
+  if (
+    value === "intact" ||
+    value === "deployed" ||
+    value === "repaired"
+  ) {
+    return value;
+  }
   return "unknown";
 }
 
@@ -1051,7 +1058,7 @@ export function VehicleForm({ vehicle, images }: Props) {
             rows={2}
             maxLength={OBSERVATIONS_MAX}
             className={`${fieldClass} min-h-[3.5rem] resize-y py-2`}
-            placeholder="Ej. Excelente oportunidad, no lo dejes ir. O: Motor desmontado."
+            placeholder="Texto destacado en la ficha. Ej. Excelente oportunidad — no lo dejes ir."
             value={observations}
             onChange={(e) => {
               markDirty();
@@ -1072,8 +1079,8 @@ export function VehicleForm({ vehicle, images }: Props) {
             <span>
               Mostrar en la ficha pública
               <span className="mt-0.5 block text-xs text-ink-muted">
-                Actívalo solo en algunos autos (ej. “excelente oportunidad”). Si
-                está apagado o vacío, no aparece en el sitio.
+                Se muestra resaltado en rojo en la ficha (útil para oportunidades
+                o avisos importantes). Actívalo solo en algunos autos.
               </span>
             </span>
           </label>

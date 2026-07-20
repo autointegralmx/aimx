@@ -146,6 +146,7 @@ export function buildOperationalBadges(input: {
   if (input.has_keys_status === "no") badges.push("Sin llaves");
   if (input.airbags_status === "intact") badges.push("Bolsas íntegras");
   if (input.airbags_status === "deployed") badges.push("Bolsas activadas");
+  if (input.airbags_status === "repaired") badges.push("Bolsas reparadas");
   return badges;
 }
 
@@ -282,6 +283,7 @@ export function buildStructuredPublicDescription(input: {
   if (input.has_keys_status === "no") lines.push("Sin llaves.");
   if (input.airbags_status === "intact") lines.push("Bolsas íntegras.");
   if (input.airbags_status === "deployed") lines.push("Bolsas activadas.");
+  if (input.airbags_status === "repaired") lines.push("Bolsas reparadas.");
   const transmission = cleanText(input.transmission);
   if (transmission) {
     lines.push(`Transmisión ${transmission.toLowerCase()}.`);

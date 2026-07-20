@@ -18,8 +18,8 @@ import {
 import {
   loadHomeInventoryData,
 } from "@/modules/inventory/application/public-queries";
-import { AuctionVehicleCard } from "@/modules/inventory/ui/auction-vehicle-card";
-import { VehicleCard } from "@/modules/inventory/ui/public-vehicle-card";
+import { PublicVehicleGrid } from "@/modules/inventory/ui/public-vehicle-grid";
+import { VehicleCategoryChips } from "@/modules/inventory/ui/vehicle-category-chips";
 import { SmartInvestmentSection } from "@/modules/content/ui/smart-investment-section";
 
 const impactItems = [
@@ -101,34 +101,34 @@ export async function HomePage() {
             className="absolute inset-0 bg-gradient-to-t from-[#F7F6F2]/25 via-transparent to-transparent"
             aria-hidden
           />
-          <div className="container-site relative z-10 flex min-h-[min(78vh,40rem)] items-center py-16 md:py-24">
+          <div className="container-site relative z-10 flex min-h-[min(58vh,28rem)] items-center py-10 md:min-h-[min(78vh,40rem)] md:py-24">
             <div className="max-w-2xl">
               <p className="label-eyebrow">Auto Integral</p>
-              <h1 className="text-hero mt-5 text-text-primary">
+              <h1 className="text-hero mt-3 text-text-primary md:mt-5">
                 ¿Buscas un vehículo
                 <br />
                 de aseguradora?
               </h1>
-              <p className="mt-5 text-xl font-bold uppercase tracking-wide text-text-primary sm:text-2xl">
+              <p className="mt-3 text-[18px] font-bold uppercase tracking-wide text-text-primary md:mt-5 md:text-2xl">
                 Nosotros lo encontramos por ti.
               </p>
-              <p className="mt-6 max-w-xl text-base leading-relaxed text-text-secondary sm:text-lg">
+              <p className="mt-4 max-w-xl text-[16px] leading-relaxed text-text-secondary md:mt-6 md:text-lg">
                 Tenemos acceso a la subastadora de vehículos de aseguradora más
                 grande del país, donde cada semana se publican cientos de
                 unidades.
               </p>
-              <p className="mt-4 max-w-xl text-base leading-relaxed text-text-secondary sm:text-lg">
+              <p className="mt-3 hidden max-w-xl text-base leading-relaxed text-text-secondary sm:block sm:text-lg md:mt-4">
                 Cuéntanos qué vehículo estás buscando y nosotros localizamos las
                 mejores oportunidades, te brindamos información clara y te
                 acompañamos durante todo el proceso.
               </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:items-center md:mt-8 md:gap-3">
                 <WhatsAppCta message={whatsappMessages.hero} />
                 <Link href="/subastas" className="btn-secondary">
                   Ver vehículos en subasta
                 </Link>
               </div>
-              <p className="mt-8 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+              <p className="mt-5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary md:mt-8 md:text-xs">
                 <IconMap className="h-4 w-4 text-brand-red" />
                 CDMX y Área Metropolitana
               </p>
@@ -138,7 +138,7 @@ export async function HomePage() {
 
         {/* 2. Impact band */}
         <section className="border-y border-border-subtle bg-surface-primary">
-          <div className="container-site grid gap-8 py-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6 lg:py-12">
+          <div className="container-site grid gap-5 py-7 sm:grid-cols-2 md:gap-8 md:py-12 lg:grid-cols-4 lg:gap-6">
             {impactItems.map((item) => (
               <p
                 key={item}
@@ -155,22 +155,25 @@ export async function HomePage() {
         <section className="bg-surface-dark section-pad">
           <div className="container-site">
             <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-red">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-red md:text-xs md:tracking-[0.18em]">
                 En subasta
               </p>
-              <h2 className="text-h2 mt-4 text-text-on-dark">
-                Vehículos disponibles
-                <br />
-                mediante subasta
+              <h2 className="text-h2 mt-2 text-text-on-dark md:mt-4">
+                <span className="md:hidden">Vehículos en subasta</span>
+                <span className="hidden md:inline">
+                  Vehículos disponibles
+                  <br />
+                  mediante subasta
+                </span>
               </h2>
-              <p className="mt-5 max-w-xl text-base leading-relaxed text-text-muted-dark sm:text-lg">
+              <p className="mt-3 max-w-xl text-[16px] leading-relaxed text-text-muted-dark md:mt-5 md:text-lg">
                 Consulta el cierre y solicita información para participar.
               </p>
             </div>
 
             {auctionItems.length === 0 ? (
-              <div className="mt-12 rounded-[12px] border border-dashed border-border-dark px-6 py-14 text-center">
-                <h3 className="text-xl font-bold uppercase tracking-wide text-text-on-dark">
+              <div className="mt-8 rounded-[12px] border border-dashed border-border-dark px-5 py-10 text-center md:mt-12 md:px-6 md:py-14">
+                <h3 className="text-lg font-bold uppercase tracking-wide text-text-on-dark md:text-xl">
                   Sin vehículos en subasta
                 </h3>
                 <p className="mt-3 text-text-muted-dark">
@@ -184,16 +187,12 @@ export async function HomePage() {
                 </Link>
               </div>
             ) : (
-              <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                {auctionItems.map(({ vehicle, coverUrl }) => (
-                  <AuctionVehicleCard
-                    key={vehicle.id}
-                    vehicle={vehicle}
-                    coverUrl={coverUrl}
-                    variant="onDark"
-                  />
-                ))}
-              </div>
+              <PublicVehicleGrid
+                items={auctionItems}
+                variant="onDark"
+                mode="auction"
+                className="mt-8 md:mt-12"
+              />
             )}
 
             <Link
@@ -210,28 +209,25 @@ export async function HomePage() {
           <div className="container-site">
             <div className="max-w-2xl">
               <p className="label-eyebrow">Vehículos</p>
-              <h2 className="text-h2 mt-3 text-text-primary">
+              <h2 className="text-h2 mt-2 text-text-primary md:mt-3">
                 Vehículos disponibles
               </h2>
-              <p className="mt-4 text-base text-text-secondary sm:text-lg">
+              <p className="mt-3 text-[16px] text-text-secondary md:mt-4 md:text-lg">
                 Explora nuestra selección de vehículos accidentados, recuperados
                 y seminuevos.
               </p>
             </div>
 
+            <VehicleCategoryChips className="mt-5" />
+
             {featuredItems.length > 0 ? (
-              <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                {featuredItems.map(({ vehicle, coverUrl }) => (
-                  <VehicleCard
-                    key={vehicle.id}
-                    vehicle={vehicle}
-                    coverUrl={coverUrl}
-                  />
-                ))}
-              </div>
+              <PublicVehicleGrid
+                items={featuredItems}
+                className="mt-5 md:mt-10"
+              />
             ) : null}
 
-            <div className="mt-12 flex flex-wrap gap-3">
+            <div className="mt-8 hidden flex-wrap gap-3 md:mt-12 md:flex">
               {categories.map((cat) => (
                 <Link
                   key={cat.title}
@@ -243,7 +239,7 @@ export async function HomePage() {
               ))}
             </div>
 
-            <div className="mt-10 flex flex-wrap items-center gap-4">
+            <div className="mt-7 flex flex-wrap items-center gap-3 md:mt-10 md:gap-4">
               <Link href="/vehiculos" className="btn-secondary">
                 Ver todos los vehículos
               </Link>
@@ -263,17 +259,20 @@ export async function HomePage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-red">
                   Autopartes
                 </p>
-                <h2 className="text-h2 mt-4 text-text-on-dark">
-                  ¿Chocaste o no encuentras
-                  <br />
-                  la pieza que necesitas?
+                <h2 className="text-h2 mt-2 text-text-on-dark md:mt-4">
+                  <span className="md:hidden">¿No encuentras la pieza?</span>
+                  <span className="hidden md:inline">
+                    ¿Chocaste o no encuentras
+                    <br />
+                    la pieza que necesitas?
+                  </span>
                 </h2>
-                <div className="mt-6 space-y-4 text-base leading-relaxed text-text-muted-dark sm:text-lg">
+                <div className="mt-4 space-y-3 text-[16px] leading-relaxed text-text-muted-dark md:mt-6 md:space-y-4 md:text-lg">
                   <p>
                     Contamos con una amplia red de distribuidores de autopartes
                     en Ciudad de México y Estado de México.
                   </p>
-                  <p>
+                  <p className="hidden sm:block">
                     Te ayudamos a localizar y conseguir una gran variedad de
                     refacciones para la mayoría de las marcas y modelos.
                   </p>
@@ -281,7 +280,9 @@ export async function HomePage() {
                     Si no encuentras la pieza que buscas, nosotros la buscamos
                     por ti y te cotizamos la mejor opción.
                   </p>
-                  <p>Realizamos envíos a toda la República Mexicana.</p>
+                  <p className="hidden md:block">
+                    Realizamos envíos a toda la República Mexicana.
+                  </p>
                 </div>
                 <WhatsAppCta
                   message={whatsappMessages.autopartes}
@@ -315,11 +316,11 @@ export async function HomePage() {
                 Ejemplos de piezas que podemos ayudarte a localizar. Cotizamos
                 según tu solicitud — sin catálogo ni existencia garantizada.
               </p>
-              <ul className="mt-8 flex flex-wrap gap-2.5">
+              <ul className="mt-6 grid grid-cols-2 gap-2 md:mt-8 md:flex md:flex-wrap md:gap-2.5">
                 {autopartCategories.map((part) => (
                   <li
                     key={part}
-                    className="rounded-sm border border-border-dark bg-surface-dark-elevated px-3.5 py-2 text-xs font-semibold uppercase tracking-wide text-text-on-dark"
+                    className="rounded-sm border border-border-dark bg-surface-dark-elevated px-2.5 py-1.5 text-center text-[11px] font-semibold uppercase tracking-wide text-text-on-dark md:px-3.5 md:py-2 md:text-left md:text-xs"
                   >
                     {part}
                   </li>
@@ -361,13 +362,13 @@ export async function HomePage() {
               </p>
             </div>
 
-            <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="mt-8 grid grid-cols-2 gap-x-3 gap-y-2.5 md:mt-12 md:gap-4 lg:grid-cols-3">
               {automotiveServices.map((label) => (
                 <li
                   key={label}
-                  className="flex items-start gap-3 text-sm text-text-secondary"
+                  className="flex items-start gap-2 text-[15px] text-text-secondary md:gap-3 md:text-sm"
                 >
-                  <IconCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand-red" />
+                  <IconCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-red md:h-5 md:w-5" />
                   <span>{label}</span>
                 </li>
               ))}

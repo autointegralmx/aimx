@@ -73,6 +73,7 @@ export function buildAutoSummaryPhrases(input: AutoCopySource): string[] {
   if (input.has_keys_status === "no") phrases.push("Sin llaves.");
   if (input.airbags_status === "intact") phrases.push("Bolsas íntegras.");
   if (input.airbags_status === "deployed") phrases.push("Bolsas activadas.");
+  if (input.airbags_status === "repaired") phrases.push("Bolsas reparadas.");
   return phrases;
 }
 

@@ -3,13 +3,6 @@ import { vehicleStatusLabel } from "@/modules/inventory/domain/vehicle-status";
 
 type Size = "card" | "detail";
 
-const labelStyle = {
-  borderRadius: 8,
-  padding: "8px 14px",
-  letterSpacing: "1px",
-  fontWeight: 700,
-} as const;
-
 /** Photo label colors: Disponible verde · Apartado amarillo · Vendido rojo. */
 function photoLabelClass(status: "available" | "reserved" | "sold"): string {
   if (status === "sold") return "bg-brand-red text-white";
@@ -31,7 +24,7 @@ export function VehicleAvailabilityBadge({
   if (!status) return null;
 
   const textSize =
-    size === "detail" ? "text-[13px] sm:text-sm" : "text-xs";
+    size === "detail" ? "text-[11px] sm:text-sm" : "text-[10px] md:text-xs";
 
   if (status === "sold") {
     return (
@@ -44,8 +37,8 @@ export function VehicleAvailabilityBadge({
           style={{ backgroundColor: "rgba(0,0,0,0.28)" }}
         />
         <span
-          className={`absolute left-3 top-3 font-bold uppercase shadow-sm ${photoLabelClass("sold")} ${textSize}`}
-          style={labelStyle}
+          className={`absolute left-2 top-2 rounded-md px-2 py-1 font-bold uppercase tracking-wide shadow-sm md:left-3 md:top-3 md:rounded-lg md:px-3.5 md:py-2 ${photoLabelClass("sold")} ${textSize}`}
+          style={{ fontWeight: 700, letterSpacing: "1px" }}
         >
           Vendido
         </span>
@@ -62,8 +55,8 @@ export function VehicleAvailabilityBadge({
         aria-label={label}
       >
         <span
-          className={`absolute left-3 top-3 font-bold uppercase shadow-sm ${photoLabelClass(status)} ${textSize}`}
-          style={labelStyle}
+          className={`absolute left-2 top-2 rounded-md px-2 py-1 font-bold uppercase tracking-wide shadow-sm md:left-3 md:top-3 md:rounded-lg md:px-3.5 md:py-2 ${photoLabelClass(status)} ${textSize}`}
+          style={{ fontWeight: 700, letterSpacing: "1px" }}
         >
           {label}
         </span>

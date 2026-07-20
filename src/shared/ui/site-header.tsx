@@ -53,8 +53,8 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border-subtle bg-surface-primary">
-      <div className="container-site flex h-16 items-center justify-between gap-4 md:h-[4.25rem]">
-        <BrandLogo variant="header" priority />
+      <div className="container-site flex h-14 items-center justify-between gap-3 md:h-[4.25rem] md:gap-4">
+        <BrandLogo variant="header" priority className="max-md:h-8" />
 
         <nav
           aria-label="Principal"

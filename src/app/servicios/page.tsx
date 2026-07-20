@@ -41,13 +41,13 @@ export default function ServiciosPage() {
     >
       <section className="mt-12">
         <h2 className="text-h3 text-text-primary">Todos nuestros servicios</h2>
-        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-6 grid grid-cols-2 gap-x-3 gap-y-2.5 md:mt-8 md:gap-4 lg:grid-cols-3">
           {automotiveServices.map((label) => (
             <li
               key={label}
-              className="flex items-start gap-3 text-sm text-text-secondary"
+              className="flex items-start gap-2 text-[15px] text-text-secondary md:gap-3 md:text-sm"
             >
-              <IconCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand-red" />
+              <IconCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-red md:h-5 md:w-5" />
               <span>{label}</span>
             </li>
           ))}

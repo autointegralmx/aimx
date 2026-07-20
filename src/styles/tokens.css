@@ -59,6 +59,26 @@
   --text-h3: clamp(1.5rem, 2.5vw, 2.125rem);
 }
 
+/* Mobile-first density (≤767px). Desktop tokens remain for md+. */
+@media (max-width: 767px) {
+  .text-hero {
+    font-size: 2.125rem;
+  }
+
+  .text-h2 {
+    font-size: 1.875rem;
+  }
+
+  .text-h3 {
+    font-size: 1.75rem;
+  }
+
+  body {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
@@ -120,7 +140,7 @@
   }
 
   .container-site {
-    @apply mx-auto w-full max-w-6xl px-5 sm:px-8 lg:px-10;
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-8 lg:px-10;
   }
 
   .touch-target {
@@ -129,23 +149,23 @@
   }
 
   .section-pad {
-    @apply py-20 md:py-28;
+    @apply py-12 md:py-28;
   }
 
   .btn-primary {
-    @apply inline-flex min-h-12 min-w-11 items-center justify-center border border-brand-red bg-brand-red px-6 text-[15px] font-semibold uppercase tracking-wide text-white transition-colors hover:border-brand-red-hover hover:bg-brand-red-hover;
+    @apply inline-flex min-h-10 min-w-11 items-center justify-center border border-brand-red bg-brand-red px-4 text-[15px] font-semibold uppercase tracking-wide text-white transition-colors hover:border-brand-red-hover hover:bg-brand-red-hover md:min-h-12 md:px-6;
   }
 
   .btn-secondary {
-    @apply inline-flex min-h-12 min-w-11 items-center justify-center border border-brand-black bg-surface-primary px-6 text-[15px] font-semibold uppercase tracking-wide text-brand-black transition-colors hover:bg-surface-secondary;
+    @apply inline-flex min-h-10 min-w-11 items-center justify-center border border-brand-black bg-surface-primary px-4 text-[15px] font-semibold uppercase tracking-wide text-brand-black transition-colors hover:bg-surface-secondary md:min-h-12 md:px-6;
   }
 
   .btn-dark {
-    @apply inline-flex min-h-11 min-w-11 items-center justify-center border border-brand-black bg-brand-black px-5 text-[14px] font-semibold uppercase tracking-wide text-white transition-colors hover:bg-graphite;
+    @apply inline-flex min-h-9 min-w-11 items-center justify-center border border-brand-black bg-brand-black px-3 text-[13px] font-semibold uppercase tracking-wide text-white transition-colors hover:bg-graphite md:min-h-11 md:px-5 md:text-[14px];
   }
 
   .btn-on-dark {
-    @apply inline-flex min-h-12 min-w-11 items-center justify-center border border-brand-red bg-brand-red px-6 text-[15px] font-semibold uppercase tracking-wide text-white transition-colors hover:bg-brand-red-hover;
+    @apply inline-flex min-h-10 min-w-11 items-center justify-center border border-brand-red bg-brand-red px-4 text-[15px] font-semibold uppercase tracking-wide text-white transition-colors hover:bg-brand-red-hover md:min-h-12 md:px-6;
   }
 }
 

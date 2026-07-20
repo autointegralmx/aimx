@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PublicShell } from "@/shared/ui/public-shell";
 import { loadPublicAuctions } from "@/modules/inventory/application/public-queries";
-import { AuctionVehicleCard } from "@/modules/inventory/ui/auction-vehicle-card";
+import { PublicVehicleGrid } from "@/modules/inventory/ui/public-vehicle-grid";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,7 @@ export default async function SubastasPage() {
       description="Vehículos disponibles mediante subasta. Consulta el cierre y solicita información para participar."
     >
       {degraded ? (
-        <div className="mt-10 rounded-[12px] border border-dashed border-border-subtle bg-surface-secondary px-6 py-14 text-center">
+        <div className="mt-6 rounded-[12px] border border-dashed border-border-subtle bg-surface-secondary px-5 py-10 text-center md:mt-10 md:px-6 md:py-14">
           <p className="text-text-secondary">
             No pudimos cargar las subastas en este momento. Intenta de nuevo más
             tarde.
@@ -34,7 +34,7 @@ export default async function SubastasPage() {
           </Link>
         </div>
       ) : items.length === 0 ? (
-        <div className="mt-10 rounded-[12px] border border-dashed border-border-subtle bg-surface-secondary px-6 py-14 text-center">
+        <div className="mt-6 rounded-[12px] border border-dashed border-border-subtle bg-surface-secondary px-5 py-10 text-center md:mt-10 md:px-6 md:py-14">
           <p className="text-text-secondary">
             No hay vehículos en subasta en este momento.
           </p>
@@ -46,15 +46,11 @@ export default async function SubastasPage() {
           </Link>
         </div>
       ) : (
-        <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map(({ vehicle, coverUrl }) => (
-            <AuctionVehicleCard
-              key={vehicle.id}
-              vehicle={vehicle}
-              coverUrl={coverUrl}
-            />
-          ))}
-        </div>
+        <PublicVehicleGrid
+          items={items}
+          mode="auction"
+          className="mt-5 md:mt-10"
+        />
       )}
     </PublicShell>
   );

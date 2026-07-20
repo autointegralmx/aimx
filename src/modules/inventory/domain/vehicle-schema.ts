@@ -15,7 +15,12 @@ export const vehicleStatusSchema = z.enum([
 ]);
 
 export const triStateSchema = z.enum(["yes", "no", "unknown"]);
-export const airbagsStatusSchema = z.enum(["intact", "deployed", "unknown"]);
+export const airbagsStatusSchema = z.enum([
+  "intact",
+  "deployed",
+  "repaired",
+  "unknown",
+]);
 export const invoiceTypeSchema = z.enum([
   "aseguradora",
   "agencia",

@@ -38,7 +38,7 @@ export function WhatsAppCta({
       target="_blank"
       rel="noopener noreferrer"
       aria-label={ariaLabel}
-      className={`${variantClass[variant]} min-h-12 ${className}`.trim()}
+      className={`${variantClass[variant]} ${className}`.trim()}
       {...rest}
     >
       {children}

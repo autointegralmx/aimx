@@ -3,7 +3,8 @@ import { PublicShell } from "@/shared/ui/public-shell";
 import { WhatsAppCta } from "@/shared/ui/whatsapp-cta";
 import { whatsappMessages } from "@/modules/leads/domain/whatsapp";
 import { loadPublicVehicleList } from "@/modules/inventory/application/public-queries";
-import { VehicleCard } from "@/modules/inventory/ui/public-vehicle-card";
+import { PublicVehicleGrid } from "@/modules/inventory/ui/public-vehicle-grid";
+import { VehicleCategoryChips } from "@/modules/inventory/ui/vehicle-category-chips";
 import type { VehicleCategory } from "@/modules/inventory/domain/vehicle-schema";
 
 const messageByCategory: Record<string, string> = {
@@ -32,12 +33,14 @@ export async function CategoryPage({ category }: { category: string }) {
       title={category}
       description={`Explora vehículos ${category.toLowerCase()} con información clara y acompañamiento directo.`}
     >
+      <VehicleCategoryChips className="mt-5" />
+
       {items.length === 0 ? (
-        <div className="mt-10 rounded-[12px] border border-dashed border-border-subtle bg-surface-secondary px-6 py-14 text-center">
-          <h2 className="text-xl font-bold uppercase tracking-wide text-text-primary">
+        <div className="mt-6 rounded-[12px] border border-dashed border-border-subtle bg-surface-secondary px-5 py-10 text-center md:mt-10 md:px-6 md:py-14">
+          <h2 className="text-lg font-bold uppercase tracking-wide text-text-primary md:text-xl">
             Sin unidades publicadas
           </h2>
-          <p className="mt-3 text-text-secondary">
+          <p className="mt-3 text-[16px] text-text-secondary">
             Por ahora no hay vehículos en esta categoría. Escríbenos y te
             ayudamos a buscar.
           </p>
@@ -45,21 +48,13 @@ export async function CategoryPage({ category }: { category: string }) {
         </div>
       ) : (
         <>
-          <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map(({ vehicle, coverUrl }) => (
-              <VehicleCard
-                key={vehicle.id}
-                vehicle={vehicle}
-                coverUrl={coverUrl}
-              />
-            ))}
-          </div>
-          <div className="mt-10">
+          <PublicVehicleGrid items={items} className="mt-5 md:mt-10" />
+          <div className="mt-8 md:mt-10">
             <WhatsAppCta message={message} />
           </div>
         </>
       )}
-      <p className="mt-8 text-sm">
+      <p className="mt-6 text-sm md:mt-8">
         <Link href="/vehiculos" className="text-brand-red hover:underline">
           Ver todas las categorías
         </Link>

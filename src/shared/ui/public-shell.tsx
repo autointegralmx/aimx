@@ -18,8 +18,10 @@ export function PublicShell({
       <SiteHeader />
       <main className="container-site section-pad">
         <p className="label-eyebrow">{eyebrow}</p>
-        <h1 className="text-h2 mt-3 text-text-primary">{title}</h1>
-        <p className="mt-5 max-w-2xl text-base leading-relaxed text-text-secondary sm:text-lg">
+        <h1 className="text-h2 mt-2 max-w-[18ch] text-text-primary md:mt-3 md:max-w-none">
+          {title}
+        </h1>
+        <p className="mt-3 max-w-2xl text-[16px] leading-relaxed text-text-secondary md:mt-5 md:text-lg">
           {description}
         </p>
         {children}
