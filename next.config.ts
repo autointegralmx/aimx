@@ -10,6 +10,13 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Avoid client router serving stale RSC payloads after admin edits.
+  experimental: {
+    staleTimes: {
+      dynamic: 0,
+      static: 30,
+    },
+  },
   images: {
     remotePatterns: [
       {

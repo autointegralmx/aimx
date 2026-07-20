@@ -22,5 +22,13 @@ export async function createSupabaseServerClient() {
         }
       },
     },
+    // Prevent Next.js Data Cache from serving stale Supabase GETs on public pages.
+    global: {
+      fetch: (input, init) =>
+        fetch(input, {
+          ...init,
+          cache: "no-store",
+        }),
+    },
   });
 }

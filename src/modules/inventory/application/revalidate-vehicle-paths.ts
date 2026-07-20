@@ -7,30 +7,48 @@ const CATEGORY_PUBLIC_PATH: Record<VehicleCategory, string> = {
   seminuevo: "/vehiculos/seminuevos",
 };
 
+/**
+ * Invalidate public + admin surfaces after vehicle mutations.
+ * Uses layout-scoped revalidation so nested RSC payloads and Data Cache clear.
+ */
 export function revalidateVehicleSurfaces(input?: {
   slug?: string | null;
   vehicleId?: string | null;
   category?: VehicleCategory | null;
 }): void {
-  revalidatePath("/admin/vehiculos");
-  revalidatePath("/vehiculos");
-  revalidatePath("/subastas");
-  revalidatePath("/oportunidades");
-  revalidatePath("/");
+  const bust = (path: string) => {
+    revalidatePath(path, "layout");
+    revalidatePath(path, "page");
+  };
+
+  bust("/admin/vehiculos");
+  bust("/vehiculos");
+  bust("/subastas");
+  bust("/oportunidades");
+  bust("/");
+  bust("/inventario");
+
   if (input?.category) {
     const categoryPath = CATEGORY_PUBLIC_PATH[input.category];
-    if (categoryPath) revalidatePath(categoryPath);
+    if (categoryPath) bust(categoryPath);
+    // Always refresh sibling category hubs too (category may have changed).
+    bust("/vehiculos/accidentados");
+    bust("/vehiculos/recuperados");
+    bust("/vehiculos/seminuevos");
   } else {
-    revalidatePath("/vehiculos/accidentados");
-    revalidatePath("/vehiculos/recuperados");
-    revalidatePath("/vehiculos/seminuevos");
+    bust("/vehiculos/accidentados");
+    bust("/vehiculos/recuperados");
+    bust("/vehiculos/seminuevos");
   }
+
   if (input?.slug) {
-    revalidatePath(`/vehiculos/${input.slug}`);
+    bust(`/vehiculos/${input.slug}`);
+    bust(`/inventario/${input.slug}`);
   }
+
   if (input?.vehicleId) {
-    revalidatePath(`/admin/vehiculos/${input.vehicleId}`);
-    revalidatePath(`/admin/vehiculos/${input.vehicleId}/editar`);
-    revalidatePath(`/admin/vehiculos/${input.vehicleId}/preview`);
+    bust(`/admin/vehiculos/${input.vehicleId}`);
+    bust(`/admin/vehiculos/${input.vehicleId}/editar`);
+    bust(`/admin/vehiculos/${input.vehicleId}/preview`);
   }
 }

@@ -78,7 +78,7 @@ export async function createVehicleDraftAction(
   try {
     const ctx = await buildStaffContext();
     const vehicle = await createVehicleDraftUseCase(ctx, parsed.data);
-    revalidateVehicleSurfaces({ slug: vehicle.slug });
+    revalidateVehicleSurfaces({ slug: vehicle.slug, category: vehicle.category });
     return {
       ok: true,
       message: "Borrador creado.",
@@ -141,6 +141,7 @@ export async function registerUploadedVehicleImageAction(
     revalidateVehicleSurfaces({
       slug: vehicle?.slug,
       vehicleId: parsed.data.vehicleId,
+      category: vehicle?.category,
     });
     return {
       ok: true,
@@ -214,6 +215,7 @@ export async function registerCloudinaryVehicleImageAction(
     revalidateVehicleSurfaces({
       slug: vehicle?.slug,
       vehicleId: parsed.data.vehicleId,
+      category: vehicle?.category,
     });
     return { ok: true, message: "Imagen subida.", uploaded };
   } catch (error) {
@@ -250,6 +252,7 @@ export async function setVehicleCoverAction(
     revalidateVehicleSurfaces({
       slug: vehicle?.slug,
       vehicleId: parsed.data.vehicleId,
+      category: vehicle?.category,
     });
     return { ok: true, message: "Portada actualizada.", vehicleId: parsed.data.vehicleId };
   } catch (error) {
@@ -280,6 +283,7 @@ export async function reorderVehicleImagesAction(
     revalidateVehicleSurfaces({
       slug: vehicle?.slug,
       vehicleId: parsed.data.vehicleId,
+      category: vehicle?.category,
     });
     return { ok: true, message: "Orden guardado.", vehicleId: parsed.data.vehicleId };
   } catch (error) {
@@ -310,6 +314,7 @@ export async function deleteVehicleImageAction(
     revalidateVehicleSurfaces({
       slug: vehicle?.slug,
       vehicleId: parsed.data.vehicleId,
+      category: vehicle?.category,
     });
     return { ok: true, message: "Imagen eliminada.", vehicleId: parsed.data.vehicleId };
   } catch (error) {
@@ -325,7 +330,7 @@ export async function reserveVehicleAction(
   try {
     const ctx = await buildStaffContext();
     const vehicle = await reserveVehicleUseCase(ctx, parsed.data.vehicleId);
-    revalidateVehicleSurfaces({ slug: vehicle.slug });
+    revalidateVehicleSurfaces({ slug: vehicle.slug, category: vehicle.category });
     return {
       ok: true,
       message: "Vehículo marcado como reservado.",
@@ -348,7 +353,7 @@ export async function makeVehicleAvailableAction(
       ctx,
       parsed.data.vehicleId,
     );
-    revalidateVehicleSurfaces({ slug: vehicle.slug });
+    revalidateVehicleSurfaces({ slug: vehicle.slug, category: vehicle.category });
     return {
       ok: true,
       message: "Vehículo marcado como disponible.",
@@ -368,7 +373,7 @@ export async function markVehicleSoldAction(
   try {
     const ctx = await buildStaffContext();
     const vehicle = await markVehicleSoldUseCase(ctx, parsed.data.vehicleId);
-    revalidateVehicleSurfaces({ slug: vehicle.slug });
+    revalidateVehicleSurfaces({ slug: vehicle.slug, category: vehicle.category });
     return {
       ok: true,
       message: "Vehículo marcado como vendido.",
@@ -388,7 +393,7 @@ export async function archiveVehicleAction(
   try {
     const ctx = await buildStaffContext();
     const vehicle = await archiveVehicleUseCase(ctx, parsed.data.vehicleId);
-    revalidateVehicleSurfaces({ slug: vehicle.slug });
+    revalidateVehicleSurfaces({ slug: vehicle.slug, category: vehicle.category });
     return {
       ok: true,
       message: "Vehículo archivado.",
@@ -408,7 +413,7 @@ export async function unpublishVehicleAction(
   try {
     const ctx = await buildStaffContext();
     const vehicle = await unpublishVehicleUseCase(ctx, parsed.data.vehicleId);
-    revalidateVehicleSurfaces({ slug: vehicle.slug });
+    revalidateVehicleSurfaces({ slug: vehicle.slug, category: vehicle.category });
     return {
       ok: true,
       message: "Vehículo despublicado.",
@@ -428,7 +433,7 @@ export async function duplicateVehicleAction(
   try {
     const ctx = await buildStaffContext();
     const vehicle = await duplicateVehicleUseCase(ctx, parsed.data.vehicleId);
-    revalidateVehicleSurfaces({ slug: vehicle.slug });
+    revalidateVehicleSurfaces({ slug: vehicle.slug, category: vehicle.category });
     return {
       ok: true,
       message:
@@ -544,7 +549,7 @@ export async function publishVehicleAction(
       imageCount: media.length,
       hasCover: media.some((item) => item.is_cover),
     });
-    revalidateVehicleSurfaces({ slug: vehicle.slug });
+    revalidateVehicleSurfaces({ slug: vehicle.slug, category: vehicle.category });
     return {
       ok: true,
       message: "Vehículo publicado.",
@@ -600,6 +605,7 @@ export async function updateVehicleAction(
     revalidateVehicleSurfaces({
       slug: vehicle.slug,
       vehicleId: vehicle.id,
+      category: vehicle.category,
     });
     return {
       ok: true,
