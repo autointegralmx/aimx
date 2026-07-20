@@ -1,22 +1,12 @@
-import { PublicShell } from "@/shared/ui/public-shell";
-import { WhatsAppCta } from "@/shared/ui/whatsapp-cta";
-import { whatsappMessages } from "@/modules/leads/domain/whatsapp";
+import { NosotrosPageView } from "@/modules/content/ui/nosotros-page";
 
 export const metadata = {
   title: "Nosotros",
   description:
-    "Auto Integral: acceso a la subastadora de vehículos de aseguradora más grande del país, oportunidades seleccionadas y acompañamiento directo.",
+    "Más de 10 años ayudando a comprar vehículos de aseguradora de forma legal, segura y transparente. Asesoría profesional y oportunidades reales.",
   alternates: { canonical: "/nosotros" },
 };
 
 export default function NosotrosPage() {
-  return (
-    <PublicShell
-      eyebrow="Nosotros"
-      title="Auto Integral"
-      description="Ayudamos a encontrar vehículos de aseguradora mediante acceso a la subastadora más grande del país, seleccionamos oportunidades y acompañamos al cliente durante todo el proceso."
-    >
-      <WhatsAppCta message={whatsappMessages.hero} className="mt-10" />
-    </PublicShell>
-  );
+  return <NosotrosPageView />;
 }

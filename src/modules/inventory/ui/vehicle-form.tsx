@@ -12,7 +12,6 @@ import {
 } from "@/modules/inventory/application/vehicle-actions";
 import {
   DAMAGE_TAG_GROUPS,
-  PUBLIC_TAGS,
   type AirbagsStatus,
   type InvoiceType,
   type TriState,
@@ -233,9 +232,6 @@ export function VehicleForm({ vehicle, images }: Props) {
   const [observations, setObservations] = useState(
     vehicle.condition_notes ?? "",
   );
-  const [publishObservations, setPublishObservations] = useState(
-    vehicle.publish_observations ?? true,
-  );
 
   const [priceAmount, setPriceAmount] = useState(
     vehicle.price_amount != null ? String(vehicle.price_amount) : "",
@@ -268,26 +264,6 @@ export function VehicleForm({ vehicle, images }: Props) {
   );
   const [internalPrice, setInternalPrice] = useState(
     vehicle.internal_price != null ? String(vehicle.internal_price) : "",
-  );
-
-  // Advanced (collapsed) — preserved; only applied publicly when flag is on
-  const [useManualPublicCopy, setUseManualPublicCopy] = useState(
-    vehicle.use_manual_public_copy ?? false,
-  );
-  const [publicTitle, setPublicTitle] = useState(vehicle.public_title ?? "");
-  const [shortDescription, setShortDescription] = useState(
-    vehicle.short_description ?? "",
-  );
-  const [fullDescription, setFullDescription] = useState(
-    vehicle.full_description ?? vehicle.public_description ?? "",
-  );
-  const [priceLabel, setPriceLabel] = useState(vehicle.price_label ?? "");
-  const [publicTags, setPublicTags] = useState<string[]>(
-    vehicle.public_tags ?? [],
-  );
-  const [seoTitle, setSeoTitle] = useState(vehicle.seo_title ?? "");
-  const [seoDescription, setSeoDescription] = useState(
-    vehicle.seo_description ?? "",
   );
 
   useEffect(() => {
@@ -336,14 +312,8 @@ export function VehicleForm({ vehicle, images }: Props) {
     );
   }
 
-  function togglePublicTag(tag: string) {
-    markDirty();
-    setPublicTags((list) =>
-      list.includes(tag) ? list.filter((item) => item !== tag) : [...list, tag],
-    );
-  }
-
   function buildPayload() {
+    const notes = observations.trim().slice(0, OBSERVATIONS_MAX);
     return {
       vehicleId: vehicle.id,
       make,
@@ -365,8 +335,8 @@ export function VehicleForm({ vehicle, images }: Props) {
       transmission: transmission || null,
       fuel_type: fuel || null,
       damage_tags: damageTags,
-      condition_notes: observations.trim() || null,
-      publish_observations: publishObservations,
+      condition_notes: notes || null,
+      publish_observations: Boolean(notes),
       starts_status: startsStatus,
       drives_status: drivesStatus,
       has_keys_status: hasKeysStatus,
@@ -375,14 +345,14 @@ export function VehicleForm({ vehicle, images }: Props) {
       invoice_entity: invoiceEntity.trim() || null,
       tenencias_label: tenenciasLabel.trim() || null,
       verification_status: verificationStatus,
-      use_manual_public_copy: useManualPublicCopy,
-      public_title: publicTitle.trim() || null,
-      short_description: shortDescription.trim() || null,
-      full_description: fullDescription.trim() || null,
+      use_manual_public_copy: false,
+      public_title: null,
+      short_description: null,
+      full_description: null,
       price_amount: priceAmount.trim() === "" ? null : Number(priceAmount),
-      price_label: priceLabel.trim() || null,
+      price_label: null,
       location_label: locationLabel.trim() || null,
-      public_tags: publicTags,
+      public_tags: [],
       is_featured: isFeatured,
       is_weekly_opportunity: isInAuction,
       opportunity_deadline: isInAuction
@@ -392,13 +362,41 @@ export function VehicleForm({ vehicle, images }: Props) {
               : "",
           )
         : vehicle.opportunity_deadline,
-      seo_title: seoTitle.trim() || null,
-      seo_description: seoDescription.trim() || null,
+      seo_title: null,
+      seo_description: null,
       vin: vin.trim() || null,
       provider_reference: providerReference.trim() || null,
       internal_price: internalPrice.trim() === "" ? null : Number(internalPrice),
       status,
     };
+  }
+
+  function goPreview() {
+    if (pending) return;
+    if (!dirty) {
+      router.push(`/admin/vehiculos/${vehicle.id}/preview`);
+      return;
+    }
+    setError(null);
+    setMessage(null);
+    setFieldErrors({});
+    startTransition(async () => {
+      const result = await updateVehicleAction(buildPayload());
+      if (!result.ok) {
+        setError(
+          result.error ||
+            "Guarda los cambios antes de abrir la vista previa.",
+        );
+        if ("fieldErrors" in result && result.fieldErrors) {
+          setFieldErrors(result.fieldErrors);
+        }
+        return;
+      }
+      setDirty(false);
+      setMessage(result.message);
+      router.push(`/admin/vehiculos/${vehicle.id}/preview`);
+      router.refresh();
+    });
   }
 
   function save() {
@@ -488,12 +486,14 @@ export function VehicleForm({ vehicle, images }: Props) {
               Publicar
             </Button>
           )}
-          <Link
-            href={`/admin/vehiculos/${vehicle.id}/preview`}
-            className="inline-flex min-h-10 items-center rounded-md border border-line px-3 text-sm font-medium text-ink hover:bg-paper-elevated"
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={goPreview}
+            disabled={pending}
           >
             Vista previa
-          </Link>
+          </Button>
           <Link
             href={`/admin/vehiculos/${vehicle.id}`}
             className="text-sm text-ink-muted hover:text-ink"
@@ -874,7 +874,7 @@ export function VehicleForm({ vehicle, images }: Props) {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <label className={labelClass} htmlFor="price">
-              Precio público
+              Precio
             </label>
             <input
               id="price"
@@ -1045,34 +1045,23 @@ export function VehicleForm({ vehicle, images }: Props) {
           </label>
           <textarea
             id="observations"
-            rows={3}
-            className={`${fieldClass} min-h-[4.5rem] resize-y py-2`}
-            placeholder="Ej. Arrancando y caminando. Una llave. Valor comercial aprox. $245,000."
+            rows={2}
+            maxLength={OBSERVATIONS_MAX}
+            className={`${fieldClass} min-h-[3.5rem] resize-y py-2`}
+            placeholder="Solo lo esencial. Ej. Motor desmontado. Le falta computadora."
             value={observations}
             onChange={(e) => {
               markDirty();
-              setObservations(e.target.value);
+              setObservations(e.target.value.slice(0, OBSERVATIONS_MAX));
             }}
           />
           <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
-            <label className="flex items-center gap-2 text-xs text-ink-muted">
-              <input
-                type="checkbox"
-                checked={!publishObservations}
-                onChange={(e) => {
-                  markDirty();
-                  setPublishObservations(!e.target.checked);
-                }}
-              />
-              No publicar estas observaciones
-            </label>
-            <span
-              className={`text-xs ${
-                obsCount > OBSERVATIONS_MAX ? "text-brand-red" : "text-ink-muted"
-              }`}
-            >
+            <p className="text-xs text-ink-muted">
+              Máximo {OBSERVATIONS_MAX} caracteres. Vacío = no se muestra en la
+              ficha pública.
+            </p>
+            <span className="text-xs text-ink-muted">
               {obsCount}/{OBSERVATIONS_MAX}
-              {obsCount > OBSERVATIONS_MAX ? " (sugerido)" : ""}
             </span>
           </div>
         </div>
@@ -1123,143 +1112,6 @@ export function VehicleForm({ vehicle, images }: Props) {
                 setInternalPrice(e.target.value);
               }}
             />
-          </div>
-        </div>
-      </Section>
-
-      <Section title="Personalización avanzada" defaultOpen={false} optional>
-        <p className="text-xs text-ink-muted">
-          No es necesario para publicar. Por defecto la ficha usa solo datos
-          estructurados. Activa la opción abajo solo si quieres que los textos
-          manuales reemplacen título, precio, SEO y tags en el sitio público.
-        </p>
-        <label className="flex items-start gap-2 text-sm text-ink">
-          <input
-            type="checkbox"
-            className="mt-0.5"
-            checked={useManualPublicCopy}
-            onChange={(e) => {
-              markDirty();
-              setUseManualPublicCopy(e.target.checked);
-            }}
-          />
-          <span>
-            Usar personalización manual en la ficha pública
-            <span className="mt-0.5 block text-xs text-ink-muted">
-              Sin esta casilla, título/descripciones/etiqueta de precio/SEO/tags
-              legacy se guardan pero no se muestran.
-            </span>
-          </span>
-        </label>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <label className={labelClass} htmlFor="publicTitle">
-              Título público manual
-            </label>
-            <input
-              id="publicTitle"
-              className={fieldClass}
-              value={publicTitle}
-              onChange={(e) => {
-                markDirty();
-                setPublicTitle(e.target.value);
-              }}
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className={labelClass} htmlFor="shortDescription">
-              Descripción corta manual
-            </label>
-            <textarea
-              id="shortDescription"
-              rows={2}
-              className={`${fieldClass} min-h-[3rem] py-2`}
-              value={shortDescription}
-              onChange={(e) => {
-                markDirty();
-                setShortDescription(e.target.value);
-              }}
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className={labelClass} htmlFor="fullDescription">
-              Descripción completa manual
-            </label>
-            <textarea
-              id="fullDescription"
-              rows={3}
-              className={`${fieldClass} min-h-[4rem] py-2`}
-              value={fullDescription}
-              onChange={(e) => {
-                markDirty();
-                setFullDescription(e.target.value);
-              }}
-            />
-          </div>
-          <div>
-            <label className={labelClass} htmlFor="priceLabel">
-              Etiqueta de precio manual
-            </label>
-            <input
-              id="priceLabel"
-              className={fieldClass}
-              value={priceLabel}
-              onChange={(e) => {
-                markDirty();
-                setPriceLabel(e.target.value);
-              }}
-            />
-          </div>
-          <div>
-            <label className={labelClass} htmlFor="seoTitle">
-              SEO título
-            </label>
-            <input
-              id="seoTitle"
-              className={fieldClass}
-              value={seoTitle}
-              onChange={(e) => {
-                markDirty();
-                setSeoTitle(e.target.value);
-              }}
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className={labelClass} htmlFor="seoDescription">
-              SEO descripción
-            </label>
-            <textarea
-              id="seoDescription"
-              rows={2}
-              className={`${fieldClass} min-h-[3rem] py-2`}
-              value={seoDescription}
-              onChange={(e) => {
-                markDirty();
-                setSeoDescription(e.target.value);
-              }}
-            />
-          </div>
-        </div>
-        <div>
-          <p className={labelClass}>Tags comerciales (legado)</p>
-          <div className="flex flex-wrap gap-1.5">
-            {PUBLIC_TAGS.map((tag) => {
-              const active = publicTags.includes(tag);
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => togglePublicTag(tag)}
-                  className={`rounded-full border px-2.5 py-1 text-xs ${
-                    active
-                      ? "border-brand-red bg-brand-red/10 text-brand-red"
-                      : "border-line text-ink-muted"
-                  }`}
-                >
-                  {tag.replaceAll("_", " ")}
-                </button>
-              );
-            })}
           </div>
         </div>
       </Section>

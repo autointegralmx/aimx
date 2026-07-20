@@ -172,7 +172,6 @@ export function buildPublicVehicleViewModel(
       transmission: publicText(vehicle.transmission),
       body_type: publicText(vehicle.body_type),
       fuel_type: publicText(vehicle.fuel_type),
-      version,
     }),
     priceLabel: formatDetailPrice(priceInput),
     listPriceLabel: formatPublicPrice(priceInput),

@@ -12,7 +12,7 @@ import {
   resolveAuctionPublicState,
   resolvePublicChannel,
 } from "@/modules/inventory/domain/vehicle-auction";
-import { vehicleUpdateSchema } from "@/modules/inventory/domain/vehicle-schema";
+import { parseVehicleUpdateInput } from "@/modules/inventory/domain/vehicle-schema";
 
 describe("isAuctionActive", () => {
   const now = new Date("2026-07-19T18:00:00.000Z");
@@ -293,27 +293,34 @@ describe("auction timezone formatting", () => {
 
 describe("auction schema validation", () => {
   it("blocks auction without future deadline", () => {
-    const missing = vehicleUpdateSchema.safeParse({
+    const missing = parseVehicleUpdateInput({
       is_weekly_opportunity: true,
       opportunity_deadline: null,
     });
     expect(missing.success).toBe(false);
 
-    const past = vehicleUpdateSchema.safeParse({
+    const past = parseVehicleUpdateInput({
       is_weekly_opportunity: true,
       opportunity_deadline: "2020-01-01T00:00:00.000Z",
     });
     expect(past.success).toBe(false);
   });
 
-  it("accepts auction with future deadline", () => {
-    const result = vehicleUpdateSchema.safeParse({
+  it("accepts auction with future deadline without forcing is_published", () => {
+    const result = parseVehicleUpdateInput({
       is_weekly_opportunity: true,
       opportunity_deadline: "2030-01-01T00:00:00.000Z",
       status: "available",
-      is_published: true,
-      slug: "mazda-mx-5-2025",
     });
     expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.is_published).toBeUndefined();
+    }
+  });
+
+  it("accepts HH:mm:ss local values from browser time inputs", () => {
+    const iso = mexicoCityDatetimeLocalToIso("2026-07-20T09:00:00");
+    expect(iso).toBeTruthy();
+    expect(isoToMexicoCityDatetimeLocal(iso)).toBe("2026-07-20T09:00");
   });
 });

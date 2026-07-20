@@ -84,8 +84,8 @@ describe("buildPublicVehicleViewModel contract", () => {
     expect(vm.summaryItems).toEqual([
       "2025",
       "Manual",
-      "Coupé",
       "Gasolina",
+      "Coupé",
     ]);
     expect(vm.priceLabel).toBe("Precio por confirmar");
     expect(vm.operationalBadges).toEqual([]);

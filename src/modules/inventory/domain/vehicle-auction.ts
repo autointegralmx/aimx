@@ -237,7 +237,11 @@ export function mexicoCityDatetimeLocalToIso(
   localValue: string,
 ): string | null {
   const trimmed = localValue.trim();
-  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(trimmed);
+  // Accept HH:mm and HH:mm:ss (Safari/Chrome time inputs often include seconds).
+  const match =
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/.exec(
+      trimmed,
+    );
   if (!match) return null;
 
   const year = Number(match[1]);

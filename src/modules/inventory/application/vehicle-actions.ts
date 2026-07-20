@@ -8,6 +8,7 @@ import { createVehicleMediaRepository } from "@/modules/inventory/infrastructure
 import {
   archiveVehicleUseCase,
   createVehicleDraftUseCase,
+  deleteVehiclePermanentlyUseCase,
   duplicateVehicleUseCase,
   makeVehicleAvailableUseCase,
   markVehicleSoldUseCase,
@@ -20,7 +21,7 @@ import {
 import { revalidateVehicleSurfaces } from "@/modules/inventory/application/revalidate-vehicle-paths";
 import {
   vehicleDraftSchema,
-  vehicleUpdateSchema,
+  parseVehicleUpdateInput,
 } from "@/modules/inventory/domain/vehicle-schema";
 import {
   deleteVehicleImageUseCase,
@@ -28,6 +29,11 @@ import {
   setVehicleCoverUseCase,
   uploadVehicleImagesUseCase,
 } from "@/modules/inventory/application/media-use-cases";
+import {
+  PermanentDeleteError,
+  logPermanentDeleteFailure,
+} from "@/modules/inventory/infrastructure/permanent-vehicle-delete";
+import { DELETE_CONFIRM_PHRASE } from "@/modules/inventory/domain/menu-position";
 
 export type VehicleActionResult =
   | {
@@ -35,11 +41,17 @@ export type VehicleActionResult =
       message: string;
       vehicleId?: string;
       slug?: string;
+      partialStorage?: boolean;
     }
   | { ok: false; error: string };
 
 const idSchema = z.object({
   vehicleId: z.string().uuid(),
+});
+
+const permanentDeleteSchema = z.object({
+  vehicleId: z.string().uuid(),
+  confirmation: z.literal(DELETE_CONFIRM_PHRASE),
 });
 
 async function buildStaffContext(): Promise<StaffContext> {
@@ -370,6 +382,78 @@ export async function duplicateVehicleAction(
   }
 }
 
+export async function deleteVehiclePermanentlyAction(
+  input: unknown,
+): Promise<VehicleActionResult> {
+  const parsed = permanentDeleteSchema.safeParse(input);
+  if (!parsed.success) {
+    if (
+      typeof input === "object" &&
+      input !== null &&
+      "vehicleId" in input &&
+      typeof (input as { vehicleId: unknown }).vehicleId === "string" &&
+      !z.string().uuid().safeParse((input as { vehicleId: string }).vehicleId)
+        .success
+    ) {
+      return { ok: false, error: "Identificador inválido." };
+    }
+    return {
+      ok: false,
+      error: "Debes escribir ELIMINAR para confirmar el borrado.",
+    };
+  }
+
+  try {
+    const ctx = await buildStaffContext();
+    const result = await deleteVehiclePermanentlyUseCase(
+      ctx,
+      parsed.data.vehicleId,
+    );
+
+    revalidateVehicleSurfaces({
+      slug: result.slug,
+      vehicleId: result.vehicleId,
+      category: result.category,
+    });
+
+    if (result.storageError || result.storagePending.length > 0) {
+      console.error("[delete_vehicle_permanently] storage_partial", {
+        vehicleId: result.vehicleId,
+        stage: "delete_storage",
+        message: result.storageError,
+        storagePending: result.storagePending,
+      });
+      return {
+        ok: true,
+        message:
+          "Vehículo eliminado de la base de datos, pero algunas fotografías no se pudieron borrar del almacenamiento. Requiere limpieza pendiente.",
+        vehicleId: result.vehicleId,
+        slug: result.slug,
+        partialStorage: true,
+      };
+    }
+
+    return {
+      ok: true,
+      message: "Vehículo eliminado definitivamente.",
+      vehicleId: result.vehicleId,
+      slug: result.slug,
+    };
+  } catch (error) {
+    if (error instanceof PermanentDeleteError) {
+      logPermanentDeleteFailure(error);
+      if (error.stage === "load_vehicle" && error.message.includes("no existe")) {
+        return { ok: false, error: "El vehículo no existe." };
+      }
+      return {
+        ok: false,
+        error: "No se pudo eliminar el vehículo. Intenta nuevamente.",
+      };
+    }
+    return fail(error);
+  }
+}
+
 export async function publishVehicleAction(
   input: unknown,
 ): Promise<VehicleActionResult> {
@@ -415,7 +499,7 @@ export async function updateVehicleAction(
       : {};
   delete body.vehicleId;
 
-  const parsed = vehicleUpdateSchema.safeParse(body);
+  const parsed = parseVehicleUpdateInput(body);
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
     for (const issue of parsed.error.issues) {
@@ -436,7 +520,10 @@ export async function updateVehicleAction(
       idParsed.data.vehicleId,
       parsed.data,
     );
-    revalidateVehicleSurfaces({ slug: vehicle.slug });
+    revalidateVehicleSurfaces({
+      slug: vehicle.slug,
+      vehicleId: vehicle.id,
+    });
     return {
       ok: true,
       message: "Cambios guardados.",

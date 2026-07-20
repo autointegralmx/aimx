@@ -20,6 +20,7 @@ import {
 } from "@/modules/inventory/application/public-queries";
 import { AuctionVehicleCard } from "@/modules/inventory/ui/auction-vehicle-card";
 import { VehicleCard } from "@/modules/inventory/ui/public-vehicle-card";
+import { SmartInvestmentSection } from "@/modules/content/ui/smart-investment-section";
 
 const impactItems = [
   "Cientos de vehículos cada semana",
@@ -409,7 +410,10 @@ export async function HomePage() {
           </div>
         </section>
 
-        {/* 9. Final CTA */}
+        {/* 9. Smart investment */}
+        <SmartInvestmentSection />
+
+        {/* 10. Final CTA */}
         <section className="bg-page-background section-pad">
           <div className="container-site max-w-3xl text-center">
             <IconMessage className="mx-auto h-8 w-8 text-brand-red" />

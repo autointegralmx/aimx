@@ -15,12 +15,15 @@ import {
   adminActionConfirmationCopy,
   adminVehicleActionLabel,
   getValidAdminVehicleActions,
+  isDangerAdminVehicleAction,
   requiresAdminActionConfirmation,
   type AdminVehicleAction,
 } from "@/modules/inventory/domain/admin-vehicle-actions";
+import { computeMenuPosition } from "@/modules/inventory/domain/menu-position";
 import type { AdminVehicleListItem } from "@/modules/inventory/infrastructure/vehicle-repository";
 import {
   archiveVehicleAction,
+  deleteVehiclePermanentlyAction,
   duplicateVehicleAction,
   makeVehicleAvailableAction,
   markVehicleSoldAction,
@@ -28,6 +31,12 @@ import {
   unpublishVehicleAction,
 } from "@/modules/inventory/application/vehicle-actions";
 import { ConfirmDialog } from "@/modules/inventory/ui/confirm-dialog";
+import { TypedConfirmDialog } from "@/modules/inventory/ui/typed-confirm-dialog";
+
+const MENU_WIDTH = 208;
+const MENU_ITEM_HEIGHT = 44;
+const MENU_PADDING_Y = 8;
+const DIVIDER_HEIGHT = 9;
 
 type Props = {
   vehicle: AdminVehicleListItem;
@@ -45,6 +54,7 @@ export function VehicleActionsMenu({ vehicle }: Props) {
   const [confirmAction, setConfirmAction] = useState<AdminVehicleAction | null>(
     null,
   );
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -56,16 +66,43 @@ export function VehicleActionsMenu({ vehicle }: Props) {
   const actions = getValidAdminVehicleActions(vehicle);
   const busy = isPending || pendingAction !== null;
 
-  useLayoutEffect(() => {
-    if (!open || !buttonRef.current) return;
-    const rect = buttonRef.current.getBoundingClientRect();
-    const width = 208;
-    const left = Math.min(
-      Math.max(8, rect.right - width),
-      window.innerWidth - width - 8,
+  function estimateMenuHeight() {
+    const hasDelete = actions.includes("delete_permanently");
+    const regularCount = hasDelete ? actions.length - 1 : actions.length;
+    return (
+      MENU_PADDING_Y * 2 +
+      regularCount * MENU_ITEM_HEIGHT +
+      (hasDelete ? DIVIDER_HEIGHT + MENU_ITEM_HEIGHT : 0)
     );
-    setMenuPos({ top: rect.bottom + 8, left });
-  }, [open]);
+  }
+
+  function repositionMenu() {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const measured = menuRef.current?.getBoundingClientRect();
+    const position = computeMenuPosition({
+      anchor: {
+        top: rect.top,
+        bottom: rect.bottom,
+        left: rect.left,
+        right: rect.right,
+      },
+      menu: {
+        width: measured?.width ?? MENU_WIDTH,
+        height: measured?.height ?? estimateMenuHeight(),
+      },
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
+    });
+    setMenuPos({ top: position.top, left: position.left });
+  }
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    repositionMenu();
+  }, [open, actions.length]);
 
   useEffect(() => {
     if (!open) return;
@@ -83,16 +120,7 @@ export function VehicleActionsMenu({ vehicle }: Props) {
       if (event.key === "Escape") setOpen(false);
     }
     function onReposition() {
-      if (!buttonRef.current) return;
-      const rect = buttonRef.current.getBoundingClientRect();
-      const width = 208;
-      setMenuPos({
-        top: rect.bottom + 8,
-        left: Math.min(
-          Math.max(8, rect.right - width),
-          window.innerWidth - width - 8,
-        ),
-      });
+      repositionMenu();
     }
     document.addEventListener("mousedown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
@@ -104,14 +132,18 @@ export function VehicleActionsMenu({ vehicle }: Props) {
       window.removeEventListener("resize", onReposition);
       window.removeEventListener("scroll", onReposition, true);
     };
-  }, [open]);
+  }, [open, actions.length]);
 
   function requestAction(action: AdminVehicleAction) {
     setError(null);
     setMessage(null);
+    setOpen(false);
+    if (action === "delete_permanently") {
+      setDeleteOpen(true);
+      return;
+    }
     if (requiresAdminActionConfirmation(action)) {
       setConfirmAction(action);
-      setOpen(false);
       return;
     }
     runAction(action);
@@ -144,9 +176,36 @@ export function VehicleActionsMenu({ vehicle }: Props) {
     });
   }
 
+  function runPermanentDelete() {
+    if (busy) return;
+    setPendingAction("delete_permanently");
+    startTransition(async () => {
+      try {
+        const result = await deleteVehiclePermanentlyAction({
+          vehicleId: vehicle.id,
+          confirmation: "ELIMINAR",
+        });
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        setDeleteOpen(false);
+        setMessage(result.message);
+        router.refresh();
+      } finally {
+        setPendingAction(null);
+      }
+    });
+  }
+
   const confirmCopy = confirmAction
     ? adminActionConfirmationCopy(confirmAction)
     : null;
+
+  const regularActions = actions.filter(
+    (action) => action !== "delete_permanently",
+  );
+  const showDelete = actions.includes("delete_permanently");
 
   const menu =
     open && menuPos
@@ -155,50 +214,75 @@ export function VehicleActionsMenu({ vehicle }: Props) {
             ref={menuRef}
             id={menuId}
             role="menu"
-            style={{ top: menuPos.top, left: menuPos.left }}
-            className="fixed z-50 min-w-52 rounded-md border border-line bg-paper-elevated py-1 shadow-[var(--shadow-card)]"
+            style={{ top: menuPos.top, left: menuPos.left, width: MENU_WIDTH }}
+            className="fixed z-[80] min-w-52 rounded-md border border-line bg-paper-elevated py-1 shadow-[var(--shadow-card)]"
           >
-            {actions.map((action) => (
+            {regularActions.map((action) => (
               <li key={action} role="none">
-                {action === "edit" ? (
-                  <Link
-                    role="menuitem"
-                    href={`/admin/vehiculos/${vehicle.id}/editar`}
-                    className="flex min-h-11 items-center px-3 text-sm text-ink hover:bg-surface"
-                    onClick={() => setOpen(false)}
-                  >
-                    {adminVehicleActionLabel(action)}
-                  </Link>
-                ) : action === "view_public" ? (
-                  <Link
-                    role="menuitem"
-                    href={`/vehiculos/${vehicle.slug}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex min-h-11 items-center px-3 text-sm text-ink hover:bg-surface"
-                    onClick={() => setOpen(false)}
-                  >
-                    {adminVehicleActionLabel(action)}
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="flex min-h-11 w-full items-center px-3 text-left text-sm text-ink hover:bg-surface disabled:opacity-50"
-                    disabled={busy}
-                    onClick={() => requestAction(action)}
-                  >
-                    {pendingAction === action
-                      ? "Procesando…"
-                      : adminVehicleActionLabel(action)}
-                  </button>
-                )}
+                {renderMenuItem(action)}
               </li>
             ))}
+            {showDelete ? (
+              <>
+                <li
+                  role="separator"
+                  className="my-1 border-t border-line"
+                  aria-hidden
+                />
+                <li role="none">{renderMenuItem("delete_permanently")}</li>
+              </>
+            ) : null}
           </ul>,
           document.body,
         )
       : null;
+
+  function renderMenuItem(action: AdminVehicleAction) {
+    const danger = isDangerAdminVehicleAction(action);
+    const itemClass = danger
+      ? "flex min-h-11 w-full items-center px-3 text-left text-sm text-danger hover:bg-[#f8e8e8] disabled:opacity-50"
+      : "flex min-h-11 w-full items-center px-3 text-left text-sm text-ink hover:bg-surface disabled:opacity-50";
+
+    if (action === "edit") {
+      return (
+        <Link
+          role="menuitem"
+          href={`/admin/vehiculos/${vehicle.id}/editar`}
+          className="flex min-h-11 items-center px-3 text-sm text-ink hover:bg-surface"
+          onClick={() => setOpen(false)}
+        >
+          {adminVehicleActionLabel(action)}
+        </Link>
+      );
+    }
+    if (action === "view_public") {
+      return (
+        <Link
+          role="menuitem"
+          href={`/vehiculos/${vehicle.slug}`}
+          target="_blank"
+          rel="noreferrer"
+          className="flex min-h-11 items-center px-3 text-sm text-ink hover:bg-surface"
+          onClick={() => setOpen(false)}
+        >
+          {adminVehicleActionLabel(action)}
+        </Link>
+      );
+    }
+    return (
+      <button
+        type="button"
+        role="menuitem"
+        className={itemClass}
+        disabled={busy}
+        onClick={() => requestAction(action)}
+      >
+        {pendingAction === action
+          ? "Procesando…"
+          : adminVehicleActionLabel(action)}
+      </button>
+    );
+  }
 
   return (
     <div ref={rootRef} className="relative inline-flex flex-col items-end">
@@ -213,16 +297,28 @@ export function VehicleActionsMenu({ vehicle }: Props) {
         onClick={() => {
           setOpen((value) => {
             const next = !value;
-            if (next && buttonRef.current) {
-              const rect = buttonRef.current.getBoundingClientRect();
-              const width = 208;
-              setMenuPos({
-                top: rect.bottom + 8,
-                left: Math.min(
-                  Math.max(8, rect.right - width),
-                  window.innerWidth - width - 8,
-                ),
-              });
+            if (next) {
+              // Provisional position; layout effect measures and flips if needed.
+              if (buttonRef.current) {
+                const rect = buttonRef.current.getBoundingClientRect();
+                const position = computeMenuPosition({
+                  anchor: {
+                    top: rect.top,
+                    bottom: rect.bottom,
+                    left: rect.left,
+                    right: rect.right,
+                  },
+                  menu: {
+                    width: MENU_WIDTH,
+                    height: estimateMenuHeight(),
+                  },
+                  viewport: {
+                    width: window.innerWidth,
+                    height: window.innerHeight,
+                  },
+                });
+                setMenuPos({ top: position.top, left: position.left });
+              }
             }
             return next;
           });
@@ -260,6 +356,23 @@ export function VehicleActionsMenu({ vehicle }: Props) {
           onConfirm={() => runAction(confirmAction)}
         />
       ) : null}
+
+      <TypedConfirmDialog
+        open={deleteOpen}
+        title="Eliminar vehículo definitivamente"
+        body="Esta acción eliminará el vehículo, sus fotografías y toda la información asociada. No se puede deshacer."
+        vehicleSummary={`${vehicle.make} ${vehicle.model} ${vehicle.year}`}
+        folioLabel={
+          vehicle.stock_code ? `Folio ${vehicle.stock_code}` : null
+        }
+        confirmLabel="Eliminar definitivamente"
+        busyLabel="Eliminando…"
+        busy={busy && pendingAction === "delete_permanently"}
+        onCancel={() => {
+          if (!busy) setDeleteOpen(false);
+        }}
+        onConfirm={runPermanentDelete}
+      />
     </div>
   );
 }

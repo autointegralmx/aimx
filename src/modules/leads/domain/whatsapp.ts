@@ -57,6 +57,8 @@ export const whatsappMessages = {
     "Hola, vi su página de Auto Integral y quiero cotizar una autoparte. ¿Me pueden ayudar a encontrarla?",
   services:
     "Hola, quiero recibir más información sobre los servicios automotrices de Auto Integral.",
+  investment:
+    "Hola, vi la sección de inversión inteligente en Auto Integral y quiero conocer oportunidades de inversión en vehículos de aseguradora.",
   finalCta:
     "Hola, vi la página de Auto Integral y quiero recibir más información.",
 } as const;

@@ -112,7 +112,7 @@ describe("admin vehicle actions by status", () => {
   it("draft actions", () => {
     expect(
       getValidAdminVehicleActions({ status: "draft", is_published: false }),
-    ).toEqual(["edit", "duplicate", "archive"]);
+    ).toEqual(["edit", "duplicate", "archive", "delete_permanently"]);
   });
 
   it("available published actions", () => {
@@ -126,6 +126,7 @@ describe("admin vehicle actions by status", () => {
       "unpublish",
       "duplicate",
       "archive",
+      "delete_permanently",
     ]);
   });
 
@@ -136,21 +137,32 @@ describe("admin vehicle actions by status", () => {
     expect(
       getValidAdminVehicleActions({ status: "reserved", is_published: true }),
     ).not.toContain("reserve");
+    expect(
+      getValidAdminVehicleActions({ status: "reserved", is_published: true }),
+    ).toContain("delete_permanently");
   });
 
   it("sold and archived actions", () => {
     expect(
       getValidAdminVehicleActions({ status: "sold", is_published: false }),
-    ).toEqual(["edit", "duplicate", "archive"]);
+    ).toEqual(["edit", "duplicate", "archive", "delete_permanently"]);
     expect(
       getValidAdminVehicleActions({ status: "archived", is_published: false }),
-    ).toEqual(["edit", "duplicate"]);
+    ).toEqual(["edit", "duplicate", "delete_permanently"]);
   });
 
   it("requires confirmation for destructive actions", () => {
     expect(requiresAdminActionConfirmation("mark_sold")).toBe(true);
     expect(requiresAdminActionConfirmation("archive")).toBe(true);
     expect(requiresAdminActionConfirmation("reserve")).toBe(false);
+  });
+
+  it("delete permanently is last and labeled", () => {
+    const actions = getValidAdminVehicleActions({
+      status: "available",
+      is_published: true,
+    });
+    expect(actions.at(-1)).toBe("delete_permanently");
   });
 });
 

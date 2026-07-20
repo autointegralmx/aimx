@@ -28,6 +28,7 @@ import {
 import {
   vehicleUpdateSchema,
   vehicleWriteSchema,
+  parseVehicleUpdateInput,
 } from "@/modules/inventory/domain/vehicle-schema";
 import { buildVehicleWhatsAppMessage } from "@/modules/leads/domain/whatsapp";
 
@@ -266,13 +267,13 @@ describe("auto public copy", () => {
         version: "Miata",
         year: 2025,
       }),
-    ).toBe("MAZDA MX-5 Miata 2025");
+    ).toBe("Mazda MX-5 Miata");
     expect(
       buildDamageSummaryFromTags(["cofre", "dano_trasero"]),
     ).toBe("Cofre, Daño Trasero");
   });
 
-  it("does not overwrite historical public title", () => {
+  it("always regenerates public title from structure", () => {
     const resolved = resolvePublicCopyFields(
       {
         make: "Mazda",
@@ -281,10 +282,20 @@ describe("auto public copy", () => {
         public_title: "Título histórico largo",
         short_description: "Desc histórica",
       },
-      { make: "Mazda", model: "MX-5", year: 2025, damage_tags: ["cofre"] },
+      {
+        make: "Mazda",
+        model: "MX-5",
+        year: 2025,
+        damage_tags: ["cofre"],
+        invoice_type: "aseguradora",
+        starts_status: "yes",
+        drives_status: "yes",
+      },
     );
-    expect(resolved.public_title).toBe("Título histórico largo");
-    expect(resolved.short_description).toBe("Desc histórica");
+    expect(resolved.public_title).toBe("Mazda MX-5");
+    expect(resolved.short_description).toMatch(/Vehículo de aseguradora/);
+    expect(resolved.short_description).toMatch(/Arranca/);
+    expect(resolved.short_description).toMatch(/Camina/);
     expect(resolved.damage_summary).toBe("Cofre");
   });
 
@@ -299,7 +310,7 @@ describe("auto public copy", () => {
         status: "available",
       },
     );
-    expect(resolved.public_title).toMatch(/GEELY/);
+    expect(resolved.public_title).toBe("Geely Emgrand");
     expect(resolved.short_description).toMatch(/Automática/);
     expect(resolved.seo_title).toMatch(/Auto Integral/);
   });
@@ -360,8 +371,35 @@ describe("publish checklist after media change", () => {
 });
 
 describe("vehicle update schema", () => {
+  it("does not inject is_published false on partial auction updates", () => {
+    const result = parseVehicleUpdateInput({
+      make: "Mazda",
+      model: "MX-5",
+      year: 2025,
+      category: "accidentado",
+      status: "available",
+      is_featured: true,
+      is_weekly_opportunity: true,
+      opportunity_deadline: "2026-07-26T03:00:00.000Z",
+    });
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.is_published).toBeUndefined();
+    expect(result.data.is_weekly_opportunity).toBe(true);
+    expect(result.data.opportunity_deadline).toBe("2026-07-26T03:00:00.000Z");
+    expect(result.data.starts_status).toBeUndefined();
+  });
+
+  it("accepts postgres offset timestamps for deadline", () => {
+    const result = parseVehicleUpdateInput({
+      is_weekly_opportunity: true,
+      opportunity_deadline: "2026-07-26T03:00:00+00:00",
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("accepts partial drafts without calling forbidden .partial() on refined schema", () => {
-    const result = vehicleUpdateSchema.safeParse({
+    const result = parseVehicleUpdateInput({
       public_title: "Seat Leon",
       short_description: "Demo",
       status: "available",

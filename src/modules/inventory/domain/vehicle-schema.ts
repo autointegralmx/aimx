@@ -146,10 +146,17 @@ export const vehicleWriteObjectSchema = z.object({
   is_published: z.boolean().default(false),
   is_featured: z.boolean().default(false),
   is_weekly_opportunity: z.boolean().default(false),
-  opportunity_deadline: z.string().datetime().optional().nullable(),
+  /** Accept Z and offset timestamps from Postgres / clients. */
+  opportunity_deadline: z
+    .string()
+    .refine((value) => !Number.isNaN(Date.parse(value)), {
+      message: "Fecha de cierre de subasta inválida.",
+    })
+    .optional()
+    .nullable(),
   featured_order: z.number().int().min(0).optional().nullable(),
   damage_summary: optionalText(500),
-  condition_notes: optionalText(2000),
+  condition_notes: optionalText(300),
   damage_tags: z.array(damageTagSchema).default([]),
   public_tags: z.array(publicTagSchema).default([]),
   location_label: optionalText(120),
@@ -167,8 +174,9 @@ export const vehicleWriteObjectSchema = z.object({
   invoice_entity: optionalText(160),
   tenencias_label: optionalText(80),
   verification_status: verificationStatusSchema.default("unknown"),
+  /** Derived: true only when condition_notes is non-empty. */
   publish_observations: z.boolean().default(true),
-  /** When false (default), structured fields drive public UI; manual copy is ignored. */
+  /** Always false in the admin form; kept for DB compatibility. */
   use_manual_public_copy: z.boolean().default(false),
 });
 
@@ -203,7 +211,7 @@ function refineVehicleWrite(
   }
 
   if (value.is_weekly_opportunity) {
-    if (value.is_published) {
+    if (value.is_published === true) {
       if (value.status !== "available" && value.status !== "reserved") {
         ctx.addIssue({
           code: "custom",
@@ -238,17 +246,76 @@ function refineVehicleWrite(
   }
 }
 
-/** Full write payload for create/update (server-validated). */
+/** Full write payload for create (server-validated). Defaults apply here. */
 export const vehicleWriteSchema =
   vehicleWriteObjectSchema.superRefine(refineVehicleWrite);
 
-/** Partial update payload (Zod v4-safe: partial on object, then refine). */
+/**
+ * Strip Zod-injected defaults that were not present in the client payload.
+ * Critical: `.partial()` still applies `.default(false)` for `is_published`,
+ * which unpublished vehicles on every Guardar and the DB trigger cleared En subasta.
+ */
+export function pickProvidedUpdateFields<T extends Record<string, unknown>>(
+  original: Record<string, unknown>,
+  parsed: T,
+): Partial<T> {
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(original)) {
+    if (Object.prototype.hasOwnProperty.call(parsed, key)) {
+      out[key] = parsed[key as keyof T];
+    }
+  }
+  return out as Partial<T>;
+}
+
+/**
+ * Parse a partial vehicle update without applying create-time defaults
+ * to omitted keys (especially is_published).
+ */
+export function parseVehicleUpdateInput(input: unknown): {
+  success: true;
+  data: VehicleUpdateInput;
+} | {
+  success: false;
+  error: z.ZodError;
+} {
+  if (typeof input !== "object" || input === null) {
+    return { success: true, data: {} };
+  }
+  const original = { ...(input as Record<string, unknown>) };
+  const parsed = vehicleWriteObjectSchema.partial().safeParse(original);
+  if (!parsed.success) return { success: false, error: parsed.error };
+
+  const data = pickProvidedUpdateFields(original, parsed.data);
+  const issues: z.ZodIssue[] = [];
+  const ctx = {
+    addIssue(issue: {
+      code?: string;
+      message?: string;
+      path?: PropertyKey[];
+    }) {
+      issues.push({
+        code: "custom",
+        message: issue.message ?? "Dato inválido",
+        path: (issue.path ?? []) as (string | number)[],
+      } as z.ZodIssue);
+    },
+  };
+  refineVehicleWrite(data, ctx as unknown as z.RefinementCtx);
+
+  if (issues.length > 0) {
+    return { success: false, error: new z.ZodError(issues) };
+  }
+  return { success: true, data: data as VehicleUpdateInput };
+}
+
+/** @deprecated Prefer parseVehicleUpdateInput — keeps defaults that break partial updates. */
 export const vehicleUpdateSchema = vehicleWriteObjectSchema
   .partial()
   .superRefine(refineVehicleWrite);
 
 export type VehicleWriteInput = z.infer<typeof vehicleWriteSchema>;
-export type VehicleUpdateInput = z.infer<typeof vehicleUpdateSchema>;
+export type VehicleUpdateInput = Partial<z.infer<typeof vehicleWriteObjectSchema>>;
 export type VehicleDraftInput = z.infer<typeof vehicleDraftSchema>;
 export type VehicleCategory = z.infer<typeof vehicleCategorySchema>;
 export type VehicleStatus = z.infer<typeof vehicleStatusSchema>;

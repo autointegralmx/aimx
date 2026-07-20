@@ -95,10 +95,6 @@ export const PUBLIC_VEHICLE_COLUMNS = [
   ...PUBLIC_VEHICLE_OPERATIONAL_COLUMNS,
 ] as const;
 
-const OPERATIONAL_WRITE_KEYS = [
-  ...PUBLIC_VEHICLE_OPERATIONAL_COLUMNS,
-] as const;
-
 export type AdminVehicleListItem = Pick<
   VehiclesRow,
   (typeof ADMIN_VEHICLE_LIST_COLUMNS)[number]
@@ -162,16 +158,6 @@ function normalizePublicVehicle(
     publish_observations: row.publish_observations ?? true,
     use_manual_public_copy: row.use_manual_public_copy ?? false,
   } as PublicVehicle;
-}
-
-function stripOperationalWriteFields(
-  update: VehiclesUpdate,
-): VehiclesUpdate {
-  const next = { ...update };
-  for (const key of OPERATIONAL_WRITE_KEYS) {
-    delete (next as Record<string, unknown>)[key];
-  }
-  return next;
 }
 
 function publicStorageUrl(
@@ -369,23 +355,6 @@ export function createVehicleRepository(
         .is("deleted_at", null)
         .select("*")
         .single();
-
-      if (
-        error &&
-        isMissingColumnError(error.message) &&
-        OPERATIONAL_WRITE_KEYS.some((key) => key in update)
-      ) {
-        const fallback = stripOperationalWriteFields(update);
-        const retry = await client
-          .from("vehicles")
-          .update(fallback)
-          .eq("id", id)
-          .is("deleted_at", null)
-          .select("*")
-          .single();
-        data = retry.data;
-        error = retry.error;
-      }
 
       if (error || !data) {
         throw new Error(

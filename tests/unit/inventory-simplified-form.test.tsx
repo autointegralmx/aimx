@@ -86,7 +86,7 @@ function sampleVehicle(overrides: Partial<VehicleRow> = {}): VehicleRow {
 }
 
 describe("simplified VehicleForm", () => {
-  it("shows one main observations textarea and operational controls", () => {
+  it("shows inventory fields without manual copy CMS", () => {
     render(<VehicleForm vehicle={sampleVehicle()} images={[]} />);
 
     expect(screen.getByRole("button", { name: /^Guardar$/ })).toBeInTheDocument();
@@ -95,31 +95,31 @@ describe("simplified VehicleForm", () => {
     expect(screen.getByText("Camina")).toBeInTheDocument();
     expect(screen.getByText("Llaves")).toBeInTheDocument();
     expect(screen.getByText("Bolsas de aire")).toBeInTheDocument();
+    expect(screen.getByText("Destacar vehículo")).toBeInTheDocument();
+    expect(screen.getByText("En subasta")).toBeInTheDocument();
 
-    // Main flow: only observations textarea in open sections.
     const openTextareas = [
       ...document.querySelectorAll("details[open] textarea"),
     ];
     expect(openTextareas).toHaveLength(1);
     expect(openTextareas[0]).toHaveAttribute("id", "observations");
+    expect(openTextareas[0]).toHaveAttribute("maxLength", "300");
 
-    const advanced = screen
-      .getByText(/personalización avanzada/i)
-      .closest("details");
-    expect(advanced?.open).toBe(false);
-    expect(screen.getByText("Destacar vehículo")).toBeInTheDocument();
-    expect(screen.getByText("En subasta")).toBeInTheDocument();
+    expect(screen.queryByText(/personalización avanzada/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/título público manual/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/descripción corta manual/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/seo título/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/tags comerciales/i)).not.toBeInTheDocument();
     expect(
-      screen.queryByLabelText(/fecha límite oportunidad/i),
+      screen.queryByText(/usar personalización manual/i),
     ).not.toBeInTheDocument();
   });
 
-  it("keeps advanced customization collapsed by default", () => {
+  it("keeps observations as the only open free-text field", () => {
     render(<VehicleForm vehicle={sampleVehicle()} images={[]} />);
-    const advanced = screen
-      .getByText(/personalización avanzada/i)
-      .closest("details");
-    expect(advanced).not.toBeNull();
-    expect(advanced?.open).toBe(false);
+    expect(screen.getByPlaceholderText(/motor desmontado/i)).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText(/fecha límite oportunidad/i),
+    ).not.toBeInTheDocument();
   });
 });

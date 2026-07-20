@@ -83,13 +83,11 @@ export function buildPublicSpecLine(input: {
   const parts: string[] = [];
   if (input.year) parts.push(String(input.year));
   const transmission = cleanText(input.transmission);
-  const body = cleanText(input.body_type);
   const fuel = cleanText(input.fuel_type);
-  const version = cleanText(input.version);
+  const body = cleanText(input.body_type);
   if (transmission) parts.push(transmission);
-  if (body) parts.push(body);
   if (fuel) parts.push(fuel);
-  if (version) parts.push(version);
+  if (body) parts.push(body);
   return parts;
 }
 
@@ -258,7 +256,7 @@ export function formatDamageTagLabel(tag: string): string {
     .join(" ");
 }
 
-/** Public observations: condition_notes only when allowed and not a placeholder. */
+/** Public observations: only when non-empty (max 300). Empty = hidden. */
 export function briefObservations(input: {
   condition_notes?: string | null;
   publish_observations?: boolean | null;
@@ -268,8 +266,7 @@ export function briefObservations(input: {
   if (input.publish_observations === false) return null;
   const note = input.condition_notes?.trim();
   if (!note || isUnknownPublicValue(note)) return null;
-  if (note.length > 140) return `${note.slice(0, 137).trimEnd()}…`;
-  return note;
+  return note.slice(0, 300);
 }
 
 /** @deprecated use briefObservations */
@@ -290,6 +287,10 @@ export function buildStructuredPublicDescription(input: {
   status?: VehicleStatus | null;
   damage_tags?: string[] | null;
   invoice_type?: InvoiceType | string | null;
+  starts_status?: string | null;
+  drives_status?: string | null;
+  has_keys_status?: string | null;
+  airbags_status?: string | null;
   /** @deprecated ignored */
   category?: unknown;
 }): string {
@@ -304,7 +305,21 @@ export function buildStructuredPublicDescription(input: {
   if (headline) lines.push(`${headline}.`);
   if (input.invoice_type === "aseguradora") {
     lines.push("Vehículo de aseguradora.");
+  } else if (input.invoice_type === "agencia") {
+    lines.push("Factura de agencia.");
+  } else if (input.invoice_type === "empresa") {
+    lines.push("Factura de empresa.");
+  } else if (input.invoice_type === "particular") {
+    lines.push("Factura particular.");
   }
+  if (input.starts_status === "yes") lines.push("Arranca.");
+  if (input.starts_status === "no") lines.push("No arranca.");
+  if (input.drives_status === "yes") lines.push("Camina.");
+  if (input.drives_status === "no") lines.push("No camina.");
+  if (input.has_keys_status === "yes") lines.push("Con llaves.");
+  if (input.has_keys_status === "no") lines.push("Sin llaves.");
+  if (input.airbags_status === "intact") lines.push("Bolsas íntegras.");
+  if (input.airbags_status === "deployed") lines.push("Bolsas activadas.");
   const transmission = cleanText(input.transmission);
   if (transmission) {
     lines.push(`Transmisión ${transmission.toLowerCase()}.`);

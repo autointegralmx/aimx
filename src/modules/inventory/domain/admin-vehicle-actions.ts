@@ -8,7 +8,8 @@ export type AdminVehicleAction =
   | "make_available"
   | "mark_sold"
   | "unpublish"
-  | "archive";
+  | "archive"
+  | "delete_permanently";
 
 export type AdminVehicleActionContext = {
   status: VehicleStatus;
@@ -25,7 +26,12 @@ const ACTION_LABELS: Record<AdminVehicleAction, string> = {
   mark_sold: "Marcar como vendido",
   unpublish: "Despublicar",
   archive: "Archivar",
+  delete_permanently: "Eliminar definitivamente",
 };
+
+export function isDangerAdminVehicleAction(action: AdminVehicleAction): boolean {
+  return action === "delete_permanently";
+}
 
 export function adminVehicleActionLabel(action: AdminVehicleAction): string {
   return ACTION_LABELS[action];
@@ -42,13 +48,13 @@ export function getValidAdminVehicleActions(
 
   switch (vehicle.status) {
     case "draft":
-      return ["edit", "duplicate", "archive"];
+      return ["edit", "duplicate", "archive", "delete_permanently"];
     case "available": {
       const actions: AdminVehicleAction[] = ["edit"];
       if (vehicle.is_published) actions.push("view_public");
       actions.push("reserve", "mark_sold");
       if (vehicle.is_published) actions.push("unpublish");
-      actions.push("duplicate", "archive");
+      actions.push("duplicate", "archive", "delete_permanently");
       return actions;
     }
     case "reserved": {
@@ -56,13 +62,13 @@ export function getValidAdminVehicleActions(
       if (vehicle.is_published) actions.push("view_public");
       actions.push("make_available", "mark_sold");
       if (vehicle.is_published) actions.push("unpublish");
-      actions.push("duplicate", "archive");
+      actions.push("duplicate", "archive", "delete_permanently");
       return actions;
     }
     case "sold":
-      return ["edit", "duplicate", "archive"];
+      return ["edit", "duplicate", "archive", "delete_permanently"];
     case "archived":
-      return ["edit", "duplicate"];
+      return ["edit", "duplicate", "delete_permanently"];
   }
 }
 

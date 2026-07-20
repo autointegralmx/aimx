@@ -24,6 +24,10 @@ import type {
   InventorySupabase,
   VehicleRepository,
 } from "@/modules/inventory/infrastructure/vehicle-repository";
+import {
+  deleteVehiclePermanently,
+  type PermanentVehicleDeleteResult,
+} from "@/modules/inventory/infrastructure/permanent-vehicle-delete";
 
 export type StaffContext = {
   profile: AdminProfileAccess;
@@ -147,15 +151,24 @@ export async function updateVehicleUseCase(
     );
   }
 
+  // Inventory form: structured fields only. Never keep manual marketing copy.
+  payload.use_manual_public_copy = false;
+  payload.public_tags = [];
+  payload.full_description = null;
+  payload.public_description = null;
+  if (payload.condition_notes !== undefined) {
+    const note = payload.condition_notes?.trim() ?? "";
+    payload.condition_notes = note || null;
+    payload.publish_observations = Boolean(note);
+  }
+
   const copy = resolvePublicCopyFields(current, payload);
   payload.public_title = copy.public_title;
   payload.short_description = copy.short_description;
   payload.damage_summary = copy.damage_summary;
   payload.seo_title = copy.seo_title;
   payload.seo_description = copy.seo_description;
-  if (payload.price_amount !== undefined || payload.price_label !== undefined) {
-    payload.price_label = copy.price_label;
-  }
+  payload.price_label = copy.price_label;
 
   // Opportunity/featured intent may be stored on drafts; public queries
   // only surface them when is_published (and not expired) is true.
@@ -206,6 +219,10 @@ export async function publishVehicleUseCase(
   await ctx.repo.updateVehicle(
     id,
     {
+      use_manual_public_copy: false,
+      public_tags: [],
+      full_description: null,
+      public_description: null,
       public_title: copy.public_title,
       short_description: copy.short_description,
       damage_summary: copy.damage_summary,
@@ -336,4 +353,20 @@ export async function duplicateVehicleUseCase(ctx: StaffContext, id: string) {
     },
   });
   return copy;
+}
+
+export async function deleteVehiclePermanentlyUseCase(
+  ctx: StaffContext,
+  id: string,
+): Promise<PermanentVehicleDeleteResult> {
+  const profile = assertStaffCanManageVehicles({
+    supabaseConfigured: true,
+    hasSession: true,
+    profile: ctx.profile,
+  });
+
+  return deleteVehiclePermanently(ctx.client, {
+    vehicleId: id,
+    actorId: profile.id,
+  });
 }
