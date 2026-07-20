@@ -15,12 +15,16 @@ import {
 } from "@/modules/inventory/domain/vehicle-display";
 import {
   resolveAuctionPublicState,
+  resolvePublicChannel,
   type AuctionPublicState,
+  type PublicChannel,
 } from "@/modules/inventory/domain/vehicle-auction";
 import { vehicleCategoryLabel } from "@/modules/inventory/domain/vehicle-labels";
 import { isUnknownPublicValue } from "@/modules/inventory/domain/public-value";
 import type { PublicVehicle } from "@/modules/inventory/infrastructure/vehicle-repository";
 import type { VehicleCategory } from "@/modules/inventory/domain/vehicle-schema";
+
+export type PublicBreadcrumb = { href: string; label: string };
 
 export type PublicVehicleViewModel = {
   id: string;
@@ -40,6 +44,8 @@ export type PublicVehicleViewModel = {
   observations: string | null;
   auction: AuctionPublicState;
   ctaLabel: string;
+  publicChannel: PublicChannel;
+  breadcrumbs: PublicBreadcrumb[];
   specCards: SpecCard[];
   locationLabel: string | null;
   seo: {
@@ -79,6 +85,16 @@ export function buildPublicVehicleViewModel(
   };
 
   const auction = resolveAuctionPublicState(
+    {
+      is_published: true,
+      is_weekly_opportunity: vehicle.is_weekly_opportunity,
+      status: vehicle.status,
+      opportunity_deadline: vehicle.opportunity_deadline,
+    },
+    options?.now,
+  );
+
+  const publicChannel = resolvePublicChannel(
     {
       is_published: true,
       is_weekly_opportunity: vehicle.is_weekly_opportunity,
@@ -184,6 +200,13 @@ export function buildPublicVehicleViewModel(
     observations,
     auction,
     ctaLabel: auction.ctaLabel,
+    publicChannel,
+    breadcrumbs: buildPublicBreadcrumbs({
+      publicChannel,
+      category,
+      categoryLabel: category ? vehicleCategoryLabel[category] : null,
+      title,
+    }),
     specCards: buildPublicSpecCards({
       year: vehicle.year,
       mileage_km: vehicle.mileage_km,
@@ -207,6 +230,33 @@ export function buildPublicVehicleViewModel(
     version,
     useManualPublicCopy: useManual,
   };
+}
+
+const CATEGORY_HREF: Record<VehicleCategory, string> = {
+  accidentado: "/vehiculos/accidentados",
+  recuperado: "/vehiculos/recuperados",
+  seminuevo: "/vehiculos/seminuevos",
+};
+
+export function buildPublicBreadcrumbs(input: {
+  publicChannel: PublicChannel;
+  category: VehicleCategory | null;
+  categoryLabel: string | null;
+  title: string;
+}): PublicBreadcrumb[] {
+  const crumbs: PublicBreadcrumb[] = [{ href: "/", label: "Inicio" }];
+  if (input.publicChannel === "auction") {
+    crumbs.push({ href: "/subastas", label: "En subasta" });
+  } else if (input.category && input.categoryLabel) {
+    crumbs.push({
+      href: CATEGORY_HREF[input.category],
+      label: input.categoryLabel,
+    });
+  } else {
+    crumbs.push({ href: "/vehiculos", label: "Vehículos" });
+  }
+  crumbs.push({ href: "#", label: input.title });
+  return crumbs;
 }
 
 function publicText(value?: string | null): string | null {

@@ -193,6 +193,24 @@ describe("buildPublicVehicleViewModel contract", () => {
     expect(vm.auction.active).toBe(true);
     expect(vm.auction.badgeLabel).toBe("En subasta");
     expect(vm.ctaLabel).toBe("Solicitar información para participar");
+    expect(vm.publicChannel).toBe("auction");
+    expect(vm.breadcrumbs.map((c) => c.label)).toEqual([
+      "Inicio",
+      "En subasta",
+      "Mazda MX-5",
+    ]);
+  });
+
+  it("owned inventory breadcrumb uses category", () => {
+    const vm = buildPublicVehicleViewModel(
+      baseVehicle({ is_weekly_opportunity: false }),
+    );
+    expect(vm.publicChannel).toBe("owned_inventory");
+    expect(vm.breadcrumbs.map((c) => c.label)).toEqual([
+      "Inicio",
+      "Accidentados",
+      "Mazda MX-5",
+    ]);
   });
 });
 

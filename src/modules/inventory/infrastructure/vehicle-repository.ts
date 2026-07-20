@@ -12,7 +12,7 @@ import {
 } from "@/modules/inventory/domain/admin-list-filters";
 import { buildVehicleSlug } from "@/modules/inventory/domain/slug";
 import type { VehicleLifecyclePatch } from "@/modules/inventory/domain/vehicle-lifecycle";
-import { isAuctionActive } from "@/modules/inventory/domain/vehicle-auction";
+import { isAuctionActive, isPublicOwnedInventoryVehicle } from "@/modules/inventory/domain/vehicle-auction";
 import { readPublicSupabaseEnv } from "@/shared/lib/supabase/env";
 
 export type InventorySupabase = SupabaseClient<Database>;
@@ -505,6 +505,8 @@ export function createVehicleRepository(
         if (input.featured !== undefined) {
           query = query.eq("is_featured", input.featured);
         }
+        // Inventario propio: nunca incluir canal En subasta (flag), aunque esté vencida.
+        query = query.eq("is_weekly_opportunity", false);
         return query;
       }
 
@@ -520,7 +522,14 @@ export function createVehicleRepository(
       }
       return ((data as unknown as PublicVehicle[]) ?? [])
         .map((row) => normalizePublicVehicle(row))
-        .filter((row): row is PublicVehicle => row != null);
+        .filter((row): row is PublicVehicle => row != null)
+        .filter((row) =>
+          isPublicOwnedInventoryVehicle({
+            is_published: true,
+            is_weekly_opportunity: Boolean(row.is_weekly_opportunity),
+            status: (row.status ?? "draft") as VehicleStatus,
+          }),
+        );
     },
 
     async getPublicVehicleBySlug(

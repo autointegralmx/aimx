@@ -937,16 +937,23 @@ export function VehicleForm({ vehicle, images }: Props) {
           />
           Destacar vehículo
         </label>
-        <label className="mt-2 flex items-center gap-2 text-sm text-ink">
+        <label className="mt-2 flex items-start gap-2 text-sm text-ink">
           <input
             type="checkbox"
+            className="mt-0.5"
             checked={isInAuction}
             onChange={(e) => {
               markDirty();
               setIsInAuction(e.target.checked);
             }}
           />
-          En subasta
+          <span>
+            En subasta
+            <span className="mt-0.5 block text-xs text-ink-muted">
+              Al activarlo, el vehículo aparecerá únicamente en En subasta y se
+              excluirá del inventario propio.
+            </span>
+          </span>
         </label>
         {isInAuction ? (
           <div className="max-w-lg space-y-2">
@@ -990,6 +997,12 @@ export function VehicleForm({ vehicle, images }: Props) {
             ) : !auctionEndsDate || !auctionEndsTime ? (
               <p className="text-xs text-brand-red">
                 Completa fecha y hora para publicarlo en En subasta.
+              </p>
+            ) : vehicle.opportunity_deadline &&
+              Date.parse(vehicle.opportunity_deadline) <= Date.now() ? (
+              <p className="text-xs text-brand-red">
+                Subasta finalizada. Desactiva “En subasta” para devolverlo al
+                inventario propio, o actualiza el cierre a una fecha futura.
               </p>
             ) : (
               <p className="text-xs text-ink-muted">

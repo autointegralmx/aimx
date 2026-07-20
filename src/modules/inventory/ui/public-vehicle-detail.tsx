@@ -58,6 +58,37 @@ export function PublicVehicleDetail({
           <PublicVehicleGallery images={images} alt={vm.title} />
 
           <aside className="space-y-5 lg:sticky lg:top-24">
+            {!preview && vm.breadcrumbs.length > 0 ? (
+              <nav aria-label="Ruta" className="text-xs text-text-secondary">
+                <ol className="flex flex-wrap items-center gap-1.5">
+                  {vm.breadcrumbs.map((crumb, index) => {
+                    const isLast = index === vm.breadcrumbs.length - 1;
+                    return (
+                      <li key={`${crumb.href}-${crumb.label}`} className="flex items-center gap-1.5">
+                        {index > 0 ? (
+                          <span aria-hidden className="text-text-secondary/60">
+                            /
+                          </span>
+                        ) : null}
+                        {isLast || crumb.href === "#" ? (
+                          <span className="font-medium text-text-primary">
+                            {crumb.label}
+                          </span>
+                        ) : (
+                          <Link
+                            href={crumb.href}
+                            className="hover:text-text-primary"
+                          >
+                            {crumb.label}
+                          </Link>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ol>
+              </nav>
+            ) : null}
+
             {vm.categoryLabel ? (
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-red">
                 {vm.categoryLabel}

@@ -78,12 +78,46 @@ export function isAuctionActive(
   return endMs > now.getTime();
 }
 
-/** @deprecated use isAuctionActive */
+/**
+ * Canal “En subasta” público: publicado + available + flag + cierre futuro.
+ * Mutuamente excluyente con inventario propio.
+ */
 export function isPublicAuctionVehicle(
   input: PublicAuctionInput,
   now?: Date,
 ): boolean {
   return isAuctionActive(input, now ?? input.now ?? new Date());
+}
+
+/**
+ * Inventario propio público: publicado + available|reserved + SIN flag En subasta.
+ * Mientras el flag esté activo (aunque la subasta haya vencido), NO es inventario propio.
+ */
+export function isPublicOwnedInventoryVehicle(
+  input: PublicAuctionInput,
+): boolean {
+  if (input.deleted_at) return false;
+  if (!input.is_published) return false;
+  if (input.status !== "available" && input.status !== "reserved") {
+    return false;
+  }
+  if (resolveIsInAuction(input)) return false;
+  return true;
+}
+
+export type PublicChannel = "owned_inventory" | "auction" | null;
+
+/**
+ * Canal público exclusivo. Nunca owned_inventory y auction a la vez.
+ * Subasta vencida con flag aún activo → null (admin debe desactivar En subasta).
+ */
+export function resolvePublicChannel(
+  input: PublicAuctionInput,
+  now: Date = input.now ?? new Date(),
+): PublicChannel {
+  if (isPublicAuctionVehicle(input, now)) return "auction";
+  if (isPublicOwnedInventoryVehicle(input)) return "owned_inventory";
+  return null;
 }
 
 /**

@@ -5,9 +5,12 @@ import {
   isAuctionActive,
   isAuctionEnded,
   isAuctionMissingDeadline,
+  isPublicAuctionVehicle,
+  isPublicOwnedInventoryVehicle,
   isoToMexicoCityDatetimeLocal,
   mexicoCityDatetimeLocalToIso,
   resolveAuctionPublicState,
+  resolvePublicChannel,
 } from "@/modules/inventory/domain/vehicle-auction";
 import { vehicleUpdateSchema } from "@/modules/inventory/domain/vehicle-schema";
 
@@ -149,6 +152,114 @@ describe("isAuctionActive", () => {
     expect(state.badgeLabel).toBe("En subasta");
     expect(state.ctaLabel).toMatch(/participar/i);
     expect(state.includeInAuctionBoard).toBe(true);
+  });
+});
+
+describe("public channel mutual exclusion", () => {
+  const now = new Date("2026-07-19T18:00:00.000Z");
+
+  it("accidentado owned appears in inventory not auctions", () => {
+    const vehicle = {
+      is_published: true,
+      is_weekly_opportunity: false,
+      status: "available" as const,
+      opportunity_deadline: null,
+    };
+    expect(isPublicOwnedInventoryVehicle(vehicle)).toBe(true);
+    expect(isPublicAuctionVehicle(vehicle, now)).toBe(false);
+    expect(resolvePublicChannel(vehicle, now)).toBe("owned_inventory");
+  });
+
+  it("accidentado in auction appears only on auction channel", () => {
+    const vehicle = {
+      is_published: true,
+      is_weekly_opportunity: true,
+      status: "available" as const,
+      opportunity_deadline: "2026-07-21T02:30:00.000Z",
+    };
+    expect(isPublicOwnedInventoryVehicle(vehicle)).toBe(false);
+    expect(isPublicAuctionVehicle(vehicle, now)).toBe(true);
+    expect(resolvePublicChannel(vehicle, now)).toBe("auction");
+  });
+
+  it("recuperado and seminuevo in auction are excluded from owned inventory", () => {
+    const vehicle = {
+      is_published: true,
+      is_weekly_opportunity: true,
+      status: "available" as const,
+      opportunity_deadline: "2026-07-21T02:30:00.000Z",
+    };
+    expect(isPublicOwnedInventoryVehicle(vehicle)).toBe(false);
+    expect(isPublicAuctionVehicle(vehicle, now)).toBe(true);
+  });
+
+  it("featured + auction stays off owned inventory", () => {
+    const vehicle = {
+      is_published: true,
+      is_weekly_opportunity: true,
+      status: "available" as const,
+      opportunity_deadline: "2026-07-21T02:30:00.000Z",
+    };
+    expect(isPublicOwnedInventoryVehicle(vehicle)).toBe(false);
+    expect(resolvePublicChannel(vehicle, now)).toBe("auction");
+  });
+
+  it("expired auction does not reappear in owned inventory while flag stays on", () => {
+    const vehicle = {
+      is_published: true,
+      is_weekly_opportunity: true,
+      status: "available" as const,
+      opportunity_deadline: "2026-07-18T02:30:00.000Z",
+    };
+    expect(isPublicAuctionVehicle(vehicle, now)).toBe(false);
+    expect(isPublicOwnedInventoryVehicle(vehicle)).toBe(false);
+    expect(resolvePublicChannel(vehicle, now)).toBeNull();
+  });
+
+  it("turning auction off returns vehicle to owned inventory", () => {
+    const vehicle = {
+      is_published: true,
+      is_weekly_opportunity: false,
+      status: "available" as const,
+      opportunity_deadline: "2026-07-21T02:30:00.000Z",
+    };
+    expect(isPublicOwnedInventoryVehicle(vehicle)).toBe(true);
+    expect(isPublicAuctionVehicle(vehicle, now)).toBe(false);
+    expect(resolvePublicChannel(vehicle, now)).toBe("owned_inventory");
+  });
+
+  it("never allows owned and auction simultaneously", () => {
+    const cases = [
+      {
+        is_published: true,
+        is_weekly_opportunity: false,
+        status: "available" as const,
+        opportunity_deadline: null,
+      },
+      {
+        is_published: true,
+        is_weekly_opportunity: true,
+        status: "available" as const,
+        opportunity_deadline: "2026-07-21T02:30:00.000Z",
+      },
+      {
+        is_published: true,
+        is_weekly_opportunity: true,
+        status: "available" as const,
+        opportunity_deadline: "2026-07-18T02:30:00.000Z",
+      },
+      {
+        is_published: true,
+        is_weekly_opportunity: true,
+        status: "reserved" as const,
+        opportunity_deadline: "2026-07-21T02:30:00.000Z",
+      },
+    ];
+    for (const vehicle of cases) {
+      const owned = isPublicOwnedInventoryVehicle(vehicle);
+      const auction = isPublicAuctionVehicle(vehicle, now);
+      expect(owned && auction).toBe(false);
+    }
   });
 });
 
