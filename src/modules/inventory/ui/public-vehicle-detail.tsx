@@ -12,6 +12,7 @@ import { SiteFooter } from "@/shared/ui/site-footer";
 import { SiteHeader } from "@/shared/ui/site-header";
 import { PublicVehicleGallery } from "@/modules/inventory/ui/public-vehicle-gallery";
 import { PublicVehicleInfoCard } from "@/modules/inventory/ui/public-vehicle-info-card";
+import { VehicleSoldStatusChip } from "@/modules/inventory/ui/vehicle-availability-badge";
 
 type Props = {
   vehicle: PublicVehicle;
@@ -113,6 +114,8 @@ export function PublicVehicleDetail({
             <p className="text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">
               {vm.priceLabel}
             </p>
+
+            <VehicleSoldStatusChip status={vehicle.status} />
 
             {vm.auction.active && vm.auction.closesLong ? (
               <div className="border border-border-subtle bg-surface-secondary px-4 py-3">

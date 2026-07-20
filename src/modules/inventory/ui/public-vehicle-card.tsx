@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { buildPublicVehicleViewModel } from "@/modules/inventory/domain/public-vehicle-view-model";
 import type { PublicVehicle } from "@/modules/inventory/infrastructure/vehicle-repository";
-import { VehicleAvailabilityBadge } from "@/modules/inventory/ui/vehicle-availability-badge";
+import { VehicleAvailabilityBadge, VehicleSoldStatusChip } from "@/modules/inventory/ui/vehicle-availability-badge";
 
 type Variant = "default" | "onDark";
 
@@ -82,6 +82,7 @@ export function VehicleCard({
           <p className={`pt-1 text-sm font-semibold ${titleClass}`}>
             {vm.listPriceLabel ?? "Precio por confirmar"}
           </p>
+          <VehicleSoldStatusChip status={vehicle.status} />
           <span className="inline-flex pt-2 text-sm font-semibold uppercase tracking-wide text-brand-red">
             Ver vehículo →
           </span>

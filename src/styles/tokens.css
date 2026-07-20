@@ -148,3 +148,12 @@
     @apply inline-flex min-h-12 min-w-11 items-center justify-center border border-brand-red bg-brand-red px-6 text-[15px] font-semibold uppercase tracking-wide text-white transition-colors hover:bg-brand-red-hover;
   }
 }
+
+@keyframes ai-sold-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

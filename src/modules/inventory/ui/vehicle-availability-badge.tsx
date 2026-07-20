@@ -4,8 +4,8 @@ import { vehicleStatusLabel } from "@/modules/inventory/domain/vehicle-status";
 type Size = "card" | "detail";
 
 /**
- * Large availability badge overlaid on vehicle photography.
- * Makes Disponible / Apartado / Vendido impossible to miss.
+ * Photo overlay for availability.
+ * Sold: light dim + small top-left label (premium, not marketplace stamp).
  */
 export function VehicleAvailabilityBadge({
   status,
@@ -19,15 +19,23 @@ export function VehicleAvailabilityBadge({
   if (status === "sold") {
     return (
       <div
-        className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black/45"
+        className="pointer-events-none absolute inset-0 z-10 animate-[ai-sold-fade_200ms_ease-out]"
         aria-label="Vendido"
       >
+        <div
+          className="absolute inset-0"
+          style={{ backgroundColor: "rgba(0,0,0,0.28)" }}
+        />
         <span
-          className={`rotate-[-12deg] border-2 border-white bg-brand-red px-4 py-2 font-bold uppercase tracking-[0.12em] text-white shadow-lg sm:px-6 sm:py-3 ${
-            size === "detail"
-              ? "text-3xl sm:text-5xl md:text-6xl"
-              : "text-xl sm:text-2xl"
+          className={`absolute left-3 top-3 bg-brand-red font-bold uppercase text-white ${
+            size === "detail" ? "text-[13px] sm:text-sm" : "text-xs"
           }`}
+          style={{
+            borderRadius: 8,
+            padding: "8px 14px",
+            letterSpacing: "1px",
+            fontWeight: 700,
+          }}
         >
           Vendido
         </span>
@@ -59,4 +67,22 @@ export function VehicleAvailabilityBadge({
   }
 
   return null;
+}
+
+/** Compact status chip below the photo (info / price area). */
+export function VehicleSoldStatusChip({
+  status,
+}: {
+  status: VehicleStatus | string | null | undefined;
+}) {
+  if (status !== "sold") return null;
+
+  return (
+    <span
+      className="inline-flex animate-[ai-sold-fade_200ms_ease-out] items-center rounded-md bg-surface-secondary px-2.5 py-1 text-xs font-medium text-text-secondary"
+      aria-label="Estado: Vendido"
+    >
+      Estado: Vendido
+    </span>
+  );
 }
