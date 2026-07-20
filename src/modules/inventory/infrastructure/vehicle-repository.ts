@@ -711,12 +711,14 @@ export function createVehicleRepository(
         throw new Error("Solo puedes reordenar vehículos destacados.");
       }
 
+      const inAuction = Boolean(vehicle.is_weekly_opportunity);
+
       const { data, error } = await client
         .from("vehicles")
         .select("id, featured_order")
         .is("deleted_at", null)
         .eq("is_featured", true)
-        .eq("is_weekly_opportunity", false)
+        .eq("is_weekly_opportunity", inAuction)
         .order("featured_order", { ascending: true, nullsFirst: false })
         .order("catalog_order", { ascending: true })
         .order("id", { ascending: true });
@@ -827,6 +829,7 @@ export function createVehicleRepository(
         .select("featured_order")
         .is("deleted_at", null)
         .eq("is_featured", true)
+        .eq("is_weekly_opportunity", Boolean(vehicle.is_weekly_opportunity))
         .not("featured_order", "is", null)
         .order("featured_order", { ascending: false })
         .limit(1)
@@ -852,6 +855,8 @@ export function createVehicleRepository(
     async listActiveAuctions(input?: {
       /** Solo para previews (p. ej. home). Omitir en /subastas completo. */
       limit?: number;
+      /** Home: solo unidades marcadas Destacado en canal subasta. */
+      featured?: boolean;
       now?: Date;
     }): Promise<PublicVehicle[]> {
       const now = input?.now ?? new Date();
@@ -864,10 +869,27 @@ export function createVehicleRepository(
           .select(columns)
           .eq("is_weekly_opportunity", true)
           .eq("status", "available")
-          .gt("opportunity_deadline", nowIso)
-          .order("catalog_order", { ascending: true })
-          .order("opportunity_deadline", { ascending: true, nullsFirst: false })
-          .order("published_at", { ascending: false, nullsFirst: false });
+          .gt("opportunity_deadline", nowIso);
+        if (input?.featured === true) {
+          query = query.eq("is_featured", true);
+        }
+        if (input?.featured === true) {
+          query = query
+            .order("featured_order", { ascending: true, nullsFirst: false })
+            .order("catalog_order", { ascending: true })
+            .order("opportunity_deadline", {
+              ascending: true,
+              nullsFirst: false,
+            });
+        } else {
+          query = query
+            .order("catalog_order", { ascending: true })
+            .order("opportunity_deadline", {
+              ascending: true,
+              nullsFirst: false,
+            })
+            .order("published_at", { ascending: false, nullsFirst: false });
+        }
         if (hasLimit) {
           query = query.limit(input!.limit!);
         }

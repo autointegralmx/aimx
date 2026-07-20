@@ -79,6 +79,13 @@ describe("admin list filters", () => {
     expect(resolveAdminQuickChannel({ ...base, featured: "yes" })).toBe(
       "featured",
     );
+    expect(
+      resolveAdminQuickChannel({
+        ...base,
+        featured: "yes",
+        auction: "yes",
+      }),
+    ).toBe("featured_auction");
 
     const auctionHref = buildAdminQuickChannelHref(base, "auction");
     expect(auctionHref).toContain("auction=yes");
@@ -92,7 +99,14 @@ describe("admin list filters", () => {
 
     const featuredHref = buildAdminQuickChannelHref(base, "featured");
     expect(featuredHref).toContain("featured=yes");
-    expect(featuredHref).not.toContain("auction=");
+    expect(featuredHref).toContain("auction=no");
+
+    const featuredAuctionHref = buildAdminQuickChannelHref(
+      base,
+      "featured_auction",
+    );
+    expect(featuredAuctionHref).toContain("featured=yes");
+    expect(featuredAuctionHref).toContain("auction=yes");
   });
 });
 

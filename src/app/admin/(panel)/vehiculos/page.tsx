@@ -113,9 +113,11 @@ export default async function AdminVehiclesPage({
           <>
             <p className="text-sm text-ink-muted">
               {result.total} resultado{result.total === 1 ? "" : "s"}
-              {filters.featured === "yes"
-                ? " · Las flechas definen el orden en la portada (Destacados)."
-                : ""}
+              {filters.featured === "yes" && filters.auction === "yes"
+                ? " · Orden de destacados en la sección En subasta (portada)."
+                : filters.featured === "yes"
+                  ? " · Orden de destacados en Nuestros vehículos (portada)."
+                  : ""}
             </p>
             <VehiclesDesktopTable
               items={result.items}

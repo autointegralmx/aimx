@@ -116,7 +116,8 @@ export type AdminQuickChannel =
   | "recuperado"
   | "seminuevo"
   | "auction"
-  | "featured";
+  | "featured"
+  | "featured_auction";
 
 export const ADMIN_QUICK_CHANNELS: Array<{
   id: AdminQuickChannel;
@@ -128,12 +129,16 @@ export const ADMIN_QUICK_CHANNELS: Array<{
   { id: "seminuevo", label: "Seminuevos" },
   { id: "auction", label: "En subasta" },
   { id: "featured", label: "Destacados" },
+  { id: "featured_auction", label: "Destacados subasta" },
 ];
 
 export function resolveAdminQuickChannel(
   filters: AdminVehicleListFilters,
 ): AdminQuickChannel {
-  if (filters.featured === "yes" && filters.auction !== "yes") return "featured";
+  if (filters.featured === "yes" && filters.auction === "yes") {
+    return "featured_auction";
+  }
+  if (filters.featured === "yes") return "featured";
   if (filters.auction === "yes") return "auction";
   if (filters.category === "accidentado") return "accidentado";
   if (filters.category === "recuperado") return "recuperado";
@@ -173,7 +178,15 @@ export function buildAdminQuickChannelHref(
     return buildAdminVehiclesHref({
       ...base,
       category: "all",
-      auction: "all",
+      auction: "no",
+      featured: "yes",
+    });
+  }
+  if (channel === "featured_auction") {
+    return buildAdminVehiclesHref({
+      ...base,
+      category: "all",
+      auction: "yes",
       featured: "yes",
     });
   }

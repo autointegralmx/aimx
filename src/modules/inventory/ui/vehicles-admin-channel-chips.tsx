@@ -41,8 +41,9 @@ export function VehiclesAdminChannelChips({
         })}
       </nav>
       <p className="text-xs text-ink-muted">
-        Usa ↑ ↓ para el orden del sitio. En el chip Destacados, las flechas
-        definen el orden en la portada.
+        Destacados = inventario (Accidentados / Recuperados / Seminuevos) en la
+        portada. Destacados subasta = portada de En subasta. Las flechas ↑ ↓
+        ordenan cada lista por separado.
       </p>
     </div>
   );
