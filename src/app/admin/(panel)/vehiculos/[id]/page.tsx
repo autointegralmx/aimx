@@ -7,9 +7,8 @@ import { createVehicleRepository } from "@/modules/inventory/infrastructure/vehi
 import { createVehicleMediaRepository } from "@/modules/inventory/infrastructure/vehicle-media-repository";
 import {
   formatVehicleTitle,
-  statusBadgeTone,
+  resolveAdminStatusPresentation,
   vehicleCategoryLabel,
-  vehicleStatusLabel,
 } from "@/modules/inventory/domain/vehicle-labels";
 import { FlagBadge, StatusBadge } from "@/modules/inventory/ui/status-badge";
 import { VehicleActionsMenu } from "@/modules/inventory/ui/vehicle-actions-menu";
@@ -46,6 +45,10 @@ export default async function AdminVehicleDetailPage({
     opportunity_deadline: vehicle.opportunity_deadline,
     auction_awarded_amount: vehicle.auction_awarded_amount,
     deleted_at: vehicle.deleted_at,
+  });
+  const statusPresentation = resolveAdminStatusPresentation({
+    status: vehicle.status,
+    auction,
   });
   const awardedAmount = normalizeAuctionAwardedAmount(
     vehicle.auction_awarded_amount,
@@ -97,8 +100,8 @@ export default async function AdminVehicleDetailPage({
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            <StatusBadge tone={statusBadgeTone(vehicle.status)}>
-              {vehicleStatusLabel[vehicle.status]}
+            <StatusBadge tone={statusPresentation.tone}>
+              {statusPresentation.label}
             </StatusBadge>
             <FlagBadge
               active={vehicle.is_published}

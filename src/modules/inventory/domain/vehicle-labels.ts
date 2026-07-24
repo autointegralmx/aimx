@@ -3,6 +3,7 @@ import type {
   VehicleStatus,
 } from "@/modules/inventory/domain/vehicle-schema";
 import { vehicleStatusLabel } from "@/modules/inventory/domain/vehicle-status";
+import type { AuctionPublicState } from "@/modules/inventory/domain/vehicle-auction";
 
 export const vehicleCategoryLabel: Record<VehicleCategory, string> = {
   accidentado: "Accidentados",
@@ -55,4 +56,21 @@ export function statusBadgeTone(status: VehicleStatus): StatusBadgeTone {
     case "archived":
       return "danger";
   }
+}
+
+/**
+ * Etiqueta de ESTADO en admin. No muta el status en BD:
+ * subasta cerrada se muestra encima de “Disponible”/“Apartado”.
+ */
+export function resolveAdminStatusPresentation(input: {
+  status: VehicleStatus;
+  auction: Pick<AuctionPublicState, "closed">;
+}): { label: string; tone: StatusBadgeTone } {
+  if (input.auction.closed) {
+    return { label: "Subasta cerrada", tone: "neutral" };
+  }
+  return {
+    label: vehicleStatusLabel[input.status],
+    tone: statusBadgeTone(input.status),
+  };
 }

@@ -1,18 +1,17 @@
-import Image from "next/image";
-import type { AdminVehicleListItem } from "@/modules/inventory/infrastructure/vehicle-repository";
 import {
   formatVehicleTitle,
-  statusBadgeTone,
+  resolveAdminStatusPresentation,
   vehicleCategoryLabel,
-  vehicleStatusLabel,
 } from "@/modules/inventory/domain/vehicle-labels";
 import { FlagBadge, StatusBadge } from "@/modules/inventory/ui/status-badge";
 import { VehicleActionsMenu } from "@/modules/inventory/ui/vehicle-actions-menu";
 import { VehicleCatalogOrderControls } from "@/modules/inventory/ui/vehicle-catalog-order-controls";
 import { resolveAuctionPublicState } from "@/modules/inventory/domain/vehicle-auction";
+import type { AdminVehicleListItem } from "@/modules/inventory/infrastructure/vehicle-repository";
+import Image from "next/image";
 
-function AuctionAdminCell({ vehicle }: { vehicle: AdminVehicleListItem }) {
-  const auction = resolveAuctionPublicState({
+function resolveAdminAuction(vehicle: AdminVehicleListItem) {
+  return resolveAuctionPublicState({
     is_published: vehicle.is_published,
     is_weekly_opportunity: vehicle.is_weekly_opportunity,
     status: vehicle.status,
@@ -20,6 +19,21 @@ function AuctionAdminCell({ vehicle }: { vehicle: AdminVehicleListItem }) {
     auction_awarded_amount: vehicle.auction_awarded_amount,
     deleted_at: vehicle.deleted_at,
   });
+}
+
+function AdminStatusCell({ vehicle }: { vehicle: AdminVehicleListItem }) {
+  const auction = resolveAdminAuction(vehicle);
+  const presentation = resolveAdminStatusPresentation({
+    status: vehicle.status,
+    auction,
+  });
+  return (
+    <StatusBadge tone={presentation.tone}>{presentation.label}</StatusBadge>
+  );
+}
+
+function AuctionAdminCell({ vehicle }: { vehicle: AdminVehicleListItem }) {
+  const auction = resolveAdminAuction(vehicle);
 
   if (auction.active) {
     return <StatusBadge tone="success">En subasta</StatusBadge>;
@@ -152,9 +166,7 @@ export function VehiclesDesktopTable({
                   {vehicleCategoryLabel[vehicle.category]}
                 </td>
                 <td className="px-4 py-3">
-                  <StatusBadge tone={statusBadgeTone(vehicle.status)}>
-                    {vehicleStatusLabel[vehicle.status]}
-                  </StatusBadge>
+                  <AdminStatusCell vehicle={vehicle} />
                 </td>
                 <td className="px-4 py-3">
                   <FlagBadge
@@ -217,9 +229,7 @@ export function VehiclesMobileList({
                     : ` · Orden #${vehicle.catalog_order}`}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <StatusBadge tone={statusBadgeTone(vehicle.status)}>
-                    {vehicleStatusLabel[vehicle.status]}
-                  </StatusBadge>
+                  <AdminStatusCell vehicle={vehicle} />
                   <FlagBadge
                     active={vehicle.is_published}
                     activeLabel="Publicado"
