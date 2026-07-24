@@ -90,6 +90,7 @@ export function buildPublicVehicleViewModel(
       is_weekly_opportunity: vehicle.is_weekly_opportunity,
       status: vehicle.status,
       opportunity_deadline: vehicle.opportunity_deadline,
+      auction_awarded_amount: vehicle.auction_awarded_amount,
     },
     options?.now,
   );
@@ -100,6 +101,7 @@ export function buildPublicVehicleViewModel(
       is_weekly_opportunity: vehicle.is_weekly_opportunity,
       status: vehicle.status,
       opportunity_deadline: vehicle.opportunity_deadline,
+      auction_awarded_amount: vehicle.auction_awarded_amount,
     },
     options?.now,
   );

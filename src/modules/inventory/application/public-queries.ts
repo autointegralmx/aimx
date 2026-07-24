@@ -175,19 +175,30 @@ export async function loadPublicVehicleList(input: {
 
 /**
  * Subastas públicas.
- * Sin `limit` → listado completo (/subastas). Con `limit` → preview (home).
+ * `scope: "active"` (default) → home / previews.
+ * `scope: "all"` → /subastas (activas + cerradas).
  */
-export async function loadPublicAuctions(limit?: number): Promise<{
+export async function loadPublicAuctions(input?: {
+  limit?: number;
+  scope?: "active" | "all";
+}): Promise<{
   items: ReturnType<typeof withCovers>;
   degraded: boolean;
 }> {
   const ctx = await getInventoryServerContextOrNull();
   if (!ctx) return { items: [], degraded: true };
 
+  const limit =
+    typeof input?.limit === "number" && input.limit > 0
+      ? input.limit
+      : undefined;
+  const scope = input?.scope ?? "active";
+
   try {
-    const vehicles = await ctx.repo.listActiveAuctions(
-      typeof limit === "number" && limit > 0 ? { limit } : {},
-    );
+    const vehicles = await ctx.repo.listActiveAuctions({
+      ...(limit !== undefined ? { limit } : {}),
+      scope,
+    });
     const covers = await loadCoverUrlsForVehicles(
       vehicles.map((item) => item.id).filter((id): id is string => Boolean(id)),
     );
@@ -195,6 +206,7 @@ export async function loadPublicAuctions(limit?: number): Promise<{
   } catch (error) {
     logServerError("public-auctions", error, {
       operation: "loadPublicAuctions",
+      scope,
     });
     return { items: [], degraded: true };
   }
@@ -202,5 +214,7 @@ export async function loadPublicAuctions(limit?: number): Promise<{
 
 /** @deprecated use loadPublicAuctions */
 export async function loadPublicOpportunities(limit?: number) {
-  return loadPublicAuctions(limit);
+  return loadPublicAuctions(
+    typeof limit === "number" && limit > 0 ? { limit } : undefined,
+  );
 }

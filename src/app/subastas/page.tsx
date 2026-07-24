@@ -2,23 +2,34 @@ import Link from "next/link";
 import { PublicShell } from "@/shared/ui/public-shell";
 import { loadPublicAuctions } from "@/modules/inventory/application/public-queries";
 import { PublicVehicleGrid } from "@/modules/inventory/ui/public-vehicle-grid";
+import { buildPublicVehicleViewModel } from "@/modules/inventory/domain/public-vehicle-view-model";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "En subasta",
   description:
-    "Vehículos disponibles mediante subasta. Consulta el cierre y solicita información para participar.",
+    "Vehículos en subasta activa e historial de subastas cerradas en Auto Integral.",
 };
 
 export default async function SubastasPage() {
-  const { items, degraded } = await loadPublicAuctions();
+  const { items, degraded } = await loadPublicAuctions({ scope: "all" });
+  const now = new Date();
+
+  const activeItems = items.filter(({ vehicle }) => {
+    const auction = buildPublicVehicleViewModel(vehicle, { now }).auction;
+    return auction.active;
+  });
+  const closedItems = items.filter(({ vehicle }) => {
+    const auction = buildPublicVehicleViewModel(vehicle, { now }).auction;
+    return auction.closed;
+  });
 
   return (
     <PublicShell
       eyebrow="Subastas"
       title="En subasta"
-      description="Vehículos disponibles mediante subasta. Consulta el cierre y solicita información para participar."
+      description="Consulta unidades activas y el historial de subastas cerradas."
     >
       {degraded ? (
         <div className="mt-6 rounded-[12px] border border-dashed border-border-subtle bg-surface-secondary px-5 py-10 text-center md:mt-10 md:px-6 md:py-14">
@@ -33,25 +44,60 @@ export default async function SubastasPage() {
             Ver todos los vehículos
           </Link>
         </div>
-      ) : items.length === 0 ? (
-        <div className="mt-6 rounded-[12px] border border-dashed border-border-subtle bg-surface-secondary px-5 py-10 text-center md:mt-10 md:px-6 md:py-14">
-          <p className="text-text-secondary">
-            No hay vehículos en subasta en este momento.
-          </p>
-          <Link
-            href="/vehiculos"
-            className="btn-secondary mt-6 inline-flex"
-          >
-            Ver todos los vehículos
-          </Link>
-        </div>
       ) : (
-        <PublicVehicleGrid
-          items={items}
-          mode="auction"
-          listMode="all"
-          className="mt-5 md:mt-10"
-        />
+        <div className="mt-5 space-y-12 md:mt-10 md:space-y-16">
+          <section aria-labelledby="subastas-activas-heading">
+            <h2
+              id="subastas-activas-heading"
+              className="text-lg font-semibold tracking-tight text-text-primary md:text-xl"
+            >
+              Subastas activas
+            </h2>
+            {activeItems.length === 0 ? (
+              <p className="mt-4 text-sm text-text-secondary">
+                No hay subastas activas en este momento.
+              </p>
+            ) : (
+              <PublicVehicleGrid
+                items={activeItems}
+                mode="auction"
+                listMode="all"
+                className="mt-5"
+              />
+            )}
+          </section>
+
+          {closedItems.length > 0 ? (
+            <section aria-labelledby="subastas-cerradas-heading">
+              <h2
+                id="subastas-cerradas-heading"
+                className="text-lg font-semibold tracking-tight text-text-primary md:text-xl"
+              >
+                Subastas cerradas
+              </h2>
+              <PublicVehicleGrid
+                items={closedItems}
+                mode="auction"
+                listMode="all"
+                className="mt-5"
+              />
+            </section>
+          ) : null}
+
+          {activeItems.length === 0 && closedItems.length === 0 ? (
+            <div className="rounded-[12px] border border-dashed border-border-subtle bg-surface-secondary px-5 py-10 text-center md:px-6 md:py-14">
+              <p className="text-text-secondary">
+                No hay vehículos en subasta en este momento.
+              </p>
+              <Link
+                href="/vehiculos"
+                className="btn-secondary mt-6 inline-flex"
+              >
+                Ver todos los vehículos
+              </Link>
+            </div>
+          ) : null}
+        </div>
       )}
     </PublicShell>
   );

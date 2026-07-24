@@ -31,6 +31,8 @@ import {
 import {
   isoToMexicoCityDatetimeLocal,
   mexicoCityDatetimeLocalToIso,
+  normalizeAuctionAwardedAmount,
+  resolveAuctionPublicState,
 } from "@/modules/inventory/domain/vehicle-auction";
 import { buildVehicleSlug } from "@/modules/inventory/domain/slug";
 import { formatDamageTagLabel } from "@/modules/inventory/domain/vehicle-display";
@@ -268,6 +270,10 @@ export function VehicleForm({ vehicle, images }: Props) {
       ? initialAuctionLocal.slice(11, 16)
       : "",
   );
+  const [auctionAwardedAmount, setAuctionAwardedAmount] = useState(() => {
+    const amount = normalizeAuctionAwardedAmount(vehicle.auction_awarded_amount);
+    return amount != null && amount > 0 ? String(amount) : "";
+  });
   const [status, setStatus] = useState(vehicle.status);
 
   const [vin, setVin] = useState(vehicle.vin ?? "");
@@ -297,6 +303,31 @@ export function VehicleForm({ vehicle, images }: Props) {
     identityKey === initialIdentityKey
       ? slug
       : derivedSlug;
+
+  const auctionPreview = useMemo(() => {
+    const deadlineIso = isInAuction
+      ? mexicoCityDatetimeLocalToIso(
+          auctionEndsDate && auctionEndsTime
+            ? `${auctionEndsDate}T${auctionEndsTime}`
+            : "",
+        ) ?? vehicle.opportunity_deadline
+      : vehicle.opportunity_deadline;
+    return resolveAuctionPublicState({
+      is_published: vehicle.is_published,
+      is_weekly_opportunity: isInAuction,
+      status,
+      opportunity_deadline: deadlineIso,
+      auction_awarded_amount: vehicle.auction_awarded_amount,
+    });
+  }, [
+    isInAuction,
+    auctionEndsDate,
+    auctionEndsTime,
+    vehicle.is_published,
+    vehicle.opportunity_deadline,
+    vehicle.auction_awarded_amount,
+    status,
+  ]);
 
   const blockers = useMemo(
     () =>
@@ -368,12 +399,23 @@ export function VehicleForm({ vehicle, images }: Props) {
       is_featured: isFeatured,
       is_weekly_opportunity: isInAuction,
       opportunity_deadline: isInAuction
-        ? mexicoCityDatetimeLocalToIso(
-            auctionEndsDate && auctionEndsTime
-              ? `${auctionEndsDate}T${auctionEndsTime}`
-              : "",
-          )
+        ? auctionPreview.closed
+          ? vehicle.opportunity_deadline
+          : mexicoCityDatetimeLocalToIso(
+              auctionEndsDate && auctionEndsTime
+                ? `${auctionEndsDate}T${auctionEndsTime}`
+                : "",
+            )
         : vehicle.opportunity_deadline,
+      auction_awarded_amount: (() => {
+        if (!isInAuction) return undefined;
+        if (!auctionPreview.closed) return null;
+        const raw = auctionAwardedAmount.trim();
+        if (!raw) return null;
+        const n = Number(raw);
+        if (!Number.isFinite(n)) return null;
+        return n;
+      })(),
       seo_title: null,
       seo_description: null,
       vin: vin.trim() || null,
@@ -993,58 +1035,138 @@ export function VehicleForm({ vehicle, images }: Props) {
           </span>
         </label>
         {isInAuction ? (
-          <div className="max-w-lg space-y-2">
-            <p className={labelClass}>Cierre de subasta *</p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className={labelClass} htmlFor="auctionEndsDate">
-                  Fecha
-                </label>
-                <input
-                  id="auctionEndsDate"
-                  type="date"
-                  className={fieldClass}
-                  value={auctionEndsDate}
-                  onChange={(e) => {
-                    markDirty();
-                    setAuctionEndsDate(e.target.value);
-                  }}
-                />
+          <div className="max-w-lg space-y-3">
+            {auctionPreview.closed ? (
+              <div className="rounded-md border border-line bg-surface px-4 py-3">
+                <p className="text-sm font-semibold text-ink">Subasta cerrada</p>
+                <p className="mt-1 text-xs text-ink-muted">
+                  La fecha y hora de cierre ya finalizaron. Permanecerá en el
+                  historial de subastas cerradas.
+                </p>
+                {auctionPreview.closedLong ? (
+                  <p className="mt-2 text-sm text-ink">
+                    Cierre: {auctionPreview.closedLong}
+                  </p>
+                ) : null}
+                <div className="mt-3">
+                  <label className={labelClass} htmlFor="auctionAwardedAmount">
+                    Monto de adjudicación
+                  </label>
+                  <div className="relative mt-1">
+                    <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-ink-muted">
+                      $
+                    </span>
+                    <input
+                      id="auctionAwardedAmount"
+                      type="number"
+                      inputMode="decimal"
+                      min="0.01"
+                      step="0.01"
+                      placeholder="Ej. 185000"
+                      className={`${fieldClass} pl-7 pr-14`}
+                      value={auctionAwardedAmount}
+                      onChange={(e) => {
+                        markDirty();
+                        setAuctionAwardedAmount(e.target.value);
+                      }}
+                    />
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-ink-muted">
+                      MXN
+                    </span>
+                  </div>
+                  {fieldErrors.auction_awarded_amount ? (
+                    <p className="mt-1 text-xs text-brand-red">
+                      {fieldErrors.auction_awarded_amount}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs text-ink-muted">
+                      Captura el monto final en el que fue adjudicada la unidad.
+                      Déjalo vacío si aún no se publica el resultado.
+                    </p>
+                  )}
+                </div>
+                <div className="mt-3 grid gap-3 opacity-80 sm:grid-cols-2">
+                  <div>
+                    <label className={labelClass} htmlFor="auctionEndsDateClosed">
+                      Fecha
+                    </label>
+                    <input
+                      id="auctionEndsDateClosed"
+                      type="date"
+                      className={fieldClass}
+                      value={auctionEndsDate}
+                      readOnly
+                      disabled
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass} htmlFor="auctionEndsTimeClosed">
+                      Hora
+                    </label>
+                    <input
+                      id="auctionEndsTimeClosed"
+                      type="time"
+                      className={fieldClass}
+                      value={auctionEndsTime}
+                      readOnly
+                      disabled
+                    />
+                  </div>
+                </div>
+                <p className="mt-2 text-xs text-ink-muted">
+                  Zona horaria: Ciudad de México. Fecha y hora en solo lectura
+                  para preservar el historial.
+                </p>
               </div>
-              <div>
-                <label className={labelClass} htmlFor="auctionEndsTime">
-                  Hora
-                </label>
-                <input
-                  id="auctionEndsTime"
-                  type="time"
-                  className={fieldClass}
-                  value={auctionEndsTime}
-                  onChange={(e) => {
-                    markDirty();
-                    setAuctionEndsTime(e.target.value);
-                  }}
-                />
-              </div>
-            </div>
-            {fieldErrors.opportunity_deadline ? (
-              <p className="text-xs text-brand-red">
-                {fieldErrors.opportunity_deadline}
-              </p>
-            ) : !auctionEndsDate || !auctionEndsTime ? (
-              <p className="text-xs text-brand-red">
-                Completa fecha y hora para publicarlo en En subasta.
-              </p>
-            ) : vehicle.opportunity_deadline &&
-              Date.parse(vehicle.opportunity_deadline) <= Date.now() ? (
-              <p className="text-xs text-brand-red">
-                Subasta finalizada. Desactiva “En subasta” para devolverlo al
-                inventario propio, o actualiza el cierre a una fecha futura.
-              </p>
             ) : (
-              <p className="text-xs text-ink-muted">
-                Zona horaria: Ciudad de México.
-              </p>
+              <>
+                <p className={labelClass}>Cierre de subasta *</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className={labelClass} htmlFor="auctionEndsDate">
+                      Fecha
+                    </label>
+                    <input
+                      id="auctionEndsDate"
+                      type="date"
+                      className={fieldClass}
+                      value={auctionEndsDate}
+                      onChange={(e) => {
+                        markDirty();
+                        setAuctionEndsDate(e.target.value);
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass} htmlFor="auctionEndsTime">
+                      Hora
+                    </label>
+                    <input
+                      id="auctionEndsTime"
+                      type="time"
+                      className={fieldClass}
+                      value={auctionEndsTime}
+                      onChange={(e) => {
+                        markDirty();
+                        setAuctionEndsTime(e.target.value);
+                      }}
+                    />
+                  </div>
+                </div>
+                {fieldErrors.opportunity_deadline ? (
+                  <p className="text-xs text-brand-red">
+                    {fieldErrors.opportunity_deadline}
+                  </p>
+                ) : !auctionEndsDate || !auctionEndsTime ? (
+                  <p className="text-xs text-brand-red">
+                    Completa fecha y hora para publicarlo en En subasta.
+                  </p>
+                ) : (
+                  <p className="text-xs text-ink-muted">
+                    Zona horaria: Ciudad de México.
+                  </p>
+                )}
+              </>
             )}
           </div>
         ) : null}

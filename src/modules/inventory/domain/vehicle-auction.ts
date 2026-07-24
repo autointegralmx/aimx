@@ -4,12 +4,14 @@ import type { VehicleStatus } from "@/modules/inventory/domain/vehicle-schema";
 export const BUSINESS_TIMEZONE = "America/Mexico_City";
 
 /**
- * DB columns (compatibility — no migration):
+ * DB columns (compatibility — no rename):
  * - is_weekly_opportunity → isInAuction / “En subasta”
  * - opportunity_deadline → auctionEndsAt / “Cierre de subasta”
+ * - auction_awarded_amount → monto de adjudicación (solo historial cerrado)
  * - is_featured → Destacar (independent; never means auction)
  *
  * Table: public.vehicles
+ * Closed is derived: flag + valid deadline <= now (no auction_closed column).
  */
 
 export type PublicAuctionInput = {
@@ -22,21 +24,32 @@ export type PublicAuctionInput = {
   /** @deprecated domain alias — maps from opportunity_deadline */
   opportunity_deadline?: string | null;
   auctionEndsAt?: string | null;
+  auction_awarded_amount?: number | string | null;
+  auctionAwardedAmount?: number | string | null;
   now?: Date;
 };
 
 export type AuctionPublicState = {
   /** Flag on, regardless of deadline validity */
   flagged: boolean;
-  /** Meets public board + badge rules */
+  /** Meets public board + badge rules for live auction */
   active: boolean;
+  /** Deadline passed (flag may still be on); prefer `closed` for board rules */
   ended: boolean;
+  /** Published board-eligible closed auction (historial) */
+  closed: boolean;
   missingDeadline: boolean;
   endsAt: string | null;
+  awardedAmount: number | null;
+  awardedLabel: string | null;
   badgeLabel: string | null;
+  statusLabel: "En subasta" | "Subasta cerrada" | null;
   closesLabel: string | null;
   closesLong: string | null;
+  closedLabel: string | null;
+  closedLong: string | null;
   ctaLabel: string;
+  canParticipate: boolean;
   includeInAuctionBoard: boolean;
 };
 
@@ -55,6 +68,49 @@ export function resolveAuctionEndsAt(input: {
   const value = input.auctionEndsAt ?? input.opportunity_deadline ?? null;
   const trimmed = value?.trim();
   return trimmed || null;
+}
+
+/** Normalize Supabase numeric (number | string) → finite number or null. */
+export function normalizeAuctionAwardedAmount(
+  value: number | string | null | undefined,
+): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed)) return null;
+    return parsed;
+  }
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) return null;
+    return value;
+  }
+  return null;
+}
+
+export function resolveAuctionAwardedAmount(input: {
+  auction_awarded_amount?: number | string | null;
+  auctionAwardedAmount?: number | string | null;
+}): number | null {
+  return normalizeAuctionAwardedAmount(
+    input.auctionAwardedAmount ?? input.auction_awarded_amount,
+  );
+}
+
+/** “Adjudicada en $185,000 MXN” — null when missing or not > 0. */
+export function formatAuctionAwardedLabel(
+  amount: number | string | null | undefined,
+): string | null {
+  const value = normalizeAuctionAwardedAmount(amount);
+  if (value === null || value <= 0) return null;
+  const formatted = new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency: "MXN",
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+  return `Adjudicada en ${formatted} MXN`;
 }
 
 /**
@@ -79,7 +135,28 @@ export function isAuctionActive(
 }
 
 /**
- * Canal “En subasta” público: publicado + available + flag + cierre futuro.
+ * Subasta cerrada en tablero público (historial).
+ * Flag on + published + available|reserved + deadline válido vencido.
+ */
+export function isAuctionClosed(
+  input: PublicAuctionInput,
+  now: Date = input.now ?? new Date(),
+): boolean {
+  if (input.deleted_at) return false;
+  if (!input.is_published) return false;
+  if (!resolveIsInAuction(input)) return false;
+  if (input.status !== "available" && input.status !== "reserved") return false;
+
+  const endsAt = resolveAuctionEndsAt(input);
+  if (!endsAt) return false;
+
+  const endMs = Date.parse(endsAt);
+  if (Number.isNaN(endMs)) return false;
+  return endMs <= now.getTime();
+}
+
+/**
+ * Canal “En subasta” público activo: publicado + available + flag + cierre futuro.
  * Mutuamente excluyente con inventario propio.
  */
 export function isPublicAuctionVehicle(
@@ -113,13 +190,15 @@ export type PublicChannel = "owned_inventory" | "auction" | null;
 
 /**
  * Canal público exclusivo. Nunca owned_inventory y auction a la vez.
- * Subasta vencida con flag aún activo → null (admin debe desactivar En subasta).
+ * Activas y cerradas (flag aún activo) → auction; se diferencian vía AuctionPublicState.
  */
 export function resolvePublicChannel(
   input: PublicAuctionInput,
   now: Date = input.now ?? new Date(),
 ): PublicChannel {
-  if (isPublicAuctionVehicle(input, now)) return "auction";
+  if (isAuctionActive(input, now) || isAuctionClosed(input, now)) {
+    return "auction";
+  }
   if (isPublicOwnedInventoryVehicle(input)) return "owned_inventory";
   return null;
 }
@@ -135,22 +214,44 @@ export function resolveAuctionPublicState(
   const flagged = resolveIsInAuction(input);
   const endsAt = resolveAuctionEndsAt(input);
   const active = isAuctionActive(input, now);
+  const closed = isAuctionClosed(input, now);
   const ended = flagged && isAuctionEnded({ ...input, now });
   const missingDeadline = isAuctionMissingDeadline(input);
+  const awardedAmount = closed
+    ? resolveAuctionAwardedAmount(input)
+    : null;
+  const awardedLabel = closed
+    ? formatAuctionAwardedLabel(awardedAmount)
+    : null;
+
+  const statusLabel: AuctionPublicState["statusLabel"] = active
+    ? "En subasta"
+    : closed
+      ? "Subasta cerrada"
+      : null;
 
   return {
     flagged,
     active,
     ended,
+    closed,
     missingDeadline,
     endsAt,
-    badgeLabel: active ? "En subasta" : null,
+    awardedAmount,
+    awardedLabel,
+    badgeLabel: statusLabel,
+    statusLabel,
     closesLabel: active && endsAt ? formatAuctionClosesLabel(endsAt, now) : null,
     closesLong: active && endsAt ? formatAuctionClosesLong(endsAt) : null,
+    closedLabel: closed && endsAt ? formatAuctionClosedLabel(endsAt) : null,
+    closedLong: closed && endsAt ? formatAuctionClosesLong(endsAt) : null,
     ctaLabel: active
       ? "Solicitar información para participar"
-      : "Contactar por WhatsApp",
-    includeInAuctionBoard: active,
+      : closed
+        ? "Consultar unidades disponibles"
+        : "Contactar por WhatsApp",
+    canParticipate: active,
+    includeInAuctionBoard: active || closed,
   };
 }
 
@@ -178,6 +279,21 @@ export function isAuctionEnded(input: {
   if (Number.isNaN(endMs)) return false;
   const now = input.now ?? new Date();
   return endMs <= now.getTime();
+}
+
+/** Same UTC instant (tolerates equivalent ISO strings). */
+export function isSameAuctionDeadline(
+  a: string | null | undefined,
+  b: string | null | undefined,
+): boolean {
+  const left = a?.trim() || "";
+  const right = b?.trim() || "";
+  if (!left && !right) return true;
+  if (!left || !right) return false;
+  const la = Date.parse(left);
+  const lb = Date.parse(right);
+  if (Number.isNaN(la) || Number.isNaN(lb)) return left === right;
+  return la === lb;
 }
 
 export function formatAuctionClosesAt(
@@ -215,6 +331,12 @@ export function formatAuctionClosesLabel(iso: string, now?: Date): string {
   if (!body) return "";
   if (body.startsWith("Cierra")) return body;
   return `Cierra: ${body}`;
+}
+
+export function formatAuctionClosedLabel(iso: string): string {
+  const body = formatAuctionClosesLong(iso);
+  if (!body) return "";
+  return `Cerró el ${body}`;
 }
 
 /** Long form for detail page. */
@@ -280,6 +402,38 @@ export function isoToMexicoCityDatetimeLocal(iso: string | null | undefined): st
   if (Number.isNaN(date.getTime())) return "";
   const parts = mexicoCityParts(date);
   return `${String(parts.year).padStart(4, "0")}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}T${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}`;
+}
+
+/**
+ * Sort auction board: active by nearest deadline, then closed by most recent close.
+ */
+export function sortAuctionBoardVehicles<
+  T extends {
+    opportunity_deadline?: string | null;
+    auctionEndsAt?: string | null;
+    is_weekly_opportunity?: boolean | null;
+    isInAuction?: boolean | null;
+    is_published?: boolean | null;
+    status?: string | null;
+    deleted_at?: string | null;
+  },
+>(rows: T[], now: Date): T[] {
+  return [...rows].sort((a, b) => {
+    const aActive = isAuctionActive(a, now);
+    const bActive = isAuctionActive(b, now);
+    if (aActive !== bActive) return aActive ? -1 : 1;
+
+    const aEnd = resolveAuctionEndsAt(a);
+    const bEnd = resolveAuctionEndsAt(b);
+    const aMs = aEnd ? Date.parse(aEnd) : Number.POSITIVE_INFINITY;
+    const bMs = bEnd ? Date.parse(bEnd) : Number.POSITIVE_INFINITY;
+    const aSafe = Number.isNaN(aMs) ? Number.POSITIVE_INFINITY : aMs;
+    const bSafe = Number.isNaN(bMs) ? Number.POSITIVE_INFINITY : bMs;
+
+    if (aActive && bActive) return aSafe - bSafe;
+    // Closed: newest close first
+    return bSafe - aSafe;
+  });
 }
 
 type DateParts = {

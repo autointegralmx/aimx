@@ -1,5 +1,6 @@
 import type { AdminVehicleDetail } from "@/modules/inventory/infrastructure/vehicle-repository";
 import type { PublicVehicle } from "@/modules/inventory/infrastructure/vehicle-repository";
+import { normalizeAuctionAwardedAmount } from "@/modules/inventory/domain/vehicle-auction";
 
 /**
  * Maps an admin row to the same PublicVehicle shape used by public reads.
@@ -31,6 +32,9 @@ export function toPublicVehicleFromAdmin(
     is_featured: vehicle.is_featured,
     is_weekly_opportunity: vehicle.is_weekly_opportunity,
     opportunity_deadline: vehicle.opportunity_deadline,
+    auction_awarded_amount: normalizeAuctionAwardedAmount(
+      vehicle.auction_awarded_amount,
+    ),
     featured_order: vehicle.featured_order,
     catalog_order: vehicle.catalog_order,
     damage_summary: vehicle.damage_summary,

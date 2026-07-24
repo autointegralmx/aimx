@@ -26,14 +26,19 @@ export {
 
 export {
   isAuctionActive,
+  isAuctionClosed,
   isPublicAuctionVehicle,
   isPublicOwnedInventoryVehicle,
   resolvePublicChannel,
   resolveAuctionPublicState,
   formatAuctionClosesLabel,
+  formatAuctionAwardedLabel,
   BUSINESS_TIMEZONE,
 } from "@/modules/inventory/domain/vehicle-auction";
-export type { PublicChannel } from "@/modules/inventory/domain/vehicle-auction";
+export type {
+  PublicChannel,
+  AuctionPublicState,
+} from "@/modules/inventory/domain/vehicle-auction";
 
 export {
   buildPublicVehicleViewModel,

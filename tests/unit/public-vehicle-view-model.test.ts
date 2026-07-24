@@ -35,6 +35,7 @@ function baseVehicle(
     is_featured: true,
     is_weekly_opportunity: false,
     opportunity_deadline: null,
+    auction_awarded_amount: null,
     featured_order: null,
     catalog_order: 1,
     damage_summary: null,
@@ -176,6 +177,7 @@ describe("buildPublicVehicleViewModel contract", () => {
         is_featured: true,
         is_weekly_opportunity: false,
         opportunity_deadline: "2099-01-01T00:00:00.000Z",
+    auction_awarded_amount: null,
       }),
     );
     expect(vm.auction.active).toBe(false);
@@ -188,6 +190,7 @@ describe("buildPublicVehicleViewModel contract", () => {
       baseVehicle({
         is_weekly_opportunity: true,
         opportunity_deadline: "2099-07-21T02:30:00.000Z",
+    auction_awarded_amount: null,
       }),
       { now: new Date("2026-07-19T12:00:00.000Z") },
     );
@@ -241,6 +244,7 @@ describe("toPublicVehicleFromAdmin", () => {
       is_featured: false,
       is_weekly_opportunity: false,
       opportunity_deadline: null,
+    auction_awarded_amount: null,
     featured_order: null,
     catalog_order: 1,
     damage_summary: null,

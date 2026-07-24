@@ -13,6 +13,11 @@ import {
 } from "@/modules/inventory/domain/vehicle-labels";
 import { FlagBadge, StatusBadge } from "@/modules/inventory/ui/status-badge";
 import { VehicleActionsMenu } from "@/modules/inventory/ui/vehicle-actions-menu";
+import {
+  formatAuctionAwardedLabel,
+  normalizeAuctionAwardedAmount,
+  resolveAuctionPublicState,
+} from "@/modules/inventory/domain/vehicle-auction";
 
 export const metadata = {
   title: "Admin | Detalle vehículo",
@@ -34,6 +39,18 @@ export default async function AdminVehicleDetailPage({
   const images = await mediaRepo.listVehicleMedia(id);
   const title = formatVehicleTitle(vehicle);
   const cover = images.find((item) => item.is_cover) ?? images[0] ?? null;
+  const auction = resolveAuctionPublicState({
+    is_published: vehicle.is_published,
+    is_weekly_opportunity: vehicle.is_weekly_opportunity,
+    status: vehicle.status,
+    opportunity_deadline: vehicle.opportunity_deadline,
+    auction_awarded_amount: vehicle.auction_awarded_amount,
+    deleted_at: vehicle.deleted_at,
+  });
+  const awardedAmount = normalizeAuctionAwardedAmount(
+    vehicle.auction_awarded_amount,
+  );
+  const awardedLabel = formatAuctionAwardedLabel(awardedAmount);
 
   return (
     <AdminShell title="Detalle">
@@ -93,11 +110,19 @@ export default async function AdminVehicleDetailPage({
               activeLabel="Destacado"
               inactiveLabel="No destacado"
             />
-            <FlagBadge
-              active={vehicle.is_weekly_opportunity}
-              activeLabel="En subasta"
-              inactiveLabel="Sin subasta"
-            />
+            {auction.statusLabel ? (
+              <StatusBadge
+                tone={auction.active ? "success" : "neutral"}
+              >
+                {auction.statusLabel}
+              </StatusBadge>
+            ) : (
+              <FlagBadge
+                active={false}
+                activeLabel="En subasta"
+                inactiveLabel="Sin subasta"
+              />
+            )}
           </div>
 
           <dl className="mt-8 grid gap-4 text-sm sm:grid-cols-2">
@@ -126,6 +151,26 @@ export default async function AdminVehicleDetailPage({
                 {vehicle.public_title || "—"}
               </dd>
             </div>
+            {auction.flagged ? (
+              <>
+                <div>
+                  <dt className="text-ink-muted">Cierre de subasta</dt>
+                  <dd className="font-medium text-ink">
+                    {auction.closesLong ||
+                      auction.closedLong ||
+                      "Pendiente de definir"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-ink-muted">Monto adjudicado</dt>
+                  <dd className="font-medium text-ink">
+                    {auction.closed
+                      ? awardedLabel || "Pendiente de capturar"
+                      : "—"}
+                  </dd>
+                </div>
+              </>
+            ) : null}
           </dl>
 
           <div className="mt-8 flex flex-wrap gap-3">

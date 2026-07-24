@@ -9,6 +9,38 @@ import {
 import { FlagBadge, StatusBadge } from "@/modules/inventory/ui/status-badge";
 import { VehicleActionsMenu } from "@/modules/inventory/ui/vehicle-actions-menu";
 import { VehicleCatalogOrderControls } from "@/modules/inventory/ui/vehicle-catalog-order-controls";
+import { resolveAuctionPublicState } from "@/modules/inventory/domain/vehicle-auction";
+
+function AuctionAdminCell({ vehicle }: { vehicle: AdminVehicleListItem }) {
+  const auction = resolveAuctionPublicState({
+    is_published: vehicle.is_published,
+    is_weekly_opportunity: vehicle.is_weekly_opportunity,
+    status: vehicle.status,
+    opportunity_deadline: vehicle.opportunity_deadline,
+    auction_awarded_amount: vehicle.auction_awarded_amount,
+    deleted_at: vehicle.deleted_at,
+  });
+
+  if (auction.active) {
+    return <StatusBadge tone="success">En subasta</StatusBadge>;
+  }
+  if (auction.closed) {
+    return (
+      <div className="space-y-1">
+        <StatusBadge tone="neutral">Subasta cerrada</StatusBadge>
+        {auction.awardedLabel ? (
+          <p className="text-[11px] text-ink-muted">{auction.awardedLabel}</p>
+        ) : (
+          <p className="text-[11px] text-ink-muted">Monto pendiente</p>
+        )}
+      </div>
+    );
+  }
+  if (auction.flagged && auction.missingDeadline) {
+    return <StatusBadge tone="warning">Sin fecha</StatusBadge>;
+  }
+  return <span className="text-ink-muted">—</span>;
+}
 
 function CoverThumb({
   url,
@@ -139,11 +171,7 @@ export function VehiclesDesktopTable({
                   />
                 </td>
                 <td className="px-4 py-3">
-                  <FlagBadge
-                    active={vehicle.is_weekly_opportunity}
-                    activeLabel="En subasta"
-                    inactiveLabel="—"
-                  />
+                  <AuctionAdminCell vehicle={vehicle} />
                 </td>
                 <td className="px-4 py-3 text-ink-muted">
                   {formatUpdatedAt(vehicle.updated_at)}
@@ -197,11 +225,7 @@ export function VehiclesMobileList({
                     activeLabel="Publicado"
                     inactiveLabel="No publicado"
                   />
-                  <FlagBadge
-                    active={vehicle.is_weekly_opportunity}
-                    activeLabel="En subasta"
-                    inactiveLabel="—"
-                  />
+                  <AuctionAdminCell vehicle={vehicle} />
                 </div>
               </div>
             </div>

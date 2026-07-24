@@ -25,6 +25,7 @@ export function AuctionVehicleCard({
   const vm = buildPublicVehicleViewModel(vehicle, { now });
   if (!vm.auction.includeInAuctionBoard) return null;
 
+  const closed = vm.auction.closed;
   const onDark = variant === "onDark";
   const compact = density === "compact";
   const titleClass = onDark ? "text-text-on-dark" : "text-text-primary";
@@ -38,6 +39,7 @@ export function AuctionVehicleCard({
   const unoptimized = Boolean(
     coverUrl?.includes("/storage/v1/object/public/"),
   );
+  const linkLabel = closed ? "Ver resultado →" : "Ver vehículo →";
 
   return (
     <article
@@ -66,7 +68,13 @@ export function AuctionVehicleCard({
                 Sin foto
               </div>
             )}
-            <VehicleAvailabilityBadge status={vehicle.status} size="card" />
+            {closed ? (
+              <span className="absolute left-1.5 top-1.5 bg-black/75 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
+                Subasta cerrada
+              </span>
+            ) : (
+              <VehicleAvailabilityBadge status={vehicle.status} size="card" />
+            )}
           </div>
           <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 py-0.5">
             {vm.categoryLabel ? (
@@ -80,19 +88,42 @@ export function AuctionVehicleCard({
               {vm.title}
             </h3>
             {spec ? <p className={`text-[13px] ${bodyClass}`}>{spec}</p> : null}
-            <p className={`text-[15px] font-semibold ${titleClass}`}>
-              {vm.listPriceLabel ?? "Precio por confirmar"}
-            </p>
-            {vm.auction.closesLabel ? (
-              <p className={`text-[12px] ${bodyClass}`}>{vm.auction.closesLabel}</p>
-            ) : null}
+            {closed ? (
+              <>
+                {vm.auction.closedLabel ? (
+                  <p className={`text-[12px] ${bodyClass}`}>
+                    {vm.auction.closedLabel}
+                  </p>
+                ) : null}
+                {vm.auction.awardedLabel ? (
+                  <p className={`text-[13px] font-semibold ${titleClass}`}>
+                    {vm.auction.awardedLabel}
+                  </p>
+                ) : (
+                  <p className={`text-[12px] ${bodyClass}`}>
+                    Resultado pendiente de publicación
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <p className={`text-[15px] font-semibold ${titleClass}`}>
+                  {vm.listPriceLabel ?? "Precio por confirmar"}
+                </p>
+                {vm.auction.closesLabel ? (
+                  <p className={`text-[12px] ${bodyClass}`}>
+                    {vm.auction.closesLabel}
+                  </p>
+                ) : null}
+              </>
+            )}
             {vm.locationLabel ? (
               <p className={`text-[12px] font-medium ${titleClass}`}>
                 {vm.locationLabel}
               </p>
             ) : null}
             <span className="pt-0.5 text-[12px] font-semibold uppercase tracking-wide text-brand-red">
-              Ver vehículo →
+              {linkLabel}
             </span>
           </div>
         </div>
@@ -121,7 +152,13 @@ export function AuctionVehicleCard({
                 Sin imagen
               </div>
             )}
-            <VehicleAvailabilityBadge status={vehicle.status} size="card" />
+            {closed ? (
+              <span className="absolute left-3 top-3 bg-black/75 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white">
+                Subasta cerrada
+              </span>
+            ) : (
+              <VehicleAvailabilityBadge status={vehicle.status} size="card" />
+            )}
           </div>
           <div className={compact ? "space-y-1 p-3.5" : "space-y-2 p-5"}>
             {vm.categoryLabel ? (
@@ -147,23 +184,59 @@ export function AuctionVehicleCard({
                 {spec}
               </p>
             ) : null}
-            <p
-              className={`font-semibold ${titleClass} ${
-                compact ? "text-sm" : "text-sm"
-              }`}
-            >
-              {vm.listPriceLabel ?? "Precio por confirmar"}
-            </p>
-            {vm.auction.badgeLabel ? (
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-red">
-                {vm.auction.badgeLabel}
-              </p>
-            ) : null}
-            {vm.auction.closesLabel ? (
-              <p className={`${bodyClass} ${compact ? "text-xs" : "text-sm"}`}>
-                {vm.auction.closesLabel}
-              </p>
-            ) : null}
+            {closed ? (
+              <>
+                {vm.auction.badgeLabel ? (
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                    {vm.auction.badgeLabel}
+                  </p>
+                ) : null}
+                {vm.auction.closedLabel ? (
+                  <p
+                    className={`${bodyClass} ${compact ? "text-xs" : "text-sm"}`}
+                  >
+                    {vm.auction.closedLabel}
+                  </p>
+                ) : null}
+                {vm.auction.awardedLabel ? (
+                  <p
+                    className={`font-semibold ${titleClass} ${
+                      compact ? "text-sm" : "text-sm"
+                    }`}
+                  >
+                    {vm.auction.awardedLabel}
+                  </p>
+                ) : (
+                  <p
+                    className={`${bodyClass} ${compact ? "text-xs" : "text-sm"}`}
+                  >
+                    Resultado pendiente de publicación
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <p
+                  className={`font-semibold ${titleClass} ${
+                    compact ? "text-sm" : "text-sm"
+                  }`}
+                >
+                  {vm.listPriceLabel ?? "Precio por confirmar"}
+                </p>
+                {vm.auction.badgeLabel ? (
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-red">
+                    {vm.auction.badgeLabel}
+                  </p>
+                ) : null}
+                {vm.auction.closesLabel ? (
+                  <p
+                    className={`${bodyClass} ${compact ? "text-xs" : "text-sm"}`}
+                  >
+                    {vm.auction.closesLabel}
+                  </p>
+                ) : null}
+              </>
+            )}
             {vm.locationLabel ? (
               <p
                 className={`font-medium ${titleClass} ${
@@ -178,7 +251,7 @@ export function AuctionVehicleCard({
                 compact ? "pt-1 text-xs" : "pt-2 text-sm"
               }`}
             >
-              Ver vehículo →
+              {linkLabel}
             </span>
           </div>
         </div>

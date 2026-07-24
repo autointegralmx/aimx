@@ -159,6 +159,40 @@ export const vehicleWriteObjectSchema = z.object({
     })
     .optional()
     .nullable(),
+  /**
+   * Monto de adjudicación (subasta cerrada). Null = pendiente / sin capturar.
+   * No reutiliza price_amount ni internal_price. Captura UI/servidor: > 0 o null.
+   */
+  auction_awarded_amount: z
+    .number()
+    .finite()
+    .max(999_999_999_999.99)
+    .optional()
+    .nullable()
+    .superRefine((value, ctx) => {
+      if (value === null || value === undefined) return;
+      if (value < 0) {
+        ctx.addIssue({
+          code: "custom",
+          message: "El monto de adjudicación no puede ser negativo.",
+        });
+        return;
+      }
+      if (value === 0) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Captura un monto mayor a 0 o deja el campo vacío.",
+        });
+        return;
+      }
+      const scaled = value * 100;
+      if (Math.abs(scaled - Math.round(scaled)) > 1e-6) {
+        ctx.addIssue({
+          code: "custom",
+          message: "El monto de adjudicación admite máximo dos decimales.",
+        });
+      }
+    }),
   featured_order: z.number().int().min(0).optional().nullable(),
   damage_summary: optionalText(500),
   condition_notes: optionalText(300),
@@ -194,9 +228,18 @@ function refineVehicleWrite(
     is_published?: boolean;
     is_weekly_opportunity?: boolean;
     opportunity_deadline?: string | null;
+    auction_awarded_amount?: number | null;
   },
   ctx: z.RefinementCtx,
+  options?: {
+    /** Create / new deadline: must be future. Updates may preserve an expired deadline. */
+    requireFutureDeadline?: boolean;
+    now?: Date;
+  },
 ) {
+  const now = options?.now ?? new Date();
+  const requireFutureDeadline = options?.requireFutureDeadline !== false;
+
   if (value.is_published) {
     if (
       value.status !== "available" &&
@@ -244,11 +287,34 @@ function refineVehicleWrite(
           path: ["opportunity_deadline"],
           message: "Fecha de cierre de subasta inválida.",
         });
-      } else if (endMs <= Date.now()) {
+      } else if (requireFutureDeadline && endMs <= now.getTime()) {
         ctx.addIssue({
           code: "custom",
           path: ["opportunity_deadline"],
           message: "La fecha de cierre debe ser futura.",
+        });
+      }
+    }
+  }
+
+  if (
+    value.auction_awarded_amount !== undefined &&
+    value.auction_awarded_amount !== null
+  ) {
+    const amount = value.auction_awarded_amount;
+    if (!Number.isFinite(amount) || amount < 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["auction_awarded_amount"],
+        message: "Monto de adjudicación inválido.",
+      });
+    } else if (amount > 0) {
+      const cents = Math.round(amount * 100);
+      if (Math.abs(amount * 100 - cents) > 1e-6) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["auction_awarded_amount"],
+          message: "El monto de adjudicación admite máximo dos decimales.",
         });
       }
     }
@@ -310,7 +376,10 @@ export function parseVehicleUpdateInput(input: unknown): {
       } as z.ZodIssue);
     },
   };
-  refineVehicleWrite(data, ctx as unknown as z.RefinementCtx);
+  refineVehicleWrite(data, ctx as unknown as z.RefinementCtx, {
+    // Partial updates may preserve an already-expired deadline to capture award.
+    requireFutureDeadline: false,
+  });
 
   if (issues.length > 0) {
     return { success: false, error: new z.ZodError(issues) };

@@ -136,10 +136,29 @@ export function PublicVehicleDetail({
               </div>
             ) : null}
 
-            {!vm.auction.active && vm.auction.ended ? (
-              <p className="text-sm font-medium text-text-secondary">
-                Subasta finalizada
-              </p>
+            {vm.auction.closed ? (
+              <div className="border border-border-subtle bg-surface-secondary px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                  Subasta cerrada
+                </p>
+                {vm.auction.closedLong ? (
+                  <p className="mt-1 text-sm text-text-secondary">
+                    Cerró el {vm.auction.closedLong}
+                  </p>
+                ) : null}
+                {vm.auction.awardedLabel ? (
+                  <p className="mt-2 text-sm font-semibold text-text-primary">
+                    {vm.auction.awardedLabel}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-sm text-text-secondary">
+                    Resultado pendiente de publicación
+                  </p>
+                )}
+                <p className="mt-2 text-sm text-text-secondary">
+                  Esta subasta ya finalizó y no admite nuevas participaciones.
+                </p>
+              </div>
             ) : null}
 
             {vm.operationalBadges.length > 0 ||
@@ -223,15 +242,34 @@ export function PublicVehicleDetail({
               </section>
             ) : null}
 
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-primary inline-flex w-full justify-center"
-              data-testid="vehicle-whatsapp-cta"
-            >
-              {vm.ctaLabel}
-            </a>
+            {vm.auction.canParticipate ? (
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-primary inline-flex w-full justify-center"
+                data-testid="vehicle-whatsapp-cta"
+              >
+                {vm.ctaLabel}
+              </a>
+            ) : vm.auction.closed ? (
+              <Link
+                href="/subastas"
+                className="btn-secondary inline-flex w-full justify-center"
+              >
+                Consultar unidades disponibles
+              </Link>
+            ) : (
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-primary inline-flex w-full justify-center"
+                data-testid="vehicle-whatsapp-cta"
+              >
+                {vm.ctaLabel}
+              </a>
+            )}
 
             {!preview ? (
               <Link

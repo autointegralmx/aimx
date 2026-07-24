@@ -18,6 +18,7 @@ import {
   buildUnpublishPatch,
 } from "@/modules/inventory/domain/vehicle-lifecycle";
 import { resolvePublicCopyFields } from "@/modules/inventory/domain/vehicle-auto-copy";
+import { applyAuctionUpdateRules } from "@/modules/inventory/domain/auction-update-rules";
 import { assertCanPublish } from "@/modules/inventory/domain/vehicle-status";
 import { writeAuditEvent } from "@/modules/inventory/infrastructure/audit";
 import type {
@@ -215,6 +216,22 @@ export async function updateVehicleUseCase(
   payload.seo_description = copy.seo_description;
   payload.price_label = copy.price_label;
 
+  const previousAwarded = current.auction_awarded_amount ?? null;
+  Object.assign(
+    payload,
+    applyAuctionUpdateRules(
+      {
+        is_published: current.is_published,
+        is_weekly_opportunity: current.is_weekly_opportunity,
+        opportunity_deadline: current.opportunity_deadline,
+        auction_awarded_amount: current.auction_awarded_amount,
+        status: current.status,
+        deleted_at: current.deleted_at,
+      },
+      payload,
+    ),
+  );
+
   // Opportunity/featured intent may be stored on drafts; public queries
   // only surface them when is_published (and not expired) is true.
 
@@ -225,6 +242,12 @@ export async function updateVehicleUseCase(
       actorId: profile.id,
     });
   }
+
+  const awardChanged =
+    payload.auction_awarded_amount !== undefined &&
+    String(previousAwarded ?? "") !==
+      String(vehicle.auction_awarded_amount ?? "");
+
   await writeAuditEvent(ctx.client, {
     actorId: profile.id,
     action: "update_vehicle",
@@ -234,6 +257,14 @@ export async function updateVehicleUseCase(
       slug: vehicle.slug,
       status: vehicle.status,
       is_published: vehicle.is_published,
+      ...(awardChanged
+        ? {
+            operation: "set_auction_awarded_amount",
+            previous_amount: previousAwarded,
+            new_amount: vehicle.auction_awarded_amount,
+            opportunity_deadline: vehicle.opportunity_deadline,
+          }
+        : {}),
     },
   });
   return vehicle;

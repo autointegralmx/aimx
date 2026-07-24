@@ -63,6 +63,7 @@ function sampleVehicle(
     is_featured: false,
     is_weekly_opportunity: false,
     opportunity_deadline: null,
+    auction_awarded_amount: null,
     catalog_order: 1,
     featured_order: null,
     public_title: "Toyota Corolla",

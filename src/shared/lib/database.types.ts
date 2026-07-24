@@ -367,6 +367,7 @@ export type Database = {
           is_featured: boolean
           is_published: boolean
           is_weekly_opportunity: boolean
+          auction_awarded_amount: number | null
           location_label: string | null
           make: string
           mileage_km: number | null
@@ -423,6 +424,7 @@ export type Database = {
           is_featured?: boolean
           is_published?: boolean
           is_weekly_opportunity?: boolean
+          auction_awarded_amount?: number | null
           location_label?: string | null
           make: string
           mileage_km?: number | null
@@ -479,6 +481,7 @@ export type Database = {
           is_featured?: boolean
           is_published?: boolean
           is_weekly_opportunity?: boolean
+          auction_awarded_amount?: number | null
           location_label?: string | null
           make?: string
           mileage_km?: number | null
@@ -551,6 +554,7 @@ export type Database = {
           invoice_type: string | null
           is_featured: boolean | null
           is_weekly_opportunity: boolean | null
+          auction_awarded_amount: number | null
           location_label: string | null
           make: string | null
           mileage_km: number | null
@@ -596,6 +600,7 @@ export type Database = {
           invoice_type?: string | null
           is_featured?: boolean | null
           is_weekly_opportunity?: boolean | null
+          auction_awarded_amount?: number | null
           location_label?: string | null
           make?: string | null
           mileage_km?: number | null
@@ -641,6 +646,7 @@ export type Database = {
           invoice_type?: string | null
           is_featured?: boolean | null
           is_weekly_opportunity?: boolean | null
+          auction_awarded_amount?: number | null
           location_label?: string | null
           make?: string | null
           mileage_km?: number | null

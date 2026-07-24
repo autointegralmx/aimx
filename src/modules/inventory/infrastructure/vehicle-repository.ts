@@ -12,7 +12,12 @@ import {
 } from "@/modules/inventory/domain/admin-list-filters";
 import { buildVehicleSlug } from "@/modules/inventory/domain/slug";
 import type { VehicleLifecyclePatch } from "@/modules/inventory/domain/vehicle-lifecycle";
-import { isAuctionActive, isPublicOwnedInventoryVehicle } from "@/modules/inventory/domain/vehicle-auction";
+import {
+  isPublicOwnedInventoryVehicle,
+  normalizeAuctionAwardedAmount,
+  resolveAuctionPublicState,
+  sortAuctionBoardVehicles,
+} from "@/modules/inventory/domain/vehicle-auction";
 import {
   nextCatalogOrderAfterMax,
   sortPublicVehiclesAvailabilityFirst,
@@ -43,6 +48,7 @@ export const ADMIN_VEHICLE_LIST_COLUMNS = [
   "is_featured",
   "is_weekly_opportunity",
   "opportunity_deadline",
+  "auction_awarded_amount",
   "catalog_order",
   "featured_order",
   "public_title",
@@ -74,6 +80,7 @@ export const PUBLIC_VEHICLE_BASE_COLUMNS = [
   "is_featured",
   "is_weekly_opportunity",
   "opportunity_deadline",
+  "auction_awarded_amount",
   "featured_order",
   "catalog_order",
   "damage_summary",
@@ -158,6 +165,9 @@ function normalizePublicVehicle(
   if (!row) return null;
   return {
     ...row,
+    auction_awarded_amount: normalizeAuctionAwardedAmount(
+      row.auction_awarded_amount as number | string | null | undefined,
+    ),
     starts_status: row.starts_status ?? "unknown",
     drives_status: row.drives_status ?? "unknown",
     has_keys_status: row.has_keys_status ?? "unknown",
@@ -862,9 +872,15 @@ export function createVehicleRepository(
       limit?: number;
       /** Home: solo unidades marcadas Destacado en canal subasta. */
       featured?: boolean;
+      /**
+       * `active` (default): solo subastas vigentes (home).
+       * `all`: activas + cerradas para /subastas historial.
+       */
+      scope?: "active" | "all";
       now?: Date;
     }): Promise<PublicVehicle[]> {
       const now = input?.now ?? new Date();
+      const scope = input?.scope ?? "active";
       const hasLimit = typeof input?.limit === "number" && input.limit > 0;
       const nowIso = now.toISOString();
 
@@ -873,8 +889,15 @@ export function createVehicleRepository(
           .from("vehicles_public")
           .select(columns)
           .eq("is_weekly_opportunity", true)
-          .eq("status", "available")
-          .gt("opportunity_deadline", nowIso);
+          .in(
+            "status",
+            scope === "all" ? ["available", "reserved"] : ["available"],
+          );
+        if (scope === "active") {
+          query = query.gt("opportunity_deadline", nowIso);
+        } else {
+          query = query.not("opportunity_deadline", "is", null);
+        }
         if (input?.featured === true) {
           query = query.eq("is_featured", true);
         }
@@ -888,14 +911,15 @@ export function createVehicleRepository(
             });
         } else {
           query = query
-            .order("catalog_order", { ascending: true })
             .order("opportunity_deadline", {
-              ascending: true,
+              ascending: scope === "active",
               nullsFirst: false,
             })
+            .order("catalog_order", { ascending: true })
             .order("published_at", { ascending: false, nullsFirst: false });
         }
-        if (hasLimit) {
+        // For scope=all we sort in memory after domain filter; still fetch all candidates.
+        if (hasLimit && scope === "active") {
           query = query.limit(input!.limit!);
         }
         return query;
@@ -919,15 +943,29 @@ export function createVehicleRepository(
         .map((row) => normalizePublicVehicle(row))
         .filter((row): row is PublicVehicle => row != null);
 
-      return rows.filter((row) =>
-        isAuctionActive({
-          is_published: true,
-          is_weekly_opportunity: Boolean(row.is_weekly_opportunity),
-          status: (row.status ?? "draft") as VehicleStatus,
-          opportunity_deadline: row.opportunity_deadline,
+      const board = rows.filter((row) => {
+        const state = resolveAuctionPublicState(
+          {
+            is_published: true,
+            is_weekly_opportunity: Boolean(row.is_weekly_opportunity),
+            status: (row.status ?? "draft") as VehicleStatus,
+            opportunity_deadline: row.opportunity_deadline,
+            auction_awarded_amount: row.auction_awarded_amount,
+            now,
+          },
           now,
-        }),
-      );
+        );
+        if (scope === "active") return state.active;
+        return state.includeInAuctionBoard;
+      });
+
+      const sorted =
+        scope === "all" ? sortAuctionBoardVehicles(board, now) : board;
+
+      if (hasLimit && scope === "all") {
+        return sorted.slice(0, input!.limit!);
+      }
+      return sorted;
     },
 
     /** @deprecated use listActiveAuctions */
