@@ -39,15 +39,10 @@ function AuctionAdminCell({ vehicle }: { vehicle: AdminVehicleListItem }) {
     return <StatusBadge tone="success">En subasta</StatusBadge>;
   }
   if (auction.closed) {
-    return (
-      <div className="space-y-1">
-        <StatusBadge tone="neutral">Subasta cerrada</StatusBadge>
-        {auction.awardedLabel ? (
-          <p className="text-[11px] text-ink-muted">{auction.awardedLabel}</p>
-        ) : (
-          <p className="text-[11px] text-ink-muted">Monto pendiente</p>
-        )}
-      </div>
+    return auction.awardedLabel ? (
+      <p className="text-xs text-ink">{auction.awardedLabel}</p>
+    ) : (
+      <p className="text-xs text-ink-muted">Monto pendiente</p>
     );
   }
   if (auction.flagged && auction.missingDeadline) {
