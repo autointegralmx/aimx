@@ -66,56 +66,58 @@ function HeroFeaturedUnit({
   const unoptimized = Boolean(
     coverUrl?.includes("/storage/v1/object/public/"),
   );
+  const spec = [vm.year, vehicle.transmission].filter(Boolean).join(" · ");
 
   return (
     <Link
       href={`/vehiculos/${vm.slug}`}
-      className="group relative block aspect-[4/5] overflow-hidden bg-surface-secondary sm:aspect-[5/6]"
+      className="group card-editorial block max-w-xl lg:ml-auto lg:max-w-none"
     >
-      {coverUrl ? (
-        <Image
-          src={coverUrl}
-          alt={vm.title}
-          fill
-          priority
-          sizes="(max-width: 1024px) 100vw, 55vw"
-          className="img-zoom object-cover"
-          unoptimized={unoptimized}
-        />
-      ) : (
-        <Image
-          src="/brand/hero-light.png"
-          alt=""
-          fill
-          priority
-          sizes="(max-width: 1024px) 100vw, 55vw"
-          className="object-cover"
-        />
-      )}
-      <div
-        className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"
-        aria-hidden
-      />
-      <div className="absolute inset-x-0 bottom-0 p-5 text-white md:p-7">
-        {vm.categoryLabel ? (
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/80">
-            {vm.categoryLabel}
+      <div className="relative aspect-[16/10] overflow-hidden bg-surface-secondary">
+        {coverUrl ? (
+          <Image
+            src={coverUrl}
+            alt={vm.title}
+            fill
+            priority
+            sizes="(max-width: 1024px) 100vw, 42vw"
+            className="img-zoom object-cover"
+            unoptimized={unoptimized}
+          />
+        ) : (
+          <Image
+            src="/brand/hero-light.png"
+            alt=""
+            fill
+            priority
+            sizes="(max-width: 1024px) 100vw, 42vw"
+            className="object-cover"
+          />
+        )}
+      </div>
+      <div className="flex items-end justify-between gap-4 px-4 py-3.5 md:px-5 md:py-4">
+        <div className="min-w-0">
+          {vm.categoryLabel ? (
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-red">
+              {vm.categoryLabel}
+            </p>
+          ) : null}
+          <h2 className="mt-1 truncate text-[15px] font-semibold tracking-tight text-text-primary md:text-base">
+            {vm.title}
+          </h2>
+          <p className="mt-0.5 text-[13px] text-text-secondary">
+            {[spec, vm.listPriceLabel ?? "Precio por confirmar"]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
-        ) : null}
-        <h2 className="mt-1 text-xl font-semibold tracking-tight md:text-2xl">
-          {vm.title}
-        </h2>
-        <p className="mt-1 text-sm text-white/80">
-          {[vm.year, vehicle.transmission].filter(Boolean).join(" · ")}
-        </p>
-        <p className="mt-3 text-lg font-semibold">
-          {vm.listPriceLabel ?? "Precio por confirmar"}
-        </p>
-        {vm.auction.active && vm.auction.closesLabel ? (
-          <p className="mt-1 text-sm text-white/85">{vm.auction.closesLabel}</p>
-        ) : null}
-        <span className="mt-4 inline-flex text-sm font-semibold text-white">
-          Consultar unidad →
+          {vm.auction.active && vm.auction.closesLabel ? (
+            <p className="mt-1 text-[12px] text-brand-red">
+              {vm.auction.closesLabel}
+            </p>
+          ) : null}
+        </div>
+        <span className="shrink-0 pb-0.5 text-sm font-semibold text-brand-red">
+          Consultar →
         </span>
       </div>
     </Link>
@@ -134,18 +136,18 @@ export async function HomePage() {
       <main>
         {/* Hero showroom */}
         <section className="section-light">
-          <div className="container-site grid items-center gap-10 py-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14 lg:py-16 xl:py-20">
-            <div className="order-1 max-w-xl">
+          <div className="container-site grid items-center gap-8 py-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12 lg:py-12 xl:py-14">
+            <div className="order-1 max-w-lg">
               <p className="label-eyebrow">Vehículos de aseguradora</p>
-              <h1 className="text-hero mt-4 text-text-primary">
+              <h1 className="text-hero mt-3 text-text-primary">
                 Encuentra una mejor oportunidad para comprar tu próximo
                 vehículo.
               </h1>
-              <p className="text-body-editorial mt-5 max-w-[36ch] text-text-secondary">
+              <p className="mt-4 max-w-[38ch] text-[16px] leading-relaxed text-text-secondary md:text-[17px]">
                 Accedemos a cientos de unidades cada semana y te acompañamos
                 desde la búsqueda hasta la compra.
               </p>
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <WhatsAppCta message={whatsappMessages.search}>
                   Buscar mi vehículo
                 </WhatsAppCta>
@@ -153,7 +155,7 @@ export async function HomePage() {
                   Ver vehículos en subasta
                 </Link>
               </div>
-              <p className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-2 text-[12px] text-text-secondary md:text-[13px]">
+              <p className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] text-text-secondary">
                 <span>300–400 unidades por semana</span>
                 <span className="hidden text-border-subtle sm:inline" aria-hidden>
                   |
@@ -173,13 +175,13 @@ export async function HomePage() {
                   coverUrl={featuredUnit.coverUrl}
                 />
               ) : (
-                <div className="relative aspect-[4/5] overflow-hidden bg-surface-secondary sm:aspect-[5/6]">
+                <div className="relative mx-auto aspect-[16/10] max-w-xl overflow-hidden bg-surface-secondary lg:ml-auto lg:max-w-none">
                   <Image
                     src="/brand/hero-light.png"
                     alt="Auto Integral — showroom"
                     fill
                     priority
-                    sizes="(max-width: 1024px) 100vw, 55vw"
+                    sizes="(max-width: 1024px) 100vw, 42vw"
                     className="object-cover object-[58%_42%]"
                   />
                 </div>

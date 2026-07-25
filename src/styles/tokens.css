@@ -57,8 +57,8 @@
   --shadow-editorial: 0 12px 40px rgb(13 15 17 / 0.06);
 
   /* Escala tipográfica editorial */
-  --text-hero: clamp(2.375rem, 5vw, 4.75rem);
-  --text-h2: clamp(1.875rem, 3.5vw, 3.25rem);
+  --text-hero: clamp(2.25rem, 4.2vw, 3.75rem);
+  --text-h2: clamp(1.75rem, 3vw, 2.75rem);
   --text-h3: clamp(1.375rem, 2vw, 1.75rem);
   --text-body: clamp(1.0625rem, 1.1vw, 1.25rem);
   --text-meta: 0.8125rem;
@@ -66,11 +66,11 @@
 
 @media (max-width: 767px) {
   .text-hero {
-    font-size: clamp(2.375rem, 8vw, 3.125rem);
+    font-size: clamp(2rem, 7vw, 2.625rem);
   }
 
   .text-h2 {
-    font-size: clamp(1.875rem, 6vw, 2.375rem);
+    font-size: clamp(1.625rem, 5.5vw, 2.125rem);
   }
 
   body {
@@ -115,9 +115,9 @@
   /* Títulos de sección: editorial, sin forzar mayúsculas */
   .text-hero {
     font-size: var(--text-hero);
-    line-height: 1;
-    letter-spacing: -0.03em;
-    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: -0.028em;
+    font-weight: 600;
   }
 
   .text-h2 {
