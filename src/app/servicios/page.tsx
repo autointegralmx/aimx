@@ -35,19 +35,19 @@ const highlights = [
 export default function ServiciosPage() {
   return (
     <PublicShell
+      variant="compact"
       eyebrow="Servicios"
-      title="Servicios automotrices"
-      description="Todo lo que tu vehículo necesita."
+      title="Soluciones para tu vehículo."
+      description="Diagnóstico, mecánica, estética y programación de llaves con atención directa."
     >
-      <section className="mt-12">
-        <h2 className="text-h3 text-text-primary">Todos nuestros servicios</h2>
-        <ul className="mt-6 grid grid-cols-2 gap-x-3 gap-y-2.5 md:mt-8 md:gap-4 lg:grid-cols-3">
+      <section>
+        <ul className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
           {automotiveServices.map((label) => (
             <li
               key={label}
-              className="flex items-start gap-2 text-[15px] text-text-secondary md:gap-3 md:text-sm"
+              className="flex items-start gap-2 border-t border-border-subtle pt-3 text-[15px] text-text-secondary"
             >
-              <IconCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-red md:h-5 md:w-5" />
+              <IconCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-red" />
               <span>{label}</span>
             </li>
           ))}
@@ -55,15 +55,12 @@ export default function ServiciosPage() {
         <WhatsAppCta message={whatsappMessages.services} className="mt-10" />
       </section>
 
-      <section className="mt-20 border-t border-border-subtle pt-16">
+      <section className="mt-16 border-t border-border-subtle pt-12 md:mt-20 md:pt-16">
         <h2 className="text-h3 text-text-primary">Más detalle</h2>
-        <p className="mt-3 max-w-2xl text-sm text-text-secondary">
-          Información adicional sobre algunos de nuestros servicios.
-        </p>
-        <div className="mt-10 grid gap-8 md:grid-cols-3">
+        <div className="mt-10 grid gap-10 md:grid-cols-3">
           {highlights.map((item) => (
-            <article key={item.id}>
-              <h3 className="text-base font-bold uppercase tracking-wide text-text-primary">
+            <article key={item.id} className="border-t border-border-subtle pt-5">
+              <h3 className="text-base font-semibold tracking-tight text-text-primary">
                 {item.title}
               </h3>
               <p className="mt-3 text-sm leading-relaxed text-text-secondary">
@@ -71,9 +68,12 @@ export default function ServiciosPage() {
               </p>
               <WhatsAppCta
                 message={buildServiceWhatsAppMessage(item.title)}
+                variant="secondary"
                 className="mt-5"
                 aria-label={`Quiero más información sobre ${item.title}`}
-              />
+              >
+                Consultar
+              </WhatsAppCta>
             </article>
           ))}
         </div>

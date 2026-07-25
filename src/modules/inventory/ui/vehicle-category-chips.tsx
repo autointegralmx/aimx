@@ -11,8 +11,8 @@ const chips = [
 ];
 
 /**
- * Mobile category chips — horizontal scroll, sticky under header.
- * Hidden on desktop (md+); desktop keeps existing category buttons.
+ * Menú local de categorías — visible en móvil y escritorio,
+ * sticky bajo el header para cambiar sin subir al nav principal.
  */
 export function VehicleCategoryChips({
   className = "",
@@ -23,25 +23,25 @@ export function VehicleCategoryChips({
 
   return (
     <div
-      className={`sticky top-14 z-40 -mx-4 border-b border-border-subtle bg-page-background/95 px-4 py-2.5 backdrop-blur-sm md:hidden ${className}`}
+      className={`sticky top-[4.25rem] z-30 -mx-4 border-b border-border-subtle bg-page-background/95 px-4 py-3 md:top-[4.5rem] md:mx-0 md:border md:border-border-subtle md:bg-surface-primary md:px-1 md:py-1 ${className}`}
     >
       <nav
-        aria-label="Categorías"
-        className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        aria-label="Categorías de vehículos"
+        className="flex gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] md:flex-wrap md:overflow-visible [&::-webkit-scrollbar]:hidden"
       >
         {chips.map((chip) => {
           const active =
             chip.href === "/vehiculos"
-              ? pathname === "/vehiculos"
+              ? pathname === "/vehiculos" || pathname === "/"
               : pathname.startsWith(chip.href);
           return (
             <Link
               key={chip.href}
               href={chip.href}
-              className={`inline-flex shrink-0 items-center rounded-full border px-3.5 py-1.5 text-[13px] font-semibold uppercase tracking-wide transition-colors ${
+              className={`touch-target inline-flex shrink-0 items-center px-3.5 text-[13px] font-semibold tracking-wide transition-colors md:px-4 md:text-[14px] ${
                 active
-                  ? "border-brand-red bg-brand-red text-white"
-                  : "border-border-subtle bg-surface-primary text-text-primary"
+                  ? "bg-brand-black text-white"
+                  : "text-text-secondary hover:bg-surface-secondary hover:text-text-primary"
               }`}
             >
               {chip.label}

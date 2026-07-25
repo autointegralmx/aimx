@@ -2,7 +2,8 @@
 
 /*
   Design tokens — Auto Integral
-  Referencia visual aprobada: ~70% claro / ~30% oscuro / rojo acento
+  Dirección: “Showroom editorial automotriz”
+  ~70% claro / ~30% oscuro / rojo acento puntual
 */
 
 @theme {
@@ -49,33 +50,32 @@
   --color-line: #dadcdd;
   --color-chrome-dim: #8c9198;
 
-  --radius-card: 0.75rem;
+  --radius-card: 0.5rem;
   --radius-sm: 0.125rem;
   --radius-md: 0.25rem;
-  --shadow-card: 0 8px 30px rgb(13 15 17 / 0.06);
+  --shadow-card: 0 1px 0 rgb(13 15 17 / 0.04);
+  --shadow-editorial: 0 12px 40px rgb(13 15 17 / 0.06);
 
-  --text-hero: clamp(2.5rem, 4.2vw, 3.75rem);
-  --text-h2: clamp(2.125rem, 4.5vw, 3.625rem);
-  --text-h3: clamp(1.5rem, 2.5vw, 2.125rem);
+  /* Escala tipográfica editorial */
+  --text-hero: clamp(2.375rem, 5vw, 4.75rem);
+  --text-h2: clamp(1.875rem, 3.5vw, 3.25rem);
+  --text-h3: clamp(1.375rem, 2vw, 1.75rem);
+  --text-body: clamp(1.0625rem, 1.1vw, 1.25rem);
+  --text-meta: 0.8125rem;
 }
 
-/* Mobile-first density (≤767px). Desktop tokens remain for md+. */
 @media (max-width: 767px) {
   .text-hero {
-    font-size: 2.125rem;
+    font-size: clamp(2.375rem, 8vw, 3.125rem);
   }
 
   .text-h2 {
-    font-size: 1.875rem;
-  }
-
-  .text-h3 {
-    font-size: 1.75rem;
+    font-size: clamp(1.875rem, 6vw, 2.375rem);
   }
 
   body {
     font-size: 16px;
-    line-height: 1.5;
+    line-height: 1.55;
   }
 }
 
@@ -101,8 +101,8 @@
   body {
     @apply bg-page-background text-text-primary antialiased;
     font-family: var(--font-sans);
-    font-size: 16px;
-    line-height: 1.6;
+    font-size: 17px;
+    line-height: 1.65;
   }
 
   :focus-visible {
@@ -112,35 +112,43 @@
 }
 
 @layer utilities {
+  /* Títulos de sección: editorial, sin forzar mayúsculas */
   .text-hero {
     font-size: var(--text-hero);
-    line-height: 0.98;
-    letter-spacing: -0.01em;
-    font-weight: 800;
-    text-transform: uppercase;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-weight: 700;
   }
 
   .text-h2 {
     font-size: var(--text-h2);
-    line-height: 1.05;
-    letter-spacing: -0.01em;
-    font-weight: 700;
-    text-transform: uppercase;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+    font-weight: 600;
   }
 
   .text-h3 {
     font-size: var(--text-h3);
-    line-height: 1.15;
-    font-weight: 700;
-    text-transform: uppercase;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+
+  .text-body-editorial {
+    font-size: var(--text-body);
+    line-height: 1.65;
   }
 
   .label-eyebrow {
-    @apply text-xs font-semibold uppercase tracking-[0.18em] text-brand-red;
+    @apply text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-red md:text-xs;
+  }
+
+  .label-eyebrow-muted {
+    @apply text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary md:text-xs;
   }
 
   .container-site {
-    @apply mx-auto w-full max-w-6xl px-4 sm:px-8 lg:px-10;
+    @apply mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-10;
   }
 
   .touch-target {
@@ -149,23 +157,73 @@
   }
 
   .section-pad {
-    @apply py-12 md:py-28;
+    @apply py-14 md:py-24 lg:py-28;
+  }
+
+  .section-pad-compact {
+    @apply py-10 md:py-16;
+  }
+
+  .section-light {
+    @apply bg-page-background text-text-primary;
+  }
+
+  .section-paper {
+    @apply bg-surface-primary text-text-primary;
+  }
+
+  .section-muted {
+    @apply bg-surface-secondary text-text-primary;
+  }
+
+  .section-dark {
+    @apply bg-surface-dark text-text-on-dark;
+  }
+
+  .divider-hairline {
+    @apply border-t border-border-subtle;
+  }
+
+  .card-editorial {
+    @apply overflow-hidden border border-border-subtle bg-surface-primary transition-[border-color,box-shadow,transform] duration-200;
+  }
+
+  .card-editorial-dark {
+    @apply overflow-hidden border border-border-dark bg-surface-dark-elevated transition-[border-color,box-shadow,transform] duration-200;
+  }
+
+  .meta-line {
+    @apply text-[13px] leading-snug text-text-secondary md:text-sm;
   }
 
   .btn-primary {
-    @apply inline-flex min-h-10 min-w-11 items-center justify-center border border-brand-red bg-brand-red px-4 text-[15px] font-semibold uppercase tracking-wide text-white transition-colors hover:border-brand-red-hover hover:bg-brand-red-hover md:min-h-12 md:px-6;
+    @apply inline-flex min-h-11 min-w-11 items-center justify-center border border-brand-red bg-brand-red px-5 text-[14px] font-semibold tracking-wide text-white transition-colors duration-200 hover:border-brand-red-hover hover:bg-brand-red-hover md:min-h-12 md:px-6 md:text-[15px];
   }
 
   .btn-secondary {
-    @apply inline-flex min-h-10 min-w-11 items-center justify-center border border-brand-black bg-surface-primary px-4 text-[15px] font-semibold uppercase tracking-wide text-brand-black transition-colors hover:bg-surface-secondary md:min-h-12 md:px-6;
+    @apply inline-flex min-h-11 min-w-11 items-center justify-center border border-brand-black/80 bg-transparent px-5 text-[14px] font-semibold tracking-wide text-brand-black transition-colors duration-200 hover:bg-brand-black hover:text-white md:min-h-12 md:px-6 md:text-[15px];
   }
 
   .btn-dark {
-    @apply inline-flex min-h-9 min-w-11 items-center justify-center border border-brand-black bg-brand-black px-3 text-[13px] font-semibold uppercase tracking-wide text-white transition-colors hover:bg-graphite md:min-h-11 md:px-5 md:text-[14px];
+    @apply inline-flex min-h-10 min-w-11 items-center justify-center border border-brand-black bg-brand-black px-4 text-[13px] font-semibold tracking-wide text-white transition-colors duration-200 hover:bg-graphite md:min-h-11 md:px-5 md:text-[14px];
   }
 
   .btn-on-dark {
-    @apply inline-flex min-h-10 min-w-11 items-center justify-center border border-brand-red bg-brand-red px-4 text-[15px] font-semibold uppercase tracking-wide text-white transition-colors hover:bg-brand-red-hover md:min-h-12 md:px-6;
+    @apply inline-flex min-h-11 min-w-11 items-center justify-center border border-brand-red bg-brand-red px-5 text-[14px] font-semibold tracking-wide text-white transition-colors duration-200 hover:bg-brand-red-hover md:min-h-12 md:px-6 md:text-[15px];
+  }
+
+  .link-editorial {
+    @apply inline-flex items-center text-sm font-semibold tracking-wide text-brand-red transition-opacity duration-200 hover:opacity-80;
+  }
+
+  .img-zoom {
+    @apply transition-transform duration-200 ease-out;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .group:hover .img-zoom {
+      transform: scale(1.03);
+    }
   }
 }
 

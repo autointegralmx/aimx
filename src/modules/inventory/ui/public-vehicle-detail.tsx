@@ -44,31 +44,63 @@ export function PublicVehicleDetail({
         }),
   );
 
+  const cta = vm.auction.canParticipate ? (
+    <a
+      href={whatsappUrl}
+      target="_blank"
+      rel="noreferrer"
+      className="btn-primary inline-flex w-full justify-center"
+      data-testid="vehicle-whatsapp-cta"
+    >
+      {vm.ctaLabel}
+    </a>
+  ) : vm.auction.closed ? (
+    <Link
+      href="/subastas"
+      className="btn-secondary inline-flex w-full justify-center"
+    >
+      Consultar unidades disponibles
+    </Link>
+  ) : (
+    <a
+      href={whatsappUrl}
+      target="_blank"
+      rel="noreferrer"
+      className="btn-primary inline-flex w-full justify-center"
+      data-testid="vehicle-whatsapp-cta"
+    >
+      {vm.ctaLabel}
+    </a>
+  );
+
   return (
     <div className="min-h-screen bg-page-background text-text-primary">
       {!preview ? <SiteHeader /> : null}
-      <main className="container-site py-6 md:py-10">
+      <main className="container-site py-6 md:py-10 lg:py-12">
         {preview ? (
-          <p className="mb-5 rounded-md border border-line bg-surface px-4 py-3 text-sm text-ink-muted">
+          <p className="mb-5 border border-line bg-surface px-4 py-3 text-sm text-ink-muted">
             Vista previa protegida — este vehículo no cambia su estado público.
           </p>
         ) : null}
 
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.75fr)] lg:gap-10 lg:items-start">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start lg:gap-12 xl:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)]">
           <PublicVehicleGallery
             images={images}
             alt={vm.title}
             status={vehicle.status}
           />
 
-          <aside className="space-y-5 lg:sticky lg:top-24">
+          <aside className="space-y-0 lg:sticky lg:top-24">
             {!preview && vm.breadcrumbs.length > 0 ? (
-              <nav aria-label="Ruta" className="text-xs text-text-secondary">
+              <nav aria-label="Ruta" className="mb-5 text-xs text-text-secondary">
                 <ol className="flex flex-wrap items-center gap-1.5">
                   {vm.breadcrumbs.map((crumb, index) => {
                     const isLast = index === vm.breadcrumbs.length - 1;
                     return (
-                      <li key={`${crumb.href}-${crumb.label}`} className="flex items-center gap-1.5">
+                      <li
+                        key={`${crumb.href}-${crumb.label}`}
+                        className="flex items-center gap-1.5"
+                      >
                         {index > 0 ? (
                           <span aria-hidden className="text-text-secondary/60">
                             /
@@ -93,14 +125,16 @@ export function PublicVehicleDetail({
               </nav>
             ) : null}
 
+            <div className="md:hidden">
+              <VehicleSoldStatusChip status={vehicle.status} />
+            </div>
+
             {vm.categoryLabel ? (
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-red">
-                {vm.categoryLabel}
-              </p>
+              <p className="mt-4 label-eyebrow md:mt-0">{vm.categoryLabel}</p>
             ) : null}
 
-            <div>
-              <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight text-text-primary sm:text-[2rem]">
+            <div className="mt-3 border-b border-border-subtle pb-5">
+              <h1 className="text-[1.75rem] font-semibold leading-[1.1] tracking-tight text-text-primary sm:text-[2.125rem]">
                 {vm.title}
               </h1>
               {vm.summaryItems.length > 0 ? (
@@ -108,23 +142,26 @@ export function PublicVehicleDetail({
                   {vm.summaryItems.join(" · ")}
                 </p>
               ) : null}
+              <p className="mt-4 text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">
+                {vm.priceLabel}
+              </p>
+              <div className="mt-3 hidden md:block">
+                <VehicleSoldStatusChip status={vehicle.status} />
+              </div>
             </div>
 
-            <p className="text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">
-              {vm.priceLabel}
-            </p>
-
-            <div className="hidden md:block">
-              <VehicleSoldStatusChip status={vehicle.status} />
+            <div className="border-b border-border-subtle py-5 md:hidden">
+              {cta}
             </div>
 
+            {/* Auction / closed info */}
             {vm.auction.active ? (
-              <div className="border border-border-subtle bg-surface-secondary px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-red">
+              <div className="border-b border-border-subtle py-5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-red">
                   {vm.auction.badgeLabel}
                 </p>
                 {vm.auction.closesLong ? (
-                  <p className="mt-1 text-sm text-text-secondary">
+                  <p className="mt-2 text-sm text-text-secondary">
                     Cierra: {vm.auction.closesLong}
                   </p>
                 ) : null}
@@ -137,12 +174,12 @@ export function PublicVehicleDetail({
             ) : null}
 
             {vm.auction.closed ? (
-              <div className="border border-border-subtle bg-surface-secondary px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+              <div className="border-b border-border-subtle py-5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
                   Subasta cerrada
                 </p>
                 {vm.auction.closedLong ? (
-                  <p className="mt-1 text-sm text-text-secondary">
+                  <p className="mt-2 text-sm text-text-secondary">
                     Cerró el {vm.auction.closedLong}
                   </p>
                 ) : null}
@@ -161,11 +198,32 @@ export function PublicVehicleDetail({
               </div>
             ) : null}
 
+            {vm.specCards.length > 0 ? (
+              <ul
+                className="divide-y divide-border-subtle border-b border-border-subtle"
+                aria-label="Datos principales"
+              >
+                {vm.specCards.map((card) => (
+                  <li
+                    key={`${card.label}-${card.value}`}
+                    className="flex items-baseline justify-between gap-4 py-3"
+                  >
+                    <span className="text-[13px] text-text-secondary">
+                      {card.label}
+                    </span>
+                    <span className="text-right text-sm font-semibold text-text-primary">
+                      {card.value}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
             {vm.operationalBadges.length > 0 ||
             vm.documentationBadges.length > 0 ||
             vm.infoFacts.length > 0 ? (
               <ul
-                className="flex flex-wrap gap-2"
+                className="flex flex-wrap gap-2 border-b border-border-subtle py-5"
                 aria-label="Características del vehículo"
               >
                 {[
@@ -175,7 +233,7 @@ export function PublicVehicleDetail({
                 ].map((badge) => (
                   <li
                     key={badge}
-                    className="border border-border-subtle bg-surface-primary px-2.5 py-1 text-xs font-medium text-text-primary"
+                    className="border border-border-subtle px-2.5 py-1 text-xs font-medium text-text-primary"
                   >
                     {badge}
                   </li>
@@ -183,32 +241,14 @@ export function PublicVehicleDetail({
               </ul>
             ) : null}
 
-            {vm.specCards.length > 0 ? (
-              <ul
-                className="grid grid-cols-2 gap-2 sm:grid-cols-3"
-                aria-label="Datos principales"
-              >
-                {vm.specCards.map((card) => (
-                  <li
-                    key={`${card.label}-${card.value}`}
-                    className="border border-border-subtle bg-surface-primary px-3 py-3"
-                  >
-                    <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-text-secondary">
-                      {card.label}
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-text-primary">
-                      {card.value}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-
             {vm.damageTagLabels.length > 0 ? (
-              <section aria-labelledby="vehicle-damage-heading">
+              <section
+                aria-labelledby="vehicle-damage-heading"
+                className="border-b border-border-subtle py-5"
+              >
                 <h2
                   id="vehicle-damage-heading"
-                  className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary"
+                  className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary"
                 >
                   Daños registrados
                 </h2>
@@ -228,60 +268,53 @@ export function PublicVehicleDetail({
             {vm.observations ? (
               <section
                 aria-labelledby="vehicle-observations-heading"
-                className="border border-brand-red/25 bg-[#fdf2f2] px-4 py-4 sm:px-5"
+                className="border-b border-border-subtle py-5"
               >
-                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-brand-red">
-                  Observaciones
-                </p>
-                <p
+                <h2
                   id="vehicle-observations-heading"
-                  className="mt-2 text-[16px] font-semibold leading-snug text-text-primary md:text-[17px]"
+                  className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary"
                 >
+                  Observaciones
+                </h2>
+                <p className="mt-2 text-[15px] leading-relaxed text-text-primary">
                   {vm.observations}
                 </p>
               </section>
             ) : null}
 
-            {vm.auction.canParticipate ? (
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="btn-primary inline-flex w-full justify-center"
-                data-testid="vehicle-whatsapp-cta"
-              >
-                {vm.ctaLabel}
-              </a>
-            ) : vm.auction.closed ? (
-              <Link
-                href="/subastas"
-                className="btn-secondary inline-flex w-full justify-center"
-              >
-                Consultar unidades disponibles
-              </Link>
-            ) : (
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="btn-primary inline-flex w-full justify-center"
-                data-testid="vehicle-whatsapp-cta"
-              >
-                {vm.ctaLabel}
-              </a>
-            )}
+            <div className="hidden space-y-4 pt-6 md:block">
+              {cta}
+              {!preview ? (
+                <Link
+                  href="/vehiculos"
+                  className="inline-flex text-sm text-text-secondary hover:text-text-primary"
+                >
+                  ← Volver a vehículos
+                </Link>
+              ) : null}
+            </div>
 
             {!preview ? (
-              <Link
-                href="/vehiculos"
-                className="inline-flex text-sm text-text-secondary hover:text-text-primary"
-              >
-                ← Volver a vehículos
-              </Link>
+              <p className="pt-6 text-xs leading-relaxed text-text-secondary md:pt-4">
+                La información publicada es orientativa. Confirma disponibilidad
+                y condiciones antes de decidir.
+              </p>
+            ) : null}
+
+            {!preview ? (
+              <div className="pt-4 md:hidden">
+                <Link
+                  href="/vehiculos"
+                  className="inline-flex text-sm text-text-secondary hover:text-text-primary"
+                >
+                  ← Volver a vehículos
+                </Link>
+              </div>
             ) : null}
           </aside>
         </div>
       </main>
+
       {!preview ? <SiteFooter /> : null}
     </div>
   );

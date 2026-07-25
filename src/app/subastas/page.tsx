@@ -27,29 +27,27 @@ export default async function SubastasPage() {
 
   return (
     <PublicShell
-      eyebrow="Subastas"
-      title="En subasta"
-      description="Consulta unidades activas y el historial de subastas cerradas."
+      variant="compact"
+      eyebrow="Subastas activas"
+      title="Oportunidades con fecha de cierre."
+      description="Consulta las unidades disponibles y solicita información antes del cierre."
     >
       {degraded ? (
-        <div className="mt-6 rounded-[12px] border border-dashed border-border-subtle bg-surface-secondary px-5 py-10 text-center md:mt-10 md:px-6 md:py-14">
+        <div className="mt-6 border border-dashed border-border-subtle bg-surface-secondary px-5 py-12 text-center">
           <p className="text-text-secondary">
             No pudimos cargar las subastas en este momento. Intenta de nuevo más
             tarde.
           </p>
-          <Link
-            href="/vehiculos"
-            className="mt-6 inline-flex text-sm font-semibold uppercase tracking-wide text-brand-red"
-          >
-            Ver todos los vehículos
+          <Link href="/vehiculos" className="link-editorial mt-6 inline-flex">
+            Ver todos los vehículos →
           </Link>
         </div>
       ) : (
-        <div className="mt-5 space-y-12 md:mt-10 md:space-y-16">
+        <div className="space-y-14 md:space-y-16">
           <section aria-labelledby="subastas-activas-heading">
             <h2
               id="subastas-activas-heading"
-              className="text-lg font-semibold tracking-tight text-text-primary md:text-xl"
+              className="text-base font-semibold tracking-tight text-text-primary md:text-lg"
             >
               Subastas activas
             </h2>
@@ -71,7 +69,7 @@ export default async function SubastasPage() {
             <section aria-labelledby="subastas-cerradas-heading">
               <h2
                 id="subastas-cerradas-heading"
-                className="text-lg font-semibold tracking-tight text-text-primary md:text-xl"
+                className="text-base font-semibold tracking-tight text-text-primary md:text-lg"
               >
                 Subastas cerradas
               </h2>
@@ -85,14 +83,11 @@ export default async function SubastasPage() {
           ) : null}
 
           {activeItems.length === 0 && closedItems.length === 0 ? (
-            <div className="rounded-[12px] border border-dashed border-border-subtle bg-surface-secondary px-5 py-10 text-center md:px-6 md:py-14">
+            <div className="border border-dashed border-border-subtle bg-surface-secondary px-5 py-12 text-center">
               <p className="text-text-secondary">
                 No hay vehículos en subasta en este momento.
               </p>
-              <Link
-                href="/vehiculos"
-                className="btn-secondary mt-6 inline-flex"
-              >
+              <Link href="/vehiculos" className="btn-secondary mt-6 inline-flex">
                 Ver todos los vehículos
               </Link>
             </div>

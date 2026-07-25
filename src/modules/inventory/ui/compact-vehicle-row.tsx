@@ -7,8 +7,7 @@ import { VehicleAvailabilityBadge } from "@/modules/inventory/ui/vehicle-availab
 type Variant = "default" | "onDark";
 
 /**
- * Dense mobile row (~100–110px). Used when inventory is large on ≤768px.
- * Desktop keeps full cards.
+ * Dense mobile row. Used when inventory is large on ≤768px.
  */
 export function CompactVehicleRow({
   vehicle,
@@ -24,25 +23,19 @@ export function CompactVehicleRow({
   const vm = buildPublicVehicleViewModel(vehicle);
   const onDark = variant === "onDark";
   const titleClass = onDark ? "text-text-on-dark" : "text-text-primary";
-  const bodyClass = onDark ? "text-[#E4E6EA]" : "text-text-secondary";
+  const bodyClass = onDark ? "text-text-muted-dark" : "text-text-secondary";
   const unoptimized = Boolean(
     coverUrl?.includes("/storage/v1/object/public/"),
   );
 
   return (
-    <article
-      className={`overflow-hidden rounded-md border ${
-        onDark
-          ? "border-border-dark bg-surface-dark-elevated"
-          : "border-border-subtle bg-surface-primary"
-      }`}
-    >
+    <article className={onDark ? "card-editorial-dark" : "card-editorial"}>
       <Link
         href={`/vehiculos/${vm.slug}`}
-        className="flex min-h-[100px] items-stretch gap-3 p-2.5"
+        className="flex min-h-[96px] items-stretch gap-3 p-2"
       >
         <div
-          className={`relative h-[75px] w-[100px] shrink-0 overflow-hidden rounded-sm ${
+          className={`relative h-[80px] w-[104px] shrink-0 overflow-hidden ${
             onDark ? "bg-[#1a1d22]" : "bg-surface-secondary"
           }`}
         >
@@ -52,13 +45,13 @@ export function CompactVehicleRow({
               alt={vm.title}
               fill
               loading="lazy"
-              sizes="100px"
+              sizes="120px"
               className="object-cover"
               unoptimized={unoptimized}
             />
           ) : (
             <div
-              className={`flex h-full items-center justify-center text-[10px] uppercase ${bodyClass}`}
+              className={`flex h-full items-center justify-center text-[10px] ${bodyClass}`}
             >
               Sin foto
             </div>
@@ -72,16 +65,21 @@ export function CompactVehicleRow({
             </p>
           ) : null}
           <h3
-            className={`line-clamp-2 text-[15px] font-bold uppercase leading-snug tracking-wide ${titleClass}`}
+            className={`line-clamp-2 text-[15px] font-semibold leading-snug tracking-tight ${titleClass}`}
           >
             {vm.title}
           </h3>
           <p className={`text-[13px] ${bodyClass}`}>
             {[vm.year, vehicle.transmission].filter(Boolean).join(" · ")}
           </p>
-          <p className={`text-[15px] font-semibold ${titleClass}`}>
-            {vm.listPriceLabel ?? "Precio por confirmar"}
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p className={`text-[15px] font-semibold ${titleClass}`}>
+              {vm.listPriceLabel ?? "Precio por confirmar"}
+            </p>
+            <span className="text-sm font-semibold text-brand-red" aria-hidden>
+              →
+            </span>
+          </div>
         </div>
       </Link>
     </article>

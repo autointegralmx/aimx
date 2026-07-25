@@ -64,7 +64,7 @@ export function PublicVehicleGallery({ images, alt, status }: Props) {
             <button
               type="button"
               aria-label="Fotografía anterior"
-              className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-white/40 bg-black/35 text-white backdrop-blur-sm transition hover:bg-black/50"
+              className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-white/50 bg-black/45 text-white transition hover:bg-black/60"
               onClick={() => go(index - 1)}
             >
               ‹
@@ -72,7 +72,7 @@ export function PublicVehicleGallery({ images, alt, status }: Props) {
             <button
               type="button"
               aria-label="Fotografía siguiente"
-              className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-white/40 bg-black/35 text-white backdrop-blur-sm transition hover:bg-black/50"
+              className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-white/50 bg-black/45 text-white transition hover:bg-black/60"
               onClick={() => go(index + 1)}
             >
               ›

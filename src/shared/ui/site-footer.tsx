@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { BrandLogo } from "@/shared/ui/brand-logo";
-import { WhatsAppCta } from "@/shared/ui/whatsapp-cta";
 import { SocialIconLinks } from "@/shared/ui/social-icon-links";
-import { whatsappMessages, buildSiteWhatsAppUrl } from "@/modules/leads/domain/whatsapp";
+import {
+  whatsappMessages,
+  buildSiteWhatsAppUrl,
+} from "@/modules/leads/domain/whatsapp";
 import { siteContact } from "@/shared/config/site-contact";
 
 export function SiteFooter() {
@@ -10,32 +12,24 @@ export function SiteFooter() {
 
   return (
     <footer className="bg-surface-dark text-text-on-dark">
-      <div className="container-site grid gap-12 py-16 md:grid-cols-2 lg:grid-cols-6 lg:gap-8 lg:py-20">
-        <div className="lg:col-span-2">
+      <div className="container-site grid gap-10 py-12 md:grid-cols-2 lg:grid-cols-4 lg:gap-8 lg:py-16">
+        <div>
           <BrandLogo variant="footer" href="/" />
-          <p className="mt-5 max-w-sm text-sm leading-relaxed text-text-muted-dark">
-            Vehículos de aseguradora, autopartes y servicios automotrices con
-            asesoría y acompañamiento directo.
+          <p className="mt-5 max-w-xs text-sm leading-relaxed text-text-muted-dark">
+            Oportunidades reales de vehículos de aseguradora, con acompañamiento
+            personalizado.
           </p>
-          <WhatsAppCta
-            message={whatsappMessages.finalCta}
-            variant="onDark"
-            className="mt-6"
-          />
-          <SocialIconLinks variant="onDark" className="mt-5" />
         </div>
 
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-red">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted-dark">
             Explorar
           </p>
           <ul className="mt-4 space-y-2.5 text-sm text-text-muted-dark">
             {[
-              ["/", "Inicio"],
               ["/vehiculos", "Vehículos"],
-              ["/subastas", "En subasta"],
-              ["/como-comprar", "Cómo Comprar"],
-              ["/nosotros", "Nosotros"],
+              ["/subastas", "Subastas"],
+              ["/como-comprar", "Cómo comprar"],
             ].map(([href, label]) => (
               <li key={href}>
                 <Link href={href} className="hover:text-text-on-dark">
@@ -47,14 +41,14 @@ export function SiteFooter() {
         </div>
 
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-red">
-            Vehículos
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted-dark">
+            Empresa
           </p>
           <ul className="mt-4 space-y-2.5 text-sm text-text-muted-dark">
             {[
-              ["/vehiculos/accidentados", "Accidentados"],
-              ["/vehiculos/recuperados", "Recuperados"],
-              ["/vehiculos/seminuevos", "Seminuevos"],
+              ["/servicios", "Servicios"],
+              ["/nosotros", "Nosotros"],
+              ["/contacto", "Contacto"],
             ].map(([href, label]) => (
               <li key={href}>
                 <Link href={href} className="hover:text-text-on-dark">
@@ -66,76 +60,38 @@ export function SiteFooter() {
         </div>
 
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-red">
-            Servicios
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted-dark">
+            Contacto
           </p>
           <ul className="mt-4 space-y-2.5 text-sm text-text-muted-dark">
             <li>
-              <Link href="/servicios" className="hover:text-text-on-dark">
-                Servicios automotrices
-              </Link>
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-text-on-dark hover:text-brand-red"
+              >
+                WhatsApp {siteContact.whatsappDisplay}
+              </a>
             </li>
-            <li>
-              <Link href="/#autopartes" className="hover:text-text-on-dark">
-                Autopartes
-              </Link>
-            </li>
+            <li>{siteContact.location}</li>
           </ul>
-        </div>
-
-        <div className="space-y-10">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-red">
-              Contacto
-            </p>
-            <ul className="mt-4 space-y-2.5 text-sm text-text-muted-dark">
-              <li>
-                <a
-                  href={whatsappHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-text-on-dark"
-                >
-                  WhatsApp {siteContact.whatsappDisplay}
-                </a>
-              </li>
-              <li>
-                <a
-                  href={`mailto:${siteContact.email}`}
-                  className="hover:text-text-on-dark"
-                >
-                  {siteContact.email}
-                </a>
-              </li>
-              <li>{siteContact.location}</li>
-              <li>{siteContact.hours}</li>
-            </ul>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-red">
-              Legal
-            </p>
-            <ul className="mt-4 space-y-2.5 text-sm text-text-muted-dark">
-              <li>
-                <Link href="/contacto" className="hover:text-text-on-dark">
-                  Aviso de privacidad
-                </Link>
-              </li>
-              <li>
-                <Link href="/contacto" className="hover:text-text-on-dark">
-                  Términos y condiciones
-                </Link>
-              </li>
-            </ul>
-          </div>
+          <SocialIconLinks variant="onDark" className="mt-5" />
         </div>
       </div>
 
       <div className="border-t border-border-dark">
-        <p className="container-site py-5 text-xs text-text-muted-dark">
-          © {new Date().getFullYear()} Auto Integral. Todos los derechos
-          reservados.
-        </p>
+        <div className="container-site flex flex-col gap-2 py-5 text-xs text-text-muted-dark sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            © {new Date().getFullYear()} Auto Integral. Todos los derechos
+            reservados.
+          </p>
+          <p>
+            <Link href="/contacto" className="hover:text-text-on-dark">
+              Aviso de privacidad
+            </Link>
+          </p>
+        </div>
       </div>
     </footer>
   );

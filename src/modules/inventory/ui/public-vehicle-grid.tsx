@@ -11,12 +11,7 @@ type Item = {
 };
 
 /**
- * Mobile density: cards by default; compact rows when inventory is large.
- * Desktop (≥md) always uses full cards.
- *
- * `listMode="preview"` + `limit` solo recorta en portada. En listados de
- * categoría usar `listMode="all"` (default) para mostrar todo el inventario.
- * `density="compact"` reduce padding/tipografía (home con hasta 6).
+ * Grid uniforme de vehículos. Mobile: cards o filas compactas si hay muchos.
  */
 export function PublicVehicleGrid({
   items,
@@ -31,7 +26,7 @@ export function PublicVehicleGrid({
   variant?: "default" | "onDark";
   mode?: "inventory" | "auction";
   listMode?: "all" | "preview";
-  /** Solo aplica con `listMode="preview"`. Nunca por defecto en listados completos. */
+  /** Solo aplica con `listMode="preview"`. */
   limit?: number;
   density?: "default" | "compact";
   className?: string;
@@ -45,12 +40,10 @@ export function PublicVehicleGrid({
   const compact = density === "compact";
 
   const desktopGrid = useCompactMobile
-    ? compact
-      ? "hidden gap-4 md:grid md:grid-cols-2 lg:grid-cols-3"
-      : "hidden gap-8 md:grid md:grid-cols-2 lg:grid-cols-3"
+    ? "hidden gap-3 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
     : compact
-      ? "grid grid-cols-1 gap-2.5 md:grid-cols-2 md:gap-4 lg:grid-cols-3"
-      : "grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-8 lg:grid-cols-3";
+      ? "grid grid-cols-1 gap-2.5 md:grid-cols-2 md:gap-3 lg:grid-cols-3 xl:grid-cols-4"
+      : "grid grid-cols-1 gap-2.5 md:grid-cols-2 md:gap-4 lg:grid-cols-3 xl:grid-cols-4";
 
   return (
     <div className={className}>

@@ -1,191 +1,236 @@
 import Image from "next/image";
 import Link from "next/link";
-import { automotiveServices } from "@/modules/content/data/automotive-services";
-import { autopartCategories } from "@/modules/content/data/autoparts";
 import { whatsappMessages } from "@/modules/leads/domain/whatsapp";
 import { SiteFooter } from "@/shared/ui/site-footer";
 import { SiteHeader } from "@/shared/ui/site-header";
 import { WhatsAppCta } from "@/shared/ui/whatsapp-cta";
 import {
-  IconAdvice,
-  IconCheck,
-  IconInfo,
-  IconMap,
-  IconMessage,
-  IconShield,
-  IconWhatsApp,
-} from "@/shared/ui/icons";
-import {
   loadHomeInventoryData,
 } from "@/modules/inventory/application/public-queries";
 import { PublicVehicleGrid } from "@/modules/inventory/ui/public-vehicle-grid";
 import { VehicleCategoryChips } from "@/modules/inventory/ui/vehicle-category-chips";
-import { SmartInvestmentSection } from "@/modules/content/ui/smart-investment-section";
-
-const impactItems = [
-  "Cientos de vehículos cada semana",
-  "Acceso a la subastadora de vehículos de aseguradora más grande del país",
-  "Asesoría personalizada",
-  "Acompañamiento durante todo el proceso",
-];
-
-const categories = [
-  {
-    title: "Accidentados",
-    href: "/vehiculos/accidentados",
-  },
-  {
-    title: "Recuperados",
-    href: "/vehiculos/recuperados",
-  },
-  {
-    title: "Seminuevos",
-    href: "/vehiculos/seminuevos",
-  },
-];
+import { buildPublicVehicleViewModel } from "@/modules/inventory/domain/public-vehicle-view-model";
+import type { PublicVehicle } from "@/modules/inventory/infrastructure/vehicle-repository";
+import { autopartCategories } from "@/modules/content/data/autoparts";
 
 const howItWorks = [
-  "Cuéntanos qué vehículo buscas.",
+  "Dinos qué vehículo buscas.",
   "Revisamos las oportunidades disponibles.",
-  "Te enviamos las mejores opciones.",
-  "Te acompañamos durante todo el proceso.",
+  "Te presentamos opciones con información clara.",
+  "Te acompañamos en la compra.",
 ];
 
-const trustItems = [
+const trustPillars = [
   {
-    text: "Atención personalizada.",
-    Icon: IconAdvice,
+    title: "Experiencia real",
+    text: "Más de 10 años trabajando con vehículos de aseguradora.",
   },
   {
-    text: "Información clara y transparente.",
-    Icon: IconInfo,
+    title: "Compra informada",
+    text: "Te ayudamos a revisar condición, documentación y costos antes de decidir.",
   },
   {
-    text: "Amplia red de distribuidores y proveedores.",
-    Icon: IconMap,
-  },
-  {
-    text: "Soluciones automotrices en un solo lugar.",
-    Icon: IconShield,
-  },
-  {
-    text: "Atención directa por WhatsApp.",
-    Icon: IconWhatsApp,
+    title: "Acompañamiento completo",
+    text: "Estamos contigo desde la búsqueda hasta la adjudicación y entrega.",
   },
 ];
+
+const serviceGroups = [
+  {
+    title: "Diagnóstico y mecánica",
+    description: "Scanner, frenos, suspensión y mantenimiento general.",
+  },
+  {
+    title: "Hojalatería y pintura",
+    description: "Reparación de carrocería con acabado profesional.",
+  },
+  {
+    title: "Estética automotriz",
+    description: "Detallado y presentación para entrega o reventa.",
+  },
+  {
+    title: "Llaves automotrices",
+    description: "Programación, duplicados y apertura de vehículos.",
+  },
+];
+
+function HeroFeaturedUnit({
+  vehicle,
+  coverUrl,
+}: {
+  vehicle: PublicVehicle;
+  coverUrl?: string | null;
+}) {
+  if (!vehicle.slug) return null;
+  const vm = buildPublicVehicleViewModel(vehicle);
+  const unoptimized = Boolean(
+    coverUrl?.includes("/storage/v1/object/public/"),
+  );
+
+  return (
+    <Link
+      href={`/vehiculos/${vm.slug}`}
+      className="group relative block aspect-[4/5] overflow-hidden bg-surface-secondary sm:aspect-[5/6]"
+    >
+      {coverUrl ? (
+        <Image
+          src={coverUrl}
+          alt={vm.title}
+          fill
+          priority
+          sizes="(max-width: 1024px) 100vw, 55vw"
+          className="img-zoom object-cover"
+          unoptimized={unoptimized}
+        />
+      ) : (
+        <Image
+          src="/brand/hero-light.png"
+          alt=""
+          fill
+          priority
+          sizes="(max-width: 1024px) 100vw, 55vw"
+          className="object-cover"
+        />
+      )}
+      <div
+        className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"
+        aria-hidden
+      />
+      <div className="absolute inset-x-0 bottom-0 p-5 text-white md:p-7">
+        {vm.categoryLabel ? (
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/80">
+            {vm.categoryLabel}
+          </p>
+        ) : null}
+        <h2 className="mt-1 text-xl font-semibold tracking-tight md:text-2xl">
+          {vm.title}
+        </h2>
+        <p className="mt-1 text-sm text-white/80">
+          {[vm.year, vehicle.transmission].filter(Boolean).join(" · ")}
+        </p>
+        <p className="mt-3 text-lg font-semibold">
+          {vm.listPriceLabel ?? "Precio por confirmar"}
+        </p>
+        {vm.auction.active && vm.auction.closesLabel ? (
+          <p className="mt-1 text-sm text-white/85">{vm.auction.closesLabel}</p>
+        ) : null}
+        <span className="mt-4 inline-flex text-sm font-semibold text-white">
+          Consultar unidad →
+        </span>
+      </div>
+    </Link>
+  );
+}
 
 export async function HomePage() {
   const { auctions: auctionItems, featured: featuredItems } =
     await loadHomeInventoryData();
 
+  const featuredUnit = featuredItems[0] ?? auctionItems[0] ?? null;
+
   return (
     <div className="min-h-screen bg-page-background text-text-primary">
       <SiteHeader />
       <main>
-        {/* 1. Hero */}
-        <section className="relative isolate overflow-hidden">
-          <Image
-            src="/brand/hero-light.png"
-            alt=""
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover object-[58%_42%]"
-            aria-hidden
-          />
-          <div
-            className="absolute inset-0 bg-gradient-to-r from-[#F7F6F2]/88 via-[#F7F6F2]/45 to-transparent"
-            aria-hidden
-          />
-          <div
-            className="absolute inset-0 bg-gradient-to-t from-[#F7F6F2]/25 via-transparent to-transparent"
-            aria-hidden
-          />
-          <div className="container-site relative z-10 flex min-h-[min(58vh,28rem)] items-center py-10 md:min-h-[min(78vh,40rem)] md:py-24">
-            <div className="max-w-2xl">
-              <p className="label-eyebrow">Auto Integral</p>
-              <h1 className="text-hero mt-3 text-text-primary md:mt-5">
-                ¿Buscas un vehículo
-                <br />
-                de aseguradora?
+        {/* Hero showroom */}
+        <section className="section-light">
+          <div className="container-site grid items-center gap-10 py-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14 lg:py-16 xl:py-20">
+            <div className="order-1 max-w-xl">
+              <p className="label-eyebrow">Vehículos de aseguradora</p>
+              <h1 className="text-hero mt-4 text-text-primary">
+                Encuentra una mejor oportunidad para comprar tu próximo
+                vehículo.
               </h1>
-              <p className="mt-3 text-[18px] font-bold uppercase tracking-wide text-text-primary md:mt-5 md:text-2xl">
-                Nosotros lo encontramos por ti.
+              <p className="text-body-editorial mt-5 max-w-[36ch] text-text-secondary">
+                Accedemos a cientos de unidades cada semana y te acompañamos
+                desde la búsqueda hasta la compra.
               </p>
-              <p className="mt-4 max-w-xl text-[16px] leading-relaxed text-text-primary md:mt-6 md:text-lg">
-                Tenemos acceso a la subastadora de vehículos de aseguradora más
-                grande del país, donde cada semana se publican cientos de
-                unidades.
-              </p>
-              <p className="mt-3 hidden max-w-xl text-base leading-relaxed text-text-primary sm:block sm:text-lg md:mt-4">
-                Cuéntanos qué vehículo estás buscando y nosotros localizamos las
-                mejores oportunidades, te brindamos información clara y te
-                acompañamos durante todo el proceso.
-              </p>
-              <div className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:items-center md:mt-8 md:gap-3">
-                <WhatsAppCta message={whatsappMessages.hero} />
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <WhatsAppCta message={whatsappMessages.search}>
+                  Buscar mi vehículo
+                </WhatsAppCta>
                 <Link href="/subastas" className="btn-secondary">
                   Ver vehículos en subasta
                 </Link>
               </div>
-              <p className="mt-5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary md:mt-8 md:text-xs">
-                <IconMap className="h-4 w-4 text-brand-red" />
-                CDMX y Área Metropolitana
+              <p className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-2 text-[12px] text-text-secondary md:text-[13px]">
+                <span>300–400 unidades por semana</span>
+                <span className="hidden text-border-subtle sm:inline" aria-hidden>
+                  |
+                </span>
+                <span>10 años de experiencia</span>
+                <span className="hidden text-border-subtle sm:inline" aria-hidden>
+                  |
+                </span>
+                <span>CDMX y EdoMéx</span>
               </p>
+            </div>
+
+            <div className="order-2">
+              {featuredUnit ? (
+                <HeroFeaturedUnit
+                  vehicle={featuredUnit.vehicle}
+                  coverUrl={featuredUnit.coverUrl}
+                />
+              ) : (
+                <div className="relative aspect-[4/5] overflow-hidden bg-surface-secondary sm:aspect-[5/6]">
+                  <Image
+                    src="/brand/hero-light.png"
+                    alt="Auto Integral — showroom"
+                    fill
+                    priority
+                    sizes="(max-width: 1024px) 100vw, 55vw"
+                    className="object-cover object-[58%_42%]"
+                  />
+                </div>
+              )}
             </div>
           </div>
         </section>
 
-        {/* 2. Impact band */}
-        <section className="border-y border-border-subtle bg-surface-primary">
-          <div className="container-site grid gap-5 py-7 sm:grid-cols-2 md:gap-8 md:py-12 lg:grid-cols-4 lg:gap-6">
-            {impactItems.map((item) => (
-              <p
-                key={item}
-                className="text-sm font-semibold uppercase leading-snug tracking-wide text-text-primary"
-              >
-                <span className="mb-3 block h-0.5 w-8 bg-brand-red" />
-                {item}
-              </p>
-            ))}
+        {/* Trust strip */}
+        <section className="section-paper divider-hairline">
+          <div className="container-site">
+            <ul className="grid divide-y divide-border-subtle md:grid-cols-3 md:divide-x md:divide-y-0">
+              {[
+                { k: "300–400", v: "vehículos por semana" },
+                { k: "10 años", v: "de experiencia" },
+                { k: "Acompañamiento", v: "de principio a fin" },
+              ].map((item) => (
+                <li
+                  key={item.k}
+                  className="flex flex-col gap-1 py-6 md:px-8 md:py-10 first:md:pl-0 last:md:pr-0"
+                >
+                  <p className="text-xl font-semibold tracking-tight text-text-primary md:text-2xl">
+                    {item.k}
+                  </p>
+                  <p className="text-sm text-text-secondary md:text-[15px]">
+                    {item.v}
+                  </p>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 
-        {/* 3. Auctions */}
-        <section className="bg-surface-dark section-pad">
+        {/* Auctions */}
+        <section className="section-dark section-pad">
           <div className="container-site">
             <div className="max-w-2xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-red md:text-xs md:tracking-[0.18em]">
-                En subasta
-              </p>
-              <h2 className="text-h2 mt-2 text-text-on-dark md:mt-4">
-                <span className="md:hidden">Vehículos en subasta</span>
-                <span className="hidden md:inline">
-                  Vehículos disponibles
-                  <br />
-                  mediante subasta
-                </span>
+              <p className="label-eyebrow">Subastas activas</p>
+              <h2 className="text-h2 mt-3 text-text-on-dark">
+                Oportunidades con fecha de cierre.
               </h2>
-              <p className="mt-3 max-w-xl text-[16px] leading-relaxed text-text-muted-dark md:mt-5 md:text-lg">
-                Consulta el cierre y solicita información para participar.
+              <p className="mt-4 max-w-xl text-body-editorial text-text-muted-dark">
+                Consulta las unidades disponibles y solicita información antes
+                del cierre.
               </p>
             </div>
 
             {auctionItems.length === 0 ? (
-              <div className="mt-8 rounded-[12px] border border-dashed border-border-dark px-5 py-10 text-center md:mt-12 md:px-6 md:py-14">
-                <h3 className="text-lg font-bold uppercase tracking-wide text-text-on-dark md:text-xl">
-                  Sin vehículos en subasta
-                </h3>
-                <p className="mt-3 text-text-muted-dark">
-                  No hay unidades en subasta en este momento.
-                </p>
-                <Link
-                  href="/vehiculos"
-                  className="mt-6 inline-flex text-sm font-semibold uppercase tracking-wide text-brand-red"
-                >
-                  Ver todos los vehículos
-                </Link>
-              </div>
+              <p className="mt-10 text-text-muted-dark">
+                No hay subastas activas en este momento.
+              </p>
             ) : (
               <PublicVehicleGrid
                 items={auctionItems}
@@ -194,160 +239,64 @@ export async function HomePage() {
                 listMode="preview"
                 limit={6}
                 density="compact"
-                className="mt-8 md:mt-12"
+                className="mt-10 md:mt-12"
               />
             )}
 
-            <Link
-              href="/subastas"
-              className="mt-8 inline-flex text-[15px] font-semibold uppercase tracking-wide text-brand-red"
-            >
-              Ver en subasta →
+            <Link href="/subastas" className="link-editorial mt-10">
+              Ver todas las subastas →
             </Link>
           </div>
         </section>
 
-        {/* 4. Vehicles */}
-        <section id="vehiculos" className="bg-surface-primary section-pad">
+        {/* Inventory */}
+        <section id="vehiculos" className="section-paper section-pad">
           <div className="container-site">
             <div className="max-w-2xl">
-              <p className="label-eyebrow">Vehículos</p>
-              <h2 className="text-h2 mt-2 text-text-primary md:mt-3">
-                Nuestros vehículos
+              <p className="label-eyebrow">Vehículos disponibles</p>
+              <h2 className="text-h2 mt-3 text-text-primary">
+                Explora las oportunidades actuales.
               </h2>
-              <p className="mt-3 text-[16px] text-text-secondary md:mt-4 md:text-lg">
-                Explora nuestra selección de vehículos accidentados, recuperados
-                y seminuevos.
+              <p className="mt-4 text-body-editorial text-text-secondary">
+                Unidades accidentadas, recuperadas y seminuevas seleccionadas.
               </p>
             </div>
 
-            <VehicleCategoryChips className="mt-5" />
+            <VehicleCategoryChips className="mt-6" />
 
             {featuredItems.length > 0 ? (
               <PublicVehicleGrid
                 items={featuredItems}
                 listMode="preview"
-                limit={6}
+                limit={8}
                 density="compact"
-                className="mt-5 md:mt-10"
+                className="mt-6 md:mt-8"
               />
             ) : null}
 
-            <div className="mt-8 hidden flex-wrap gap-3 md:mt-12 md:flex">
-              {categories.map((cat) => (
-                <Link
-                  key={cat.title}
-                  href={cat.href}
-                  className="inline-flex min-h-11 items-center rounded-sm border border-border-subtle bg-surface-secondary px-4 text-sm font-semibold uppercase tracking-wide text-text-primary transition-colors hover:border-brand-red hover:text-brand-red"
-                >
-                  {cat.title}
-                </Link>
-              ))}
-            </div>
-
-            <div className="mt-7 flex flex-wrap items-center gap-3 md:mt-10 md:gap-4">
+            <div className="mt-10">
               <Link href="/vehiculos" className="btn-secondary">
                 Ver todos los vehículos
               </Link>
-              <WhatsAppCta
-                message={whatsappMessages.vehicles}
-                variant="primary"
-              />
             </div>
           </div>
         </section>
 
-        {/* 5. Autopartes */}
-        <section id="autopartes" className="bg-surface-dark section-pad">
-          <div className="container-site">
-            <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-red">
-                  Autopartes
-                </p>
-                <h2 className="text-h2 mt-2 text-text-on-dark md:mt-4">
-                  <span className="md:hidden">¿No encuentras la pieza?</span>
-                  <span className="hidden md:inline">
-                    ¿Chocaste o no encuentras
-                    <br />
-                    la pieza que necesitas?
-                  </span>
-                </h2>
-                <div className="mt-4 space-y-3 text-[16px] leading-relaxed text-text-muted-dark md:mt-6 md:space-y-4 md:text-lg">
-                  <p>
-                    Contamos con una amplia red de distribuidores de autopartes
-                    en Ciudad de México y Estado de México.
-                  </p>
-                  <p className="hidden sm:block">
-                    Te ayudamos a localizar y conseguir una gran variedad de
-                    refacciones para la mayoría de las marcas y modelos.
-                  </p>
-                  <p>
-                    Si no encuentras la pieza que buscas, nosotros la buscamos
-                    por ti y te cotizamos la mejor opción.
-                  </p>
-                  <p className="hidden md:block">
-                    Realizamos envíos a toda la República Mexicana.
-                  </p>
-                </div>
-                <WhatsAppCta
-                  message={whatsappMessages.autopartes}
-                  variant="onDark"
-                  className="mt-8"
-                  aria-label="Quiero cotizar una autoparte por WhatsApp"
-                >
-                  Quiero cotizar una autoparte
-                </WhatsAppCta>
-              </div>
-              <div className="relative aspect-[4/5] overflow-hidden rounded-[14px] bg-[#1a1d22] sm:aspect-[4/3] lg:aspect-[4/5]">
-                <Image
-                  src="/brand/oportunidades-dark.png"
-                  alt="Detalle automotriz — localización de autopartes"
-                  fill
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                  className="object-cover"
-                />
-                <div
-                  className="absolute inset-0 bg-gradient-to-t from-surface-dark/50 via-transparent to-transparent"
-                  aria-hidden
-                />
-              </div>
-            </div>
-
-            <div className="mt-16">
-              <h3 className="text-lg font-bold uppercase tracking-wide text-text-on-dark">
-                Autopartes que conseguimos
-              </h3>
-              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-text-muted-dark">
-                Ejemplos de piezas que podemos ayudarte a localizar. Cotizamos
-                según tu solicitud — sin catálogo ni existencia garantizada.
-              </p>
-              <ul className="mt-6 grid grid-cols-2 gap-2 md:mt-8 md:flex md:flex-wrap md:gap-2.5">
-                {autopartCategories.map((part) => (
-                  <li
-                    key={part}
-                    className="rounded-sm border border-border-dark bg-surface-dark-elevated px-2.5 py-1.5 text-center text-[11px] font-semibold uppercase tracking-wide text-text-on-dark md:px-3.5 md:py-2 md:text-left md:text-xs"
-                  >
-                    {part}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </section>
-
-        {/* 6. How it works */}
-        <section className="bg-surface-secondary section-pad">
+        {/* How it works */}
+        <section className="section-muted section-pad">
           <div className="container-site">
             <p className="label-eyebrow">Proceso</p>
             <h2 className="text-h2 mt-3 text-text-primary">Cómo funciona</h2>
-            <ol className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <ol className="mt-10 space-y-0 md:mt-14 md:grid md:grid-cols-4 md:gap-0">
               {howItWorks.map((label, index) => (
-                <li key={label}>
-                  <p className="text-3xl font-bold text-brand-red">
+                <li
+                  key={label}
+                  className="relative flex gap-4 border-b border-border-subtle py-6 last:border-b-0 md:flex-col md:border-b-0 md:border-l md:border-border-subtle md:px-6 md:py-0 first:md:border-l-0 first:md:pl-0"
+                >
+                  <p className="shrink-0 text-3xl font-semibold tabular-nums tracking-tight text-brand-red md:text-4xl">
                     {String(index + 1).padStart(2, "0")}
                   </p>
-                  <p className="mt-3 text-sm font-medium leading-snug text-text-primary">
+                  <p className="max-w-[22ch] pt-1 text-[15px] leading-snug text-text-primary md:pt-4 md:text-base">
                     {label}
                   </p>
                 </li>
@@ -356,92 +305,148 @@ export async function HomePage() {
           </div>
         </section>
 
-        {/* 7. Services */}
-        <section id="servicios" className="bg-surface-primary section-pad">
-          <div className="container-site">
-            <div className="max-w-2xl">
-              <h2 className="text-h2 text-text-primary">
-                Servicios automotrices
+        {/* Personal search */}
+        <section className="section-light section-pad">
+          <div className="container-site grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+            <div>
+              <p className="label-eyebrow">Búsqueda personalizada</p>
+              <h2 className="text-h2 mt-3 max-w-[16ch] text-text-primary">
+                El vehículo que buscas puede no estar publicado todavía.
               </h2>
-              <p className="mt-4 text-base text-text-secondary sm:text-lg">
-                Todo lo que tu vehículo necesita.
+              <p className="mt-5 max-w-[40ch] text-body-editorial text-text-secondary">
+                Dinos marca, modelo y presupuesto. Revisamos las oportunidades
+                disponibles y te presentamos opciones reales.
               </p>
+              <WhatsAppCta
+                message={whatsappMessages.search}
+                className="mt-8"
+                aria-label="Solicitar búsqueda personalizada por WhatsApp"
+              >
+                Solicitar búsqueda personalizada
+              </WhatsAppCta>
             </div>
+            <div className="relative hidden aspect-[5/4] overflow-hidden bg-surface-secondary lg:block">
+              <Image
+                src="/brand/oportunidades-dark.png"
+                alt=""
+                fill
+                sizes="50vw"
+                className="object-cover"
+                aria-hidden
+              />
+            </div>
+          </div>
+        </section>
 
-            <ul className="mt-8 grid grid-cols-2 gap-x-3 gap-y-2.5 md:mt-12 md:gap-4 lg:grid-cols-3">
-              {automotiveServices.map((label) => (
-                <li
-                  key={label}
-                  className="flex items-start gap-2 text-[15px] text-text-secondary md:gap-3 md:text-sm"
-                >
-                  <IconCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-red md:h-5 md:w-5" />
-                  <span>{label}</span>
+        {/* Services (secondary) */}
+        <section id="servicios" className="section-paper section-pad">
+          <div className="container-site">
+            <div className="max-w-xl">
+              <p className="label-eyebrow-muted">Servicios</p>
+              <h2 className="text-h2 mt-3 text-text-primary">
+                Soluciones para tu vehículo.
+              </h2>
+            </div>
+            <ul className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+              {serviceGroups.map((service) => (
+                <li key={service.title} className="border-t border-border-subtle pt-5">
+                  <h3 className="text-base font-semibold tracking-tight text-text-primary">
+                    {service.title}
+                  </h3>
+                  <p className="mt-2 text-sm leading-relaxed text-text-secondary">
+                    {service.description}
+                  </p>
                 </li>
               ))}
             </ul>
+            <Link href="/servicios" className="link-editorial mt-10">
+              Ver servicios →
+            </Link>
+          </div>
+        </section>
 
-            <div className="mt-10 flex flex-wrap items-center gap-4">
-              <WhatsAppCta message={whatsappMessages.services} />
-              <Link
-                href="/servicios"
-                className="text-[15px] font-semibold uppercase tracking-wide text-brand-red"
+        {/* Autopartes — muted */}
+        <section id="autopartes" className="section-muted section-pad">
+          <div className="container-site grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
+            <div>
+              <p className="label-eyebrow-muted">Autopartes</p>
+              <h2 className="text-h2 mt-3 text-text-primary">
+                ¿No encuentras la pieza?
+              </h2>
+              <p className="mt-4 max-w-[42ch] text-body-editorial text-text-secondary">
+                Cotizamos refacciones con nuestra red de distribuidores en CDMX
+                y EdoMéx. Sin catálogo inventado: te ayudamos bajo solicitud.
+              </p>
+              <ul className="mt-6 flex flex-wrap gap-2">
+                {autopartCategories.slice(0, 8).map((part) => (
+                  <li
+                    key={part}
+                    className="border border-border-subtle bg-surface-primary px-3 py-1.5 text-xs text-text-secondary"
+                  >
+                    {part}
+                  </li>
+                ))}
+              </ul>
+              <WhatsAppCta
+                message={whatsappMessages.autopartes}
+                variant="secondary"
+                className="mt-8"
+                aria-label="Cotizar autoparte por WhatsApp"
               >
-                Ver todos los servicios →
-              </Link>
+                Cotizar una autoparte
+              </WhatsAppCta>
+            </div>
+            <div className="relative aspect-[5/4] overflow-hidden bg-surface-secondary">
+              <Image
+                src="/brand/oportunidades-dark.png"
+                alt="Detalle automotriz"
+                fill
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                className="object-cover"
+              />
             </div>
           </div>
         </section>
 
-        {/* 8. Why Auto Integral */}
-        <section id="confianza" className="bg-surface-dark section-pad">
+        {/* Trust pillars */}
+        <section className="section-light section-pad">
           <div className="container-site">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-red">
-              Confianza
-            </p>
-            <h2 className="text-h2 mt-3 text-text-on-dark">
-              ¿Por qué Auto Integral?
+            <p className="label-eyebrow">Confianza</p>
+            <h2 className="text-h2 mt-3 text-text-primary">
+              Por qué Auto Integral.
             </h2>
-            <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
-              {trustItems.map(({ text, Icon }) => (
-                <article
-                  key={text}
-                  className="border-t border-border-dark pt-6"
-                >
-                  <Icon className="h-7 w-7 text-brand-red" />
-                  <p className="mt-4 text-sm leading-relaxed text-text-on-dark">
-                    {text}
+            <ul className="mt-12 grid gap-10 md:grid-cols-3 md:gap-12">
+              {trustPillars.map((pillar, index) => (
+                <li key={pillar.title}>
+                  <p className="text-sm font-semibold tabular-nums text-brand-red">
+                    {String(index + 1).padStart(2, "0")}
                   </p>
-                </article>
+                  <h3 className="mt-3 text-lg font-semibold tracking-tight text-text-primary">
+                    {pillar.title}
+                  </h3>
+                  <p className="mt-3 text-[15px] leading-relaxed text-text-secondary">
+                    {pillar.text}
+                  </p>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         </section>
 
-        {/* 9. Smart investment */}
-        <SmartInvestmentSection />
-
-        {/* 10. Final CTA */}
-        <section className="bg-page-background section-pad">
-          <div className="container-site max-w-3xl text-center">
-            <IconMessage className="mx-auto h-8 w-8 text-brand-red" />
-            <h2 className="text-h2 mt-5 text-text-primary">
-              ¿Necesitas un vehículo,
-              <br />
-              una autoparte o un servicio automotriz?
-            </h2>
-            <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-text-secondary sm:text-lg">
-              Estamos listos para ayudarte.
-              <br />
-              Escríbenos por WhatsApp y cuéntanos qué necesitas.
-            </p>
-            <WhatsAppCta
-              message={whatsappMessages.finalCta}
-              className="mt-8"
-            />
-            <p className="mt-6 flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-              <IconAdvice className="h-4 w-4 text-brand-red" />
-              Respuesta directa por WhatsApp
-            </p>
+        {/* Final CTA */}
+        <section className="section-paper section-pad-compact divider-hairline">
+          <div className="container-site flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
+            <div className="max-w-xl">
+              <h2 className="text-h3 text-text-primary">
+                ¿Listo para encontrar tu próxima unidad?
+              </h2>
+              <p className="mt-2 text-text-secondary">
+                Escríbenos y te orientamos con información clara.
+              </p>
+            </div>
+            <WhatsAppCta message={whatsappMessages.finalCta}>
+              Hablar por WhatsApp
+            </WhatsAppCta>
           </div>
         </section>
       </main>
